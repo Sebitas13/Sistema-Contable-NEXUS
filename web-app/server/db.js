@@ -1,86 +1,206 @@
+const fs = require('fs');
+const path = require('path');
 const { createClient } = require('@libsql/client');
 require('dotenv').config();
 
-// CONFIGURACIÓN (Intenta leer variables, si no usa las strings)
-// IMPORTANTE: ¡Actualiza este token en Render si generas uno nuevo!
-const dbTurso = createClient({
-  url: process.env.TURSO_DATABASE_URL || "libsql://nexus-db-sebitas13.aws-us-west-2.turso.io",
-  authToken: process.env.TURSO_AUTH_TOKEN || "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjgxNDQyMDQsImlkIjoiNjUyODNjOWItOWE2ZS00MmEyLWI0Y2UtNDY3NzY3NWM4NjNjIiwicmlkIjoiYmU4MjdhNDgtNjFmNi00NzQ1LWEwZjgtZWFjNmE2MzkzNjJkIn0.ouDmTK_6F60Iq_1Ost0vdvXdAlUPUxCoe5ZBD6lYlFhK8FOh8I4ZgOIl3n6rLKZMANeL0092Y-9slfUZ-j0vAg", 
+const tursoUrl = process.env.TURSO_DATABASE_URL;
+const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+
+if (!tursoUrl || !tursoAuthToken) {
+    throw new Error('FATAL: Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN in environment variables.');
+}
+
+const client = createClient({
+    url: tursoUrl,
+    authToken: tursoAuthToken,
 });
 
-// ADAPTADOR UNIVERSAL (Ahora incluye serialize)
-const db = {
-  // 1. Mock para "on"
-  on: (event, callback) => {
-    return this; 
-  },
-  
-  // 2. Mock para "configure"
-  configure: () => { 
-    return this; 
-  },
+// Helper to convert BigInt to Number for JSON serialization
+function normalizeValue(value) {
+    if (typeof value === 'bigint') {
+        return Number(value);
+    }
+    return value;
+}
 
-  // 3. LA SOLUCIÓN AL ERROR ACTUAL: Mock para "serialize"
-  // Simplemente ejecutamos la función que trae adentro inmediatamente.
-  serialize: (callback) => {
-    if (callback) callback();
-  },
+function normalizeRow(row) {
+    if (!row || typeof row !== 'object') return row;
+    const normalized = {};
+    for (const key in row) {
+        if (Object.prototype.hasOwnProperty.call(row, key)) {
+            normalized[key] = normalizeValue(row[key]);
+        }
+    }
+    return normalized;
+}
 
-  // 4. Métodos reales de Base de Datos
-  exec: async (sql, callback) => {
+// --- Promise-based Queue to serialize database operations ---
+let queryQueue = Promise.resolve();
+
+async function initializeSchema() {
+    // Correctly resolve the path to schema.sql from the current file's directory
+    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
     try {
-      await dbTurso.executeMultiple(sql);
-      if (callback) callback(null);
+        if (!fs.existsSync(schemaPath)) {
+            console.warn(`WARN: Schema file not found at ${schemaPath}. Skipping initialization.`);
+            return;
+        }
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        // Use batch for non-interactive, multi-statement SQL execution
+        await client.batch(schemaSql, 'write');
+        console.log('Database schema initialized successfully.');
     } catch (err) {
-      console.error("[Turso Exec Error]", err);
-      if (callback) callback(err);
+        console.error('FATAL: Error initializing database schema.', err);
+        // Throwing here will prevent the app from starting, which is correct
+        // if the database can't be prepared.
+        throw err;
     }
-  },
-  all: async (sql, params, callback) => {
-    if (typeof params === 'function') { callback = params; params = []; }
-    try {
-      const rs = await dbTurso.execute({ sql, args: params || [] });
-      if (callback) callback(null, rs.rows);
-    } catch (err) {
-      console.error("[Turso All Error]", err);
-      if (callback) callback(err, null);
-    }
-  },
-  run: async (sql, params, callback) => {
-    if (typeof params === 'function') { callback = params; params = []; }
-    try {
-      const rs = await dbTurso.execute({ sql, args: params || [] });
-      const context = { lastID: Number(rs.lastInsertRowid), changes: rs.rowsAffected };
-      if (callback) callback.call(context, null);
-    } catch (err) {
-      console.error("[Turso Run Error]", err);
-      if (callback) callback(err);
-    }
-  },
-  get: async (sql, params, callback) => {
-    if (typeof params === 'function') { callback = params; params = []; }
-    try {
-        const rs = await dbTurso.execute({ sql, args: params || [] });
-        if (callback) callback(null, rs.rows[0]);
-    } catch (err) {
-        if (callback) callback(err, null);
-    }
-  }
+}
+
+// Add schema initialization to the queue. All other queries will wait for this.
+queryQueue = queryQueue.then(initializeSchema);
+
+// Wrapper to add a task to the serial queue
+const enqueue = (task) => {
+    return new Promise((resolve, reject) => {
+        queryQueue = queryQueue.then(() => task().then(resolve, reject)).catch(() => {});
+    });
 };
 
-// Inicializador de Schema
-const path = require('path');
-const fs = require('fs');
-const schemaPath = path.resolve(__dirname, 'schema.sql');
+const db = {
+    // A simple no-op since our queue handles serialization globally
+    serialize(callback) {
+        if (callback) {
+            // The callback contains db calls that will be automatically enqueued
+            callback();
+        }
+    },
 
-if (fs.existsSync(schemaPath)) {
-  const schema = fs.readFileSync(schemaPath, 'utf8');
-  setTimeout(() => {
-      db.exec(schema, (err) => {
-        if (err) console.error('Error Schema Turso:', err);
-        else console.log('✅ Base de datos Turso Sincronizada y lista.');
-      });
-  }, 1000);
-}
+    run(sql, params = [], callback) {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+
+        const task = async () => {
+            const rs = await client.execute({ sql, args: params });
+            const context = {
+                lastID: normalizeValue(rs.lastInsertRowid),
+                changes: rs.rowsAffected,
+            };
+            if (callback) process.nextTick(() => callback.call(context, null));
+            return context;
+        };
+
+        enqueue(task).catch(err => {
+            if (callback) process.nextTick(() => callback.call({ lastID: undefined, changes: 0 }, err));
+        });
+
+        return this; // For chaining
+    },
+
+    get(sql, params = [], callback) {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+
+        const task = async () => {
+            const rs = await client.execute({ sql, args: params });
+            const row = rs.rows.length > 0 ? normalizeRow(rs.rows[0]) : undefined;
+            if (callback) process.nextTick(() => callback(null, row));
+            return row;
+        };
+
+        enqueue(task).catch(err => {
+            if (callback) process.nextTick(() => callback(err, null));
+        });
+
+        return this;
+    },
+
+    all(sql, params = [], callback) {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+
+        const task = async () => {
+            const rs = await client.execute({ sql, args: params });
+            const rows = rs.rows.map(normalizeRow);
+            if (callback) process.nextTick(() => callback(null, rows));
+            return rows;
+        };
+        
+        enqueue(task).catch(err => {
+            if (callback) process.nextTick(() => callback(err, null));
+        });
+        
+        return this;
+    },
+
+    exec(sql, callback) {
+        const task = async () => {
+             await client.batch(sql, 'write');
+            if (callback) process.nextTick(() => callback(null));
+        };
+
+        enqueue(task).catch(err => {
+            if (callback) process.nextTick(() => callback(err));
+        });
+
+        return this;
+    },
+
+    prepare(sql, callback) {
+        const stmt = {
+            run: (...args) => {
+                let runCallback;
+                let runParams = [];
+
+                if (args.length > 0) {
+                    const lastArg = args[args.length - 1];
+                    if (typeof lastArg === 'function') {
+                        runCallback = lastArg;
+                        runParams = args.slice(0, -1);
+                    } else {
+                        runParams = args;
+                    }
+                }
+                
+                // If params are passed as a single array
+                if (runParams.length === 1 && Array.isArray(runParams[0])) {
+                    runParams = runParams[0];
+                }
+
+                db.run(sql, runParams, runCallback);
+                return stmt; // for chaining
+            },
+            finalize: (finalizeCallback) => {
+                // With our model, finalize is a no-op for compatibility,
+                // as each run is atomic. We call the callback asynchronously.
+                if (finalizeCallback) {
+                    process.nextTick(() => finalizeCallback(null));
+                }
+            }
+        };
+
+        if (callback) {
+            process.nextTick(() => callback(null));
+        }
+
+        return stmt;
+    },
+
+    close(callback) {
+        const task = async () => {
+            client.close();
+            if (callback) process.nextTick(() => callback(null));
+        };
+        enqueue(task).catch(err => {
+            if (callback) process.nextTick(() => callback(err));
+        });
+    }
+};
 
 module.exports = db;
