@@ -191,8 +191,8 @@ router.post('/import', upload.single('file'), async (req, res) => {
             const insertCompSql = `
                 INSERT INTO companies (
                     name, nit, legal_name, address, city, country, phone, email, website, 
-                    logo_url, fiscal_year_start, operation_start_date, currency, current_year
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    logo_url, fiscal_year_start, currency
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
             const compResult = await dbRun(insertCompSql, [
                 sourceCompany.name + " (Restaurado)",
@@ -206,9 +206,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 sourceCompany.website,
                 sourceCompany.logo_url,
                 sourceCompany.fiscal_year_start,
-                sourceCompany.operation_start_date,
-                sourceCompany.currency,
-                sourceCompany.current_year
+                sourceCompany.currency
             ]);
             const NEW_COMPANY_ID = compResult.lastID;
 
@@ -242,14 +240,17 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 }
             }
 
-            // 4. UFV & TC
+            // 4. UFV & TC (Global Tables)
             for (const rate of ufv_rates) {
-                await dbRun(`INSERT OR IGNORE INTO ufv_rates (company_id, date, value) VALUES (?, ?, ?)`,
-                    [NEW_COMPANY_ID, rate.date, rate.value]);
+                await dbRun(`INSERT OR IGNORE INTO ufv_rates (date, value) VALUES (?, ?)`,
+                    [rate.date, rate.value]);
             }
             for (const rate of exchange_rates) {
-                await dbRun(`INSERT OR IGNORE INTO exchange_rates (company_id, date, currency, buy_rate, sell_rate) VALUES (?, ?, ?, ?, ?)`,
-                    [NEW_COMPANY_ID, rate.date, rate.currency, rate.buy_rate, rate.sell_rate]);
+                // Assuming backup rates are for USD as the schema has specific USD columns
+                if(rate.currency === 'USD') {
+                    await dbRun(`INSERT OR IGNORE INTO exchange_rates (date, usd_buy, usd_sell) VALUES (?, ?, ?)`,
+                        [rate.date, rate.buy_rate, rate.sell_rate]);
+                }
             }
 
             // 5. AI Profiles & Events
