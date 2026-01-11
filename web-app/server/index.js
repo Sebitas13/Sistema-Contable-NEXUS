@@ -6,7 +6,24 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  'https://sistemacontablenexus.vercel.app',
+  'http://localhost:3000', // Para que sigas pudiendo probar en tu laptop
+  'http://localhost:5173'  // Por si usas Vite localmente
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permitir peticiones sin origen (como apps móviles o curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'El permiso CORS para este origen es denegado.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Esperar a que la DB esté lista (opcional, para log visual)
