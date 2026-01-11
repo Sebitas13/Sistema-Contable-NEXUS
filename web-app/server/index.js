@@ -26,11 +26,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Esperar a que la DB esté lista (opcional, para log visual)
-db.on('open', () => {
-    console.log('Database connection established via shared module.');
-});
-
 // Routes
 const transactionsRouter = require('./routes/transactions');
 const reportsRouter = require('./routes/reports');

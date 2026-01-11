@@ -68,6 +68,23 @@ const enqueue = (task) => {
 };
 
 const db = {
+    on(event, callback) {
+        if (event === 'open' && typeof callback === 'function') {
+            // The database is "open" once the schema initialization promise resolves.
+            // We chain the callback to the main query queue.
+            queryQueue
+                .then(() => {
+                    process.nextTick(callback);
+                })
+                .catch(() => {
+                    // If initialization fails, the server will likely crash anyway from the thrown error
+                    // in initializeSchema, so we don't need to call the 'open' callback.
+                });
+        }
+        // Return `this` for chaining compatibility, e.g., db.on(...).on(...)
+        return this;
+    },
+
     // A simple no-op since our queue handles serialization globally
     serialize(callback) {
         if (callback) {
