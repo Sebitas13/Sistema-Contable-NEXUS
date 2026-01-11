@@ -1,0 +1,38 @@
+{
+  "name": "sistema-contable",
+  "version": "1.0.0",
+  "main": "web-app/server/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "analyze": "python analyze_excel.py",
+    "start:server": "nodemon web-app/server/index.js",
+    "start:client": "npm run dev --prefix web-app/client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "acorn": "^8.15.0",
+    "archiver": "^7.0.1",
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.3",
+    "glob": "^13.0.0",
+    "groq-sdk": "^0.37.0",
+    "multer": "^2.0.2",
+    "node-fetch": "^2.7.0",
+    "nodemon": "^3.1.11",
+    "pdfjs-dist": "^5.4.449",
+    "sqlite3": "^5.1.7",
+    "unzipper": "^0.12.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "pdf-parse": "^2.4.5"
+  },
+  "description": ""
+}
