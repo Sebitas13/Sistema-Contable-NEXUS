@@ -237,6 +237,15 @@ const db = {
         enqueue(task).catch(err => {
             if (callback) process.nextTick(() => callback(err));
         });
+    },
+
+    // Expose the raw transaction capability of the underlying driver.
+    // The callback will receive a transaction object `tx` which has its own `execute` method.
+    // This is for complex atomic operations that the sqlite3 compatibility layer can't handle.
+    async transaction(callback) {
+        // We intentionally bypass the serial queue here because the transaction
+        // itself provides atomicity for the block of operations.
+        return client.transaction(callback);
     }
 };
 

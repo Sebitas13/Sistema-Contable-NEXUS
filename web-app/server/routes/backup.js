@@ -158,10 +158,25 @@ router.post('/dry-run', upload.single('file'), async (req, res) => {
 router.post('/import', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
+    // Helper to run commands within a transaction
+    const txRun = async (tx, sql, params = []) => {
+        // Helper to convert BigInt to Number for JSON serialization
+        function normalizeValue(value) {
+            if (typeof value === 'bigint') {
+                return Number(value);
+            }
+            return value;
+        }
+        const rs = await tx.execute({ sql, args: params });
+        return {
+            lastID: normalizeValue(rs.lastInsertRowid),
+            changes: rs.rowsAffected,
+        };
+    };
+
     try {
         const directory = await unzipper.Open.file(req.file.path);
 
-        // Load all JSON files into memory (since we need to maintain relationships)
         const loadJson = async (filename) => {
             const file = directory.files.find(d => d.path === filename);
             if (!file) return [];
@@ -169,8 +184,9 @@ router.post('/import', upload.single('file'), async (req, res) => {
             return JSON.parse(buffer.toString());
         };
 
-        const metadata = await loadJson('metadata.json');
         const companies = await loadJson('data/companies.json');
+        if (companies.length === 0) throw new Error('No company data found in backup');
+
         const accounts = await loadJson('data/accounts.json');
         const transactions = await loadJson('data/transactions.json');
         const transaction_entries = await loadJson('data/transaction_entries.json');
@@ -179,22 +195,19 @@ router.post('/import', upload.single('file'), async (req, res) => {
         const mahoraga_events = await loadJson('data/mahoraga_adaptation_events.json');
         const profiles = await loadJson('data/company_adjustment_profiles.json');
 
-        if (companies.length === 0) throw new Error('No company data found in backup');
+        let NEW_COMPANY_ID;
 
-        // BEGIN ATOMIC TRANSACTION
-        await dbRun('BEGIN TRANSACTION');
-
-        try {
+        // Use the driver's native transaction handling
+        await db.transaction(async (tx) => {
             const sourceCompany = companies[0];
 
-            // 1. Create Company (suffix with (Restore) if name overlaps? For now just create new)
             const insertCompSql = `
                 INSERT INTO companies (
                     name, nit, legal_name, address, city, country, phone, email, website, 
                     logo_url, fiscal_year_start, currency
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-            const compResult = await dbRun(insertCompSql, [
+            const compResult = await txRun(tx, insertCompSql, [
                 sourceCompany.name + " (Restaurado)",
                 sourceCompany.nit,
                 sourceCompany.legal_name,
@@ -208,78 +221,65 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 sourceCompany.fiscal_year_start,
                 sourceCompany.currency
             ]);
-            const NEW_COMPANY_ID = compResult.lastID;
+            NEW_COMPANY_ID = compResult.lastID;
 
-            // 2. Map Accounts
-            const accountIdMap = new Map(); // oldId -> newId
+            const accountIdMap = new Map();
             for (const acc of accounts) {
-                const accRes = await dbRun(
+                const accRes = await txRun(tx,
                     `INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)`,
                     [NEW_COMPANY_ID, acc.code, acc.name, acc.type, acc.level, acc.parent_code]
                 );
                 accountIdMap.set(acc.id, accRes.lastID);
             }
 
-            // 3. Map Transactions & Entries
-            for (const tx of transactions) {
-                const txRes = await dbRun(
+            for (const transaction of transactions) {
+                const txRes = await txRun(tx,
                     `INSERT INTO transactions (company_id, date, gloss, type, created_at) VALUES (?, ?, ?, ?, ?)`,
-                    [NEW_COMPANY_ID, tx.date, tx.gloss, tx.type, tx.created_at]
+                    [NEW_COMPANY_ID, transaction.date, transaction.gloss, transaction.type, transaction.created_at]
                 );
                 const NEW_TX_ID = txRes.lastID;
 
-                // Find entries for this specific transaction
-                const entries = transaction_entries.filter(e => e.transaction_id === tx.id);
+                const entries = transaction_entries.filter(e => e.transaction_id === transaction.id);
                 for (const entry of entries) {
                     const newAccId = accountIdMap.get(entry.account_id);
-                    if (!newAccId) continue; // Should not happen with integrity
-                    await dbRun(
+                    if (!newAccId) continue;
+                    await txRun(tx,
                         `INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)`,
                         [NEW_TX_ID, newAccId, entry.debit, entry.credit, entry.gloss]
                     );
                 }
             }
 
-            // 4. UFV & TC (Global Tables)
             for (const rate of ufv_rates) {
-                await dbRun(`INSERT OR IGNORE INTO ufv_rates (date, value) VALUES (?, ?)`,
+                await txRun(tx, `INSERT OR IGNORE INTO ufv_rates (date, value) VALUES (?, ?)`,
                     [rate.date, rate.value]);
             }
             for (const rate of exchange_rates) {
-                // Assuming backup rates are for USD as the schema has specific USD columns
-                if(rate.currency === 'USD') {
-                    await dbRun(`INSERT OR IGNORE INTO exchange_rates (date, usd_buy, usd_sell) VALUES (?, ?, ?)`,
+                if (rate.currency === 'USD') {
+                    await txRun(tx, `INSERT OR IGNORE INTO exchange_rates (date, usd_buy, usd_sell) VALUES (?, ?, ?)`,
                         [rate.date, rate.buy_rate, rate.sell_rate]);
                 }
             }
 
-            // 5. AI Profiles & Events
             for (const profile of profiles) {
-                await dbRun(`INSERT OR IGNORE INTO company_adjustment_profiles (company_id, profile_json, version) VALUES (?, ?, ?)`,
+                await txRun(tx, `INSERT OR IGNORE INTO company_adjustment_profiles (company_id, profile_json, version) VALUES (?, ?, ?)`,
                     [NEW_COMPANY_ID, profile.profile_json, profile.version]);
             }
             for (const event of mahoraga_events) {
-                await dbRun(`INSERT OR IGNORE INTO mahoraga_adaptation_events (id, company_id, user, origin_trans, account_code, account_name, action, event_data, timestamp, reverted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                await txRun(tx, `INSERT OR IGNORE INTO mahoraga_adaptation_events (id, company_id, user, origin_trans, account_code, account_name, action, event_data, timestamp, reverted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [event.id, NEW_COMPANY_ID, event.user, event.origin_trans, event.account_code, event.account_name, event.action, event.event_data, event.timestamp, event.reverted]);
             }
+        });
 
-            await dbRun('COMMIT');
-
-            // 6. TRIGGER AI RELOAD
-            try {
-                // Assuming internal reload endpoint exists or just ping the AI engine
-                await axios.post('http://localhost:3001/api/ai/reload-profiles', { companyId: NEW_COMPANY_ID }).catch(e => console.log('AI reload signal skip/fail'));
-            } catch (aiErr) {
-                console.warn('Could not signal AI engine:', aiErr.message);
-            }
-
-            await fs.remove(req.file.path);
-            res.json({ success: true, message: 'Restore completed successfully', newCompanyId: NEW_COMPANY_ID });
-
-        } catch (txErr) {
-            await dbRun('ROLLBACK');
-            throw txErr;
+        // If transaction was successful, proceed
+        try {
+            await axios.post('http://localhost:3001/api/ai/reload-profiles', { companyId: NEW_COMPANY_ID }).catch(e => console.log('AI reload signal skip/fail'));
+        } catch (aiErr) {
+            console.warn('Could not signal AI engine:', aiErr.message);
         }
+
+        await fs.remove(req.file.path);
+        res.json({ success: true, message: 'Restore completed successfully', newCompanyId: NEW_COMPANY_ID });
 
     } catch (err) {
         console.error('Import error:', err);
