@@ -3,6 +3,7 @@ const path = require('path');
 const { createClient } = require('@libsql/client');
 require('dotenv').config();
 
+
 const tursoUrl = process.env.TURSO_DATABASE_URL;
 let tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 
@@ -11,10 +12,8 @@ if (!tursoUrl || !tursoAuthToken) {
 }
 
 // The @libsql/client expects the token WITHOUT the "Bearer " prefix.
-// Defensively remove it if it's present to avoid header errors.
-if (tursoAuthToken.startsWith('Bearer ')) {
-    tursoAuthToken = tursoAuthToken.substring(7).trim();
-}
+// Defensively and case-insensitively remove it if it's present, and trim whitespace.
+tursoAuthToken = String(tursoAuthToken).replace(/^bearer\s+/i, '').trim();
 
 const client = createClient({
     url: tursoUrl,
@@ -52,7 +51,7 @@ async function initializeSchema() {
             return;
         }
         const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-        
+
         // The libsql client's batch() method expects an array of strings.
         // We split the schema file by the semicolon, trim each statement,
         // and filter out any empty statements.
@@ -68,7 +67,7 @@ async function initializeSchema() {
         // Use batch for non-interactive, multi-statement SQL execution.
         // We pass the array of statements. The 'write' mode is default and implicit for batch.
         await client.batch(statements);
-        
+
         console.log('Database schema initialized successfully.');
     } catch (err) {
         console.error('FATAL: Error initializing database schema.', err);
@@ -84,7 +83,7 @@ queryQueue = queryQueue.then(initializeSchema);
 // Wrapper to add a task to the serial queue
 const enqueue = (task) => {
     return new Promise((resolve, reject) => {
-        queryQueue = queryQueue.then(() => task().then(resolve, reject)).catch(() => {});
+        queryQueue = queryQueue.then(() => task().then(resolve, reject)).catch(() => { });
     });
 };
 
@@ -169,17 +168,17 @@ const db = {
             if (callback) process.nextTick(() => callback(null, rows));
             return rows;
         };
-        
+
         enqueue(task).catch(err => {
             if (callback) process.nextTick(() => callback(err, null));
         });
-        
+
         return this;
     },
 
     exec(sql, callback) {
         const task = async () => {
-             await client.batch(sql, 'write');
+            await client.batch(sql, 'write');
             if (callback) process.nextTick(() => callback(null));
         };
 
@@ -205,7 +204,7 @@ const db = {
                         runParams = args;
                     }
                 }
-                
+
                 // If params are passed as a single array
                 if (runParams.length === 1 && Array.isArray(runParams[0])) {
                     runParams = runParams[0];
