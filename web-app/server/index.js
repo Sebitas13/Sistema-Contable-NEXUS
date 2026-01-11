@@ -9,7 +9,10 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   'https://sistemacontablenexus.vercel.app',
   'http://localhost:3000', // Para que sigas pudiendo probar en tu laptop
-  'http://localhost:5173'  // Por si usas Vite localmente
+  'http://localhost:5173', // Por si usas Vite localmente
+  'http://localhost:8000', // Para el motor Python AI local
+  'http://localhost:8003', // Para el motor Python AI en puerto alternativo
+
 ];
 
 const corsOptions = {
@@ -48,9 +51,9 @@ const skillLoader = require('./services/skillLoader');
 console.log('🔮 Inicializando Mahoraga Skill System...');
 const skillsLoaded = skillLoader.loadSkills();
 if (skillsLoaded) {
-    console.log('✅ Skill System inicializado exitosamente');
+  console.log('✅ Skill System inicializado exitosamente');
 } else {
-    console.log('⚠️ Skill System no pudo cargar skills (archivo no encontrado)');
+  console.log('⚠️ Skill System no pudo cargar skills (archivo no encontrado)');
 }
 
 app.use('/api/exchange-rates', exchangeRatesRouter);
@@ -65,39 +68,39 @@ app.use('/api/backup', backupRouter);
 // Optional AI router (opt-in). Enable by setting environment variable ENABLE_AI=1
 // Cambiado a true por defecto para pruebas, o si ENABLE_AI es 1
 if (true || (process.env.ENABLE_AI && process.env.ENABLE_AI !== '0')) {
-    try {
-        // Load base AI routes first
-        const aiRouter = require('./routes/ai');
-        app.use('/api/ai', aiRouter);
-        console.log('AI router registered at /api/ai (ENABLE_AI=1)');
+  try {
+    // Load base AI routes first
+    const aiRouter = require('./routes/ai');
+    app.use('/api/ai', aiRouter);
+    console.log('AI router registered at /api/ai (ENABLE_AI=1)');
 
-        // Load Cognitive Orchestrator routes (mount under /api/ai/orchestrator to avoid conflicts)
-        const orchestratorRouter = require('./routes/orchestrator');
-        app.use('/api/ai/orchestrator', orchestratorRouter);
-        console.log('Cognitive Orchestrator registered at /api/ai/orchestrator');
-    } catch (e) {
-        console.warn('AI router could not be registered:', e.message);
-    }
+    // Load Cognitive Orchestrator routes (mount under /api/ai/orchestrator to avoid conflicts)
+    const orchestratorRouter = require('./routes/orchestrator');
+    app.use('/api/ai/orchestrator', orchestratorRouter);
+    console.log('Cognitive Orchestrator registered at /api/ai/orchestrator');
+  } catch (e) {
+    console.warn('AI router could not be registered:', e.message);
+  }
 }
 
 app.get('/api/status', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running' });
+  res.json({ status: 'ok', message: 'Server is running' });
 });
 
 // Knowledge Brain Routes (Mahoraga's Understanding)
 try {
-    const knowledgeRouter = require('./routes/knowledge');
-    app.use('/api/knowledge', knowledgeRouter);
-    console.log('Knowledge Brain registered at /api/knowledge');
+  const knowledgeRouter = require('./routes/knowledge');
+  app.use('/api/knowledge', knowledgeRouter);
+  console.log('Knowledge Brain registered at /api/knowledge');
 
-    // AI Knowledge Bridge (for Python engine)
-    const aiKnowledgeRouter = require('./routes/aiKnowledge');
-    app.use('/api/ai/knowledge', aiKnowledgeRouter);
-    console.log('AI Knowledge Bridge registered at /api/ai/knowledge');
+  // AI Knowledge Bridge (for Python engine)
+  const aiKnowledgeRouter = require('./routes/aiKnowledge');
+  app.use('/api/ai/knowledge', aiKnowledgeRouter);
+  console.log('AI Knowledge Bridge registered at /api/ai/knowledge');
 } catch (e) {
-    console.warn('Knowledge router could not be registered:', e.message);
+  console.warn('Knowledge router could not be registered:', e.message);
 }
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

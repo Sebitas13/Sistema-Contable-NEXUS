@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS companies (
     logo_url TEXT,
     fiscal_year_start TEXT DEFAULT '01-01',
     currency TEXT DEFAULT 'BOB',
+    code_mask TEXT,
+    plan_structure TEXT,
+    societal_type TEXT DEFAULT 'Unipersonal',
+    activity_type TEXT DEFAULT 'Comercial',
+    operation_start_date TEXT,
+    current_year INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

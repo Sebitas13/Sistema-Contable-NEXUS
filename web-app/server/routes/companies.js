@@ -5,7 +5,7 @@ const db = require('../db');
 // Migration helper: Ensure new columns exist for Societal and Activity types and Current Year
 const ensureColumns = () => {
     db.serialize(() => {
-        const columns = ['societal_type', 'activity_type', 'operation_start_date', 'current_year'];
+        const columns = ['code_mask', 'plan_structure', 'societal_type', 'activity_type', 'operation_start_date', 'current_year'];
         columns.forEach(col => {
             db.run(`ALTER TABLE companies ADD COLUMN ${col} TEXT`, (err) => {
                 // Ignore error if column already exists

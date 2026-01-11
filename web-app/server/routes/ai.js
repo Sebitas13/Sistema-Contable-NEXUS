@@ -8,7 +8,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const AI_ENGINE_URL = 'http://localhost:8003';
+const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.AI_ENGINE_URL_ALT || 'http://localhost:8000';
 const db = require('../db');
 
 // Helper function to promisify db.all
@@ -651,7 +651,7 @@ router.post('/adjustments/confirm', async (req, res) => {
     };
 
     // Make an internal call to the batch transaction endpoint
-    const response = await axios.post('http://localhost:3001/api/transactions/batch', batchPayload, {
+    const response = await axios.post(`${process.env.API_BASE_URL || 'http://localhost:3001'}/api/transactions/batch`, batchPayload, {
       headers: { 'Content-Type': 'application/json' }
     });
 
