@@ -4,10 +4,16 @@ const { createClient } = require('@libsql/client');
 require('dotenv').config();
 
 const tursoUrl = process.env.TURSO_DATABASE_URL;
-const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+let tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 
 if (!tursoUrl || !tursoAuthToken) {
     throw new Error('FATAL: Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN in environment variables.');
+}
+
+// The @libsql/client expects the token WITHOUT the "Bearer " prefix.
+// Defensively remove it if it's present to avoid header errors.
+if (tursoAuthToken.startsWith('Bearer ')) {
+    tursoAuthToken = tursoAuthToken.substring(7).trim();
 }
 
 const client = createClient({
