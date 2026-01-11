@@ -12,18 +12,25 @@ const allowedOrigins = [
   'http://localhost:5173'  // Por si usas Vite localmente
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    // Permitir peticiones sin origen (como apps móviles o curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'El permiso CORS para este origen es denegado.';
-      return callback(new Error(msg), false);
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
+// Enable CORS for all requests
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // Routes
