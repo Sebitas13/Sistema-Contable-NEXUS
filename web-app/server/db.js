@@ -46,8 +46,23 @@ async function initializeSchema() {
             return;
         }
         const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-        // Use batch for non-interactive, multi-statement SQL execution
-        await client.batch(schemaSql, 'write');
+        
+        // The libsql client's batch() method expects an array of strings.
+        // We split the schema file by the semicolon, trim each statement,
+        // and filter out any empty statements.
+        const statements = schemaSql.split(';')
+            .map(stmt => stmt.trim())
+            .filter(stmt => stmt.length > 0);
+
+        if (statements.length === 0) {
+            console.log('No statements found in schema.sql. Skipping initialization.');
+            return;
+        }
+
+        // Use batch for non-interactive, multi-statement SQL execution.
+        // We pass the array of statements. The 'write' mode is default and implicit for batch.
+        await client.batch(statements);
+        
         console.log('Database schema initialized successfully.');
     } catch (err) {
         console.error('FATAL: Error initializing database schema.', err);
