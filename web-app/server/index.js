@@ -15,15 +15,12 @@ const allowedOrigins = [
 
 ];
 
-const corsOptions = {
-  origin: true, // Permite cualquier origen que esté en tu lista o incluso dinámicos
+app.use(cors({
+  origin: true, // Esto es más flexible y evita el error de PathError
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
-
-// En lugar de la línea que borramos, usa esto:
-app.use(cors(corsOptions));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
