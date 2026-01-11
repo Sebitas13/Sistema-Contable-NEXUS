@@ -4,9 +4,11 @@ import { useCompany } from '../context/CompanyContext';
 import { AccountPlanProfile } from '../utils/AccountPlanProfile';
 import MahoragaActivationButton from '../components/MahoragaActivationButton';
 import BackupManager from '../components/BackupManager';
+import API_URL from '../api';
 
 // Default ARS Profile
 const ARS_CONTEXT_PROFILE = {
+    active_pages: ['Journal', 'Ledger', 'FinancialStatements'], // Default active pages
     data_retrieval_config: {},
     reasoning_config: { confidence_threshold: 0.75 },
     depreciation_settings: { assets_life: [] },
@@ -150,7 +152,7 @@ export default function Settings() {
 
     const loadInitialProfile = async () => {
         try {
-            const response = await axios.get(`/api/ai/profile/${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/profile/${selectedCompany.id}`);
 
             if (response.data.success && response.data.profile_json) {
                 setCompanyProfile(response.data.profile_json);
@@ -222,7 +224,7 @@ export default function Settings() {
                 }
             };
 
-            await axios.post(`/api/ai/profile/${selectedCompany.id}`, { profile_json: updatedProfile });
+            await axios.post(`${API_URL}/api/ai/profile/${selectedCompany.id}`, { profile_json: updatedProfile });
             setCompanyProfile(updatedProfile); // Optimistic update
             alert('✅ Configuración de depreciación guardada correctamente.');
         } catch (error) {
@@ -285,7 +287,7 @@ export default function Settings() {
             }
 
             // 3. Send updates to backend
-            await axios.patch('${API_URL}/api/accounts/batch-parents', {
+            await axios.patch(`${API_URL}/api/accounts/batch-parents`, {
                 companyId: selectedCompany.id,
                 updates: updates.map(u => ({ id: u.id, parent_code: u.parent_code }))
             });
@@ -333,7 +335,7 @@ export default function Settings() {
     const fetchPageConfig = async () => {
         if (!selectedCompany) return;
         try {
-            const response = await axios.get(`/api/ai/mahoraga/config/${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
             if (response.data.success) {
                 let pages = response.data.active_pages;
                 // Safe parsing if it comes as string
@@ -353,7 +355,7 @@ export default function Settings() {
         setActivePages(newPages);
         setSavingConfig(true);
         try {
-            await axios.post(`/api/ai/mahoraga/config/${selectedCompany.id}`, { active_pages: newPages });
+            await axios.post(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`, { active_pages: newPages });
         } catch (error) {
             console.error("Error saving page config:", error);
             alert("Error al guardar configuración de páginas");
@@ -364,21 +366,21 @@ export default function Settings() {
 
     const fetchInsights = async () => {
         try {
-            const response = await axios.get(`/api/ai/mahoraga/insights?companyId=${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/insights?companyId=${selectedCompany.id}`);
             if (response.data.success) setInsights(response.data.insights);
         } catch (error) { console.error("Error fetching insights:", error); }
     };
 
     const fetchCompanyProfile = async () => {
         try {
-            const response = await axios.get(`/api/ai/profile/${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/profile/${selectedCompany.id}`);
             if (response.data.success) setCompanyProfile(response.data.profile_json);
         } catch (error) { console.error("Error fetching company profile:", error); }
     };
 
     const fetchMonitorData = async () => {
         try {
-            const [statsRes] = await Promise.all([axios.get('/api/ai/monitor/stats')]);
+            const [statsRes] = await Promise.all([axios.get(`${API_URL}/api/ai/monitor/stats`)]);
             setMonitorStats(statsRes.data);
         } catch (error) { console.error("Error fetching monitor data:", error); }
     };
@@ -386,18 +388,18 @@ export default function Settings() {
     const fetchMahoragaStatus = async () => {
         if (!selectedCompany) return;
         try {
-            const response = await axios.get('/api/ai/mahoraga/status');
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/status`);
             setMahoragaStatus(response.data.mahoraga);
         } catch (error) { console.error("Error fetching Mahoraga status:", error); }
     };
 
     const fetchSkillHealth = async () => {
         try {
-            const response = await axios.get('/api/ai/skills/health');
+            const response = await axios.get(`${API_URL}/api/ai/skills/health`);
             if (response.data.success) setSkillStats(response.data.stats);
             // Fetch initial skills after health stats
             if (searchResults.length === 0) {
-                const skillsRes = await axios.get('/api/ai/skills/search?limit=20');
+                const skillsRes = await axios.get(`${API_URL}/api/ai/skills/search?limit=20`);
                 if (skillsRes.data.success) setSearchResults(skillsRes.data.results);
             }
         } catch (error) { console.error("Error fetching skill health:", error); }
@@ -406,7 +408,7 @@ export default function Settings() {
     const fetchLearningStatus = async () => {
         if (!selectedCompany) return;
         try {
-            const response = await axios.get('/api/ai/recognition/status', { params: { companyId: selectedCompany.id } });
+            const response = await axios.get(`${API_URL}/api/ai/recognition/status`, { params: { companyId: selectedCompany.id } });
             setLearningStatus(response.data);
         } catch (error) { console.error("Error fetching learning status:", error); }
     };
@@ -414,7 +416,7 @@ export default function Settings() {
     const handleModeChange = async () => {
         if (!selectedMode || !modeChangeReason.trim()) return alert('Selecciona un modo y proporciona una razón');
         try {
-            await axios.post('/api/ai/mahoraga/change-mode', { newMode: selectedMode, userId: 'admin', reason: modeChangeReason });
+            await axios.post(`${API_URL}/api/ai/mahoraga/change-mode`, { newMode: selectedMode, userId: 'admin', reason: modeChangeReason });
             alert(`Modo cambiado exitosamente a ${selectedMode}`);
             setSelectedMode(''); setModeChangeReason(''); setShowModeChange(false);
             fetchMahoragaStatus();
@@ -424,7 +426,7 @@ export default function Settings() {
     const handleEmergencyStop = async () => {
         if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrá TODAS las operaciones de Mahoraga.')) return;
         try {
-            await axios.post('/api/ai/mahoraga/emergency-stop', { userId: 'admin', reason: 'Emergency stop from dashboard' });
+            await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, { userId: 'admin', reason: 'Emergency stop from dashboard' });
             alert('🛑 PARADA DE EMERGENCIA ACTIVADA');
             fetchMahoragaStatus();
         } catch (error) { alert('Error en parada de emergencia: ' + error.response?.data?.error); }
@@ -437,7 +439,7 @@ export default function Settings() {
         if (query.length > 2 || query.length === 0) {
             setLoadingSkills(true);
             try {
-                const response = await axios.get(`/api/ai/skills/search`, {
+                const response = await axios.get(`${API_URL}/api/ai/skills/search`, {
                     params: { q: query, limit: 20 }
                 });
                 if (response.data.success) setSearchResults(response.data.results);
@@ -453,7 +455,8 @@ export default function Settings() {
             handleSearch(null);
         }
     }, [activeTab, selectedCompany]);
-
+		// ... rest of the file is JSX and doesn't need to be changed
+	// ... I will only replace the part of the file that is relevant
     return (
         <div className="container-fluid py-4">
             <div className="d-flex justify-content-between align-items-center mb-4">

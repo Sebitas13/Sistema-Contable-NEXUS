@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import DatePicker from 'react-datepicker';
 import { es } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -69,8 +70,8 @@ export default function ExchangeRate() {
 
     const checkMahoragaStatus = async () => {
         try {
-            const response = await axios.get(`/api/ai/mahoraga/config/${selectedCompany.id}`);
-            if (response.data.success) {
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
+            if (response.data.success && Array.isArray(response.data.active_pages)) {
                 setMahoragaActive(response.data.active_pages.includes('ExchangeRate'));
             }
         } catch (error) { console.error("Error checking Mahoraga status:", error); }
@@ -334,7 +335,7 @@ export default function ExchangeRate() {
 
             for (let i = 0; i < ratesToImport.length; i += batchSize) {
                 const batch = ratesToImport.slice(i, i + batchSize);
-                const response = await axios.post('${API_URL}/api/exchange-rates/bulk', { companyId: selectedCompany.id, data: batch });
+                const response = await axios.post(`${API_URL}/api/exchange-rates/bulk`, { companyId: selectedCompany.id, data: batch });
                 totalSuccess += response.data.successCount || 0;
                 totalErrors += response.data.errorCount || 0;
                 if (response.data.errors) {
@@ -391,7 +392,7 @@ export default function ExchangeRate() {
                         currency: 'USD',
                         companyId: selectedCompany.id,
                     };
-                    await axios.post('${API_URL}/api/exchange-rates', payload);
+                    await axios.post(`${API_URL}/api/exchange-rates`, payload);
                     fetchRates(); // Refetch to update map and view
                 } catch (error) {
                     console.error('Error saving exchange rate:', error);
@@ -402,7 +403,7 @@ export default function ExchangeRate() {
                 try {
                     // When clearing a cell, we send null for BOTH to trigger deletion on backend
                     // Or we could send null for just the rateType, but usually we want to clear the entry if user clears the cell in this matrix view
-                    await axios.post('${API_URL}/api/exchange-rates', {
+                    await axios.post(`${API_URL}/api/exchange-rates`, {
                         date,
                         currency: 'USD',
                         companyId: selectedCompany.id,
