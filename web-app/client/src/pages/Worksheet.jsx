@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { TreeRow } from './FinancialStatements';
 import { generarEstadoResultados } from '../utils/IncomeStatementEngine';
@@ -47,14 +48,14 @@ export default function Worksheet() {
         try {
             const companyId = selectedCompany.id;
             // Fetch Balance de Comprobación data (excluding adjustments)
-            const bcResponse = await axios.get('http://localhost:3001/api/reports/ledger', {
+            const bcResponse = await axios.get(`${API_URL}/api/reports/ledger`, {
                 params: { companyId, excludeAdjustments: true, excludeClosing: true }
             });
             const bcData = bcResponse.data.data || [];
             setBcAccounts(bcData);
 
             // Fetch Adjustments only data
-            const adjResponse = await axios.get('http://localhost:3001/api/reports/ledger', {
+            const adjResponse = await axios.get(`${API_URL}/api/reports/ledger`, {
                 params: { companyId, adjustmentsOnly: true, excludeClosing: true }
             });
             const adjData = adjResponse.data.data || [];
@@ -129,7 +130,7 @@ export default function Worksheet() {
 
             // Enviar transacciones al backend
             for (const transaction of transactions) {
-                await axios.post('http://localhost:3001/api/transactions', transaction);
+                await axios.post(`${API_URL}/api/transactions`, transaction);
             }
 
             // Refrescar datos del worksheet

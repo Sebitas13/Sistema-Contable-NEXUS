@@ -1,9 +1,11 @@
 // Utilidades para obtener tasas UFV desde el sistema UFV.jsx
 
+import API_URL from '../api';
+
 export const getUFVValue = async (date, companyId) => {
     try {
         const year = new Date(date).getFullYear();
-        const response = await fetch(`http://localhost:3001/api/ufv?year=${year}&companyId=${companyId}`);
+        const response = await fetch(`${API_URL}/api/ufv?year=${year}&companyId=${companyId}`);
         const data = await response.json();
 
         if (data.data && Array.isArray(data.data)) {
@@ -29,7 +31,7 @@ export const getUFVRange = async (startDate, endDate, companyId) => {
         }
 
         const promises = years.map(year =>
-            fetch(`http://localhost:3001/api/ufv?year=${year}&companyId=${companyId}`)
+            fetch(`${API_URL}/api/ufv?year=${year}&companyId=${companyId}`)
                 .then(res => res.json())
                 .then(data => data.data || [])
         );
@@ -60,7 +62,7 @@ export const getUFVRange = async (startDate, endDate, companyId) => {
 export const getClosestUFV = async (targetDate, companyId) => {
     try {
         const year = new Date(targetDate).getFullYear();
-        const response = await fetch(`http://localhost:3001/api/ufv?year=${year}&companyId=${companyId}`);
+        const response = await fetch(`${API_URL}/api/ufv?year=${year}&companyId=${companyId}`);
         const data = await response.json();
 
         if (data.data && Array.isArray(data.data)) {
@@ -92,7 +94,7 @@ export const getClosestUFV = async (targetDate, companyId) => {
 // Función para obtener T/C más cercano a una fecha
 export const getExchangeRateValue = async (targetDate, companyId, currency = 'USD') => {
     try {
-        const response = await fetch(`http://localhost:3001/api/exchange-rates?companyId=${companyId}&startDate=${targetDate}&endDate=${targetDate}&currency=${currency}`);
+        const response = await fetch(`${API_URL}/api/exchange-rates?companyId=${companyId}&startDate=${targetDate}&endDate=${targetDate}&currency=${currency}`);
         const data = await response.json();
 
         if (data.data && Array.isArray(data.data) && data.data.length > 0) {
@@ -103,7 +105,7 @@ export const getExchangeRateValue = async (targetDate, companyId, currency = 'US
 
         // If not found for specific date, we could try a "closest" logic similar to UFV
         const year = new Date(targetDate).getFullYear();
-        const fullYearResponse = await fetch(`http://localhost:3001/api/exchange-rates?companyId=${companyId}&startDate=${year}-01-01&endDate=${year}-12-31&currency=${currency}`);
+        const fullYearResponse = await fetch(`${API_URL}/api/exchange-rates?companyId=${companyId}&startDate=${year}-01-01&endDate=${year}-12-31&currency=${currency}`);
         const fullData = await fullYearResponse.json();
 
         if (fullData.data && Array.isArray(fullData.data)) {

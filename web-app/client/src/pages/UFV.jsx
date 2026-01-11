@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { exportToPDF, exportToExcel, importFromExcel } from '../utils/exportUtils';
 import { useCompany } from '../context/CompanyContext';
 import * as XLSX from 'xlsx';
@@ -63,7 +64,7 @@ export default function UFV() {
 
         setLoading(true);
         try {
-            const response = await axios.get(`http://localhost:3001/api/ufv?year=${currentYear}&companyId=${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ufv?year=${currentYear}&companyId=${selectedCompany.id}`);
             setUfvData(response.data.data || []);
         } catch (error) {
             console.error('Error fetching UFV:', error);
@@ -154,7 +155,7 @@ export default function UFV() {
 
         try {
             setLoading(true);
-            const response = await axios.delete(`http://localhost:3001/api/ufv/year/${year}?companyId=${selectedCompany.id}`);
+            const response = await axios.delete(`${API_URL}/api/ufv/year/${year}?companyId=${selectedCompany.id}`);
             alert(`Se eliminaron ${response.data.deletedCount} registros UFV del año ${year}.`);
             await fetchUFV(year);
         } catch (error) {
@@ -397,7 +398,7 @@ export default function UFV() {
                 return;
             }
 
-            const response = await axios.post('http://localhost:3001/api/ufv/bulk', {
+            const response = await axios.post(`${API_URL}/api/ufv/bulk`, {
                 data: ufvRecords,
                 companyId: selectedCompany.id
             });
@@ -456,7 +457,7 @@ export default function UFV() {
             if (currentValue !== '' && currentValue !== initialValue) {
                 try {
                     console.log(`Saving UFV - Date: ${date}, Value: "${currentValue}" (was: "${initialValue}")`);
-                    await axios.post('http://localhost:3001/api/ufv', {
+                    await axios.post(`${API_URL}/api/ufv`, {
                         date,
                         value: parseFloat(currentValue), // Enviar como número al servidor
                         companyId: selectedCompany.id

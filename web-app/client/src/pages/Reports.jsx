@@ -86,7 +86,7 @@ export default function Reports() {
         if (selectedCompany) {
             const fetchStats = async () => {
                 try {
-                    const response = await axios.get(`http://localhost:3001/api/companies/${selectedCompany.id}/stats`);
+                    const response = await axios.get(`${API_URL}/api/companies/${selectedCompany.id}/stats`);
                     if (response.data.success) {
                         setStats(response.data.data);
                     }

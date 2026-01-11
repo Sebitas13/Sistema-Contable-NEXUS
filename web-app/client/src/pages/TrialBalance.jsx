@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { exportToPDF, exportToExcel, generatePDFDoc } from '../utils/exportUtils';
@@ -36,7 +37,7 @@ export default function TrialBalance() {
 
     const checkMahoragaStatus = async () => {
         try {
-            const response = await axios.get(`/api/ai/mahoraga/config/${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
             if (response.data.success) {
                 setMahoragaActive(response.data.active_pages.includes('TrialBalance'));
             }
@@ -46,7 +47,7 @@ export default function TrialBalance() {
     const fetchTrialBalance = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost:3001/api/reports/ledger', {
+            const response = await axios.get(`${API_URL}/api/reports/ledger`, {
                 params: {
                     companyId: selectedCompany.id,
                     excludeAdjustments: true,

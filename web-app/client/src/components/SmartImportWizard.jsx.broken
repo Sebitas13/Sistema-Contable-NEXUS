@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
+import API_URL from '../api';
 
 export default function SmartImportWizard({ onClose, onSuccess }) {
     const [step, setStep] = useState(1);
@@ -294,7 +295,7 @@ const performImport = async () => {
     try {
         for (const account of previewData) {
             try {
-                await axios.post('http://localhost:3001/api/accounts', {
+                await axios.post(`${API_URL}/api/accounts`, {
                     code: account.code,
                     name: account.name,
                     type: account.type,

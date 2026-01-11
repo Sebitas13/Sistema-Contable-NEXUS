@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 
 export default function BackupManager() {
@@ -17,7 +18,7 @@ export default function BackupManager() {
         try {
             // Downloading file via window.location for streaming feel or axios blob
             const response = await axios({
-                url: `/api/backup/export/${selectedCompany.id}`,
+                url: `${API_URL}/api/backup/export/${selectedCompany.id}`,
                 method: 'GET',
                 responseType: 'blob',
             });
@@ -62,7 +63,7 @@ export default function BackupManager() {
         formData.append('file', file);
 
         try {
-            const response = await axios.post('/api/backup/dry-run', formData, {
+            const response = await axios.post(`${API_URL}/api/backup/dry-run`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             setDryRunData(response.data.metadata);
@@ -89,7 +90,7 @@ export default function BackupManager() {
 
         try {
             setProgress(30);
-            const response = await axios.post('/api/backup/import', formData, {
+            const response = await axios.post(`${API_URL}/api/backup/import`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);

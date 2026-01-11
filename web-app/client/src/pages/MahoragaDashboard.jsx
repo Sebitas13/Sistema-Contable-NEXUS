@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import axios from 'axios';
+import API_URL from '../api';
 import MahoragaActivationButton from '../components/MahoragaActivationButton';
 
 export default function MahoragaDashboard() {
@@ -51,7 +52,7 @@ export default function MahoragaDashboard() {
 
   const fetchInsights = async () => {
     try {
-      const response = await axios.get(`/api/ai/mahoraga/insights?companyId=${selectedCompany.id}`);
+      const response = await axios.get(`${API_URL}/api/ai/mahoraga/insights?companyId=${selectedCompany.id}`);
       if (response.data.success) {
         setInsights(response.data.insights);
       }
@@ -62,7 +63,7 @@ export default function MahoragaDashboard() {
 
   const fetchCompanyProfile = async () => {
     try {
-      const response = await axios.get(`/api/ai/profile/${selectedCompany.id}`);
+      const response = await axios.get(`${API_URL}/api/ai/profile/${selectedCompany.id}`);
       if (response.data.success) {
         setCompanyProfile(response.data.profile_json);
       }
@@ -74,8 +75,8 @@ export default function MahoragaDashboard() {
   const fetchMonitorData = async () => {
     try {
       const [statsRes, dashboardRes] = await Promise.all([
-        axios.get('/api/ai/monitor/stats'),
-        axios.get('/api/ai/monitor/dashboard')
+        axios.get(`${API_URL}/api/ai/monitor/stats`),
+        axios.get(`${API_URL}/api/ai/monitor/dashboard`)
       ]);
       setMonitorStats(statsRes.data);
       setMonitorDashboard(dashboardRes.data.dashboard);
@@ -87,7 +88,7 @@ export default function MahoragaDashboard() {
   const fetchMahoragaStatus = async () => {
     if (!selectedCompany) return;
     try {
-      const response = await axios.get('/api/ai/mahoraga/status');
+      const response = await axios.get(`${API_URL}/api/ai/mahoraga/status`);
       setMahoragaStatus(response.data.mahoraga);
     } catch (error) {
       console.error("Error fetching Mahoraga status:", error);
@@ -96,7 +97,7 @@ export default function MahoragaDashboard() {
 
   const fetchSkillHealth = async () => {
     try {
-      const response = await axios.get('/api/ai/skills/health');
+      const response = await axios.get(`${API_URL}/api/ai/skills/health`);
       if (response.data.success) {
         setSkillStats(response.data.stats);
       }
@@ -110,7 +111,7 @@ export default function MahoragaDashboard() {
     setSearchQuery(query);
     if (query.length > 2) {
       try {
-        const response = await axios.get('/api/ai/skills/search', {
+        const response = await axios.get(`${API_URL}/api/ai/skills/search`, {
           params: { q: query, limit: 20 }
         });
         if (response.data.success) {
@@ -127,7 +128,7 @@ export default function MahoragaDashboard() {
   const fetchLearningStatus = async () => {
     if (!selectedCompany) return;
     try {
-      const response = await axios.get('/api/ai/recognition/status', {
+      const response = await axios.get(`${API_URL}/api/ai/recognition/status`, {
         params: { companyId: selectedCompany.id }
       });
       setLearningStatus(response.data);
@@ -143,7 +144,7 @@ export default function MahoragaDashboard() {
     }
 
     try {
-      await axios.post('/api/ai/mahoraga/change-mode', {
+      await axios.post(`${API_URL}/api/ai/mahoraga/change-mode`, {
         newMode: selectedMode,
         userId: 'admin',
         reason: modeChangeReason
@@ -166,7 +167,7 @@ export default function MahoragaDashboard() {
     }
 
     try {
-      await axios.post('/api/ai/mahoraga/emergency-stop', {
+      await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, {
         userId: 'admin',
         reason: 'Emergency stop from dashboard'
       });
@@ -182,7 +183,7 @@ export default function MahoragaDashboard() {
   const handleAdvanceLearning = async () => {
     if (!selectedCompany) return;
     try {
-      await axios.post('/api/ai/recognition/advance', {
+      await axios.post(`${API_URL}/api/ai/recognition/advance`, {
         companyId: selectedCompany.id
       });
       fetchLearningStatus();

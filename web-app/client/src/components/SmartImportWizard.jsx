@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
+import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useCompany } from '../context/CompanyContext';
 import { AccountPlanProfile } from '../utils/AccountPlanProfile';
@@ -913,7 +914,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
     const analyzeWithAI = async (accounts) => {
         try {
             // Usamos selectedCompany del scope del componente, no llamamos al hook aquí
-            const response = await axios.post('http://localhost:3001/api/ai/orchestrator/orchestrate', {
+            const response = await axios.post(`${API_URL}/api/ai/orchestrator/orchestrate`, {
                 companyId: selectedCompany?.id || 1,
                 accounts: accounts.map(acc => ({
                     code: acc.code,
@@ -1208,7 +1209,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
             // Persist plan structure to company before importing accounts
             // Use structureConfig to respect user's changes (e.g. switching from Sep to Long)
             if (structureConfig) {
-                await axios.put(`http://localhost:3001/api/companies/${selectedCompany.id}`, {
+                await axios.put(`${API_URL}/api/companies/${selectedCompany.id}`, {
                     code_mask: structureConfig.hasSeparator ?
                         Array.from({ length: structureConfig.levelCount }).map((_, i) => '#'.repeat(structureConfig.levelLengths[i] - (i > 0 ? structureConfig.levelLengths[i - 1] : 0))).join(structureConfig.separator) :
                         '#'.repeat(structureConfig.levelLengths[structureConfig.levelCount - 1]),
@@ -1265,7 +1266,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                 const batch = accountsToImport.slice(i, i + batchSize);
 
                 // Usar el nuevo endpoint BULK
-                await axios.post('http://localhost:3001/api/accounts/bulk', {
+                await axios.post(`${API_URL}/api/accounts/bulk`, {
                     companyId: selectedCompany.id,
                     accounts: batch
                 }, {

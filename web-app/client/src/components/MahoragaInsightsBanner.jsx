@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 
 const MahoragaInsightsBanner = ({ context }) => {
@@ -16,7 +17,7 @@ const MahoragaInsightsBanner = ({ context }) => {
 
     const fetchStatus = async () => {
         try {
-            const res = await axios.get('/api/ai/mahoraga/status');
+            const res = await axios.get(`${API_URL}/api/ai/mahoraga/status`);
             setMahoragaMode(res.data.mahoraga?.currentMode || 'manual');
 
             // Si está en asistido o manual con contexto, buscar insights
@@ -31,7 +32,7 @@ const MahoragaInsightsBanner = ({ context }) => {
     const fetchInsights = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`/api/ai/mahoraga/insights?companyId=${selectedCompany.id}`);
+            const res = await axios.get(`${API_URL}/api/ai/mahoraga/insights?companyId=${selectedCompany.id}`);
             if (res.data.success) {
                 setInsights(res.data.insights);
             }

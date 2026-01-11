@@ -3,10 +3,9 @@
  * Conexión entre React y FastAPI para ajustes inteligentes
  */
 import axios from 'axios';
+import API_URL from '../api';
 
-const AI_BASE_URL = import.meta.env.VITE_API_URL 
-    ? `${import.meta.env.VITE_API_URL}/api/ai` 
-    : 'http://localhost:3001/api/ai';
+const AI_BASE_URL = `${API_URL}/api/ai`;
 
 class AIAdjustmentService {
     constructor() {

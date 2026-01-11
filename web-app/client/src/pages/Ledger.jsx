@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import MahoragaWheel from '../components/MahoragaWheel';
 import axios from 'axios';
+import API_URL from '../api';
 import DatePicker from 'react-datepicker';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -285,7 +286,7 @@ export default function Ledger() {
 
     const checkMahoragaStatus = async () => {
         try {
-            const response = await axios.get(`/api/ai/mahoraga/config/${companyId}`);
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${companyId}`);
             if (response.data.success) {
                 setMahoragaActive(response.data.active_pages.includes('Ledger'));
             }
@@ -294,7 +295,7 @@ export default function Ledger() {
 
     const fetchAccountsList = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/reports/accounts-list`, {
+            const response = await axios.get(`${API_URL}/api/reports/accounts-list`, {
                 params: { companyId }
             });
             setAccounts(response.data.data || []);
@@ -316,13 +317,13 @@ export default function Ledger() {
             if (dateStart) {
                 const prevDate = subDays(dateStart, 1);
                 const openingParams = { ...params, endDate: format(prevDate, 'yyyy-MM-dd') };
-                openingPromise = axios.get('http://localhost:3001/api/reports/ledger', { params: openingParams });
+                openingPromise = axios.get(`${API_URL}/api/reports/ledger`, { params: openingParams });
             }
 
             const [summaryRes, detailsRes, openingRes] = await Promise.all([
-                axios.get('http://localhost:3001/api/reports/ledger', { params: periodParams }),
-                axios.get('http://localhost:3001/api/reports/ledger-details', { params: periodParams }),
-                openingPromise
+                axios.get(`${API_URL}/api/reports/ledger`, { params: periodParams }),
+                axios.get(`${API_URL}/api/reports/ledger-details`, { params: periodParams }),
+                openingRes
             ]);
 
             setLedgerSummary(summaryRes.data.data || []);
@@ -370,7 +371,7 @@ export default function Ledger() {
             if (dateEnd) params.endDate = format(dateEnd, 'yyyy-MM-dd');
 
             const response = await axios.get(
-                `http://localhost:3001/api/reports/ledger/account/${accountId}`,
+                `${API_URL}/api/reports/ledger/account/${accountId}`,
                 { params }
             );
             setAccountDetail(response.data.data);

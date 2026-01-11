@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import DatePicker from 'react-datepicker';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -73,7 +74,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
             if (!selectedCompany?.id) return;
             try {
                 // V6.7 FIX: Usar Plan de Cuentas completo (no solo ledger) para permitir elegir cuentas sin saldo
-                const res = await axios.get('http://localhost:3001/api/accounts', {
+                const res = await axios.get(`${API_URL}/api/accounts`, {
                     params: { companyId: selectedCompany.id }
                 });
                 if (res.data.data) {
@@ -115,7 +116,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
 
     const loadInitialProfile = async () => {
         try {
-            const response = await axios.get(`/api/ai/profile/${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/profile/${selectedCompany.id}`);
 
             if (response.data.success && response.data.profile_json) {
                 setAdjustmentProfile(response.data.profile_json);
@@ -251,7 +252,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
             }));
 
             if (updates.length > 0) {
-                await axios.patch('http://localhost:3001/api/accounts/acquisition-dates', { acquisitions: updates });
+                await axios.patch(`${API_URL}/api/accounts/acquisition-dates`, { acquisitions: updates });
             }
 
             // 2. Generar propuesta (ahora enviando las fechas al motor)

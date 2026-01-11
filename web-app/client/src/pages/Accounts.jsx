@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 import { exportToExcel } from '../utils/exportUtils';
 import SmartImportWizard from '../components/SmartImportWizard';
@@ -61,7 +62,7 @@ export default function Accounts() {
 
     const checkMahoragaStatus = async () => {
         try {
-            const response = await axios.get(`/api/ai/mahoraga/config/${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
             if (response.data.success) {
                 setMahoragaActive(response.data.active_pages.includes('Accounts'));
             }
@@ -79,7 +80,7 @@ export default function Accounts() {
     const fetchAccounts = async () => {
         if (!selectedCompany) return;
         try {
-            const response = await axios.get(`http://localhost:3001/api/accounts?companyId=${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/accounts?companyId=${selectedCompany.id}`);
             setAccounts(response.data.data);
             setLoading(false);
         } catch (error) {
@@ -121,7 +122,7 @@ export default function Accounts() {
         if (!code || !selectedCompany) return true;
 
         try {
-            const response = await axios.get(`http://localhost:3001/api/accounts?companyId=${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/accounts?companyId=${selectedCompany.id}`);
             const existingAccounts = response.data.data || [];
 
             // Si estamos editando, excluir la cuenta actual
@@ -161,9 +162,9 @@ export default function Accounts() {
             const dataToSend = { ...formData, companyId: selectedCompany.id };
 
             if (editingAccount) {
-                await axios.put(`http://localhost:3001/api/accounts/${editingAccount.id}`, dataToSend);
+                await axios.put(`${API_URL}/api/accounts/${editingAccount.id}`, dataToSend);
             } else {
-                await axios.post('http://localhost:3001/api/accounts', dataToSend);
+                await axios.post(`${API_URL}/api/accounts`, dataToSend);
             }
             setShowModal(false);
             setEditingAccount(null);
@@ -195,7 +196,7 @@ export default function Accounts() {
         if (!selectedCompany) return;
         if (window.confirm('¿Está seguro de eliminar esta cuenta?')) {
             try {
-                await axios.delete(`http://localhost:3001/api/accounts/${id}?companyId=${selectedCompany.id}`);
+                await axios.delete(`${API_URL}/api/accounts/${id}?companyId=${selectedCompany.id}`);
                 fetchAccounts();
             } catch (error) {
                 console.error('Error deleting account:', error);
@@ -209,7 +210,7 @@ export default function Accounts() {
         if (window.confirm('⚠️ ¿ESTÁ SEGURO DE ELIMINAR TODO EL PLAN DE CUENTAS?\n\nEsta acción no se puede deshacer y eliminará todas las cuentas registradas.')) {
             if (window.confirm('⚠️ CONFIRMACIÓN FINAL: ¿Realmente desea vaciar el plan de cuentas?')) {
                 try {
-                    await axios.delete(`http://localhost:3001/api/accounts/all?companyId=${selectedCompany.id}`);
+                    await axios.delete(`${API_URL}/api/accounts/all?companyId=${selectedCompany.id}`);
                     fetchAccounts();
                     alert('✅ Plan de cuentas eliminado correctamente.');
                 } catch (error) {

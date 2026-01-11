@@ -1466,7 +1466,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
         # Obtener saldos pre-ajuste desde middleware Node.js
         async with httpx.AsyncClient() as client:
             ledger_response = await client.get(
-                "http://localhost:3001/api/reports/ledger",
+                "`${API_URL}/api/reports/ledger",
                 params={
                     "companyId": request.company_id,
                     "excludeAdjustments": True,
@@ -1489,7 +1489,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
             chart_of_accounts = []
             try:
                 coa_response = await client.get(
-                    f"http://localhost:3001/api/accounts",
+                    f"`${API_URL}/api/accounts",
                     params={"companyId": request.company_id},
                     timeout=10.0
                 )
@@ -1645,7 +1645,7 @@ class MahoragaEngine(ARSDSPyEngine):
 
             # 1. Verificar si el ciclo está cerrado
             closing_check = requests.get(
-                "http://localhost:3001/api/reports/closing-check",
+                "`${API_URL}/api/reports/closing-check",
                 params={
                     "companyId": feedback.company_id,
                     "gestion": getattr(feedback, 'gestion', None) or datetime.now().year - 1

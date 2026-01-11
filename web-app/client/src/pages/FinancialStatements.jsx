@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 import { format } from 'date-fns';
 import FinancialStatementEngine from '../utils/FinancialStatementEngine'; // For Balance Sheet
@@ -152,11 +153,11 @@ export default function FinancialStatements() {
         try {
             // Para Balance General - mantener lógica actual
             const [accountsRes, bcRes, adjRes] = await Promise.all([
-                axios.get(`http://localhost:3001/api/accounts?companyId=${selectedCompany.id}`),
-                axios.get(`http://localhost:3001/api/reports/ledger`, {
+                axios.get(`${API_URL}/api/accounts?companyId=${selectedCompany.id}`),
+                axios.get(`${API_URL}/api/reports/ledger`, {
                     params: { companyId: selectedCompany.id, excludeAdjustments: true, excludeClosing: true }
                 }),
-                axios.get(`http://localhost:3001/api/reports/ledger`, {
+                axios.get(`${API_URL}/api/reports/ledger`, {
                     params: { companyId: selectedCompany.id, adjustmentsOnly: true, excludeClosing: true }
                 })
             ]);

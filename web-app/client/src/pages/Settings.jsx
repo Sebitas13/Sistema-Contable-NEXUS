@@ -239,7 +239,7 @@ export default function Settings() {
         setDiagnosticResult(null);
 
         try {
-            const response = await axios.get(`http://localhost:3001/api/accounts?companyId=${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/accounts?companyId=${selectedCompany.id}`);
             const accounts = response.data.data;
 
             const total = accounts.length;
@@ -265,7 +265,7 @@ export default function Settings() {
 
         try {
             // 1. Fetch all accounts
-            const response = await axios.get(`http://localhost:3001/api/accounts?companyId=${selectedCompany.id}`);
+            const response = await axios.get(`${API_URL}/api/accounts?companyId=${selectedCompany.id}`);
             const accounts = response.data.data;
 
             if (!accounts || accounts.length === 0) {
@@ -285,7 +285,7 @@ export default function Settings() {
             }
 
             // 3. Send updates to backend
-            await axios.patch('http://localhost:3001/api/accounts/batch-parents', {
+            await axios.patch('${API_URL}/api/accounts/batch-parents', {
                 companyId: selectedCompany.id,
                 updates: updates.map(u => ({ id: u.id, parent_code: u.parent_code }))
             });

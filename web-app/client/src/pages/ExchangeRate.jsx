@@ -81,7 +81,7 @@ export default function ExchangeRate() {
         setLoading(true);
         try {
             const { startDate, endDate } = getFiscalYearDetails(selectedCompany.activity_type, gestion);
-            const response = await axios.get(`http://localhost:3001/api/exchange-rates`, {
+            const response = await axios.get(`${API_URL}/api/exchange-rates`, {
                 params: { companyId: selectedCompany.id, startDate, endDate, currency: 'USD' }
             });
             setRates(response.data.data || []);
@@ -95,7 +95,7 @@ export default function ExchangeRate() {
     const handleDelete = async (id) => {
         if (window.confirm('¿Está seguro de eliminar este tipo de cambio?')) {
             try {
-                await axios.delete(`http://localhost:3001/api/exchange-rates/${id}?companyId=${selectedCompany.id}`);
+                await axios.delete(`${API_URL}/api/exchange-rates/${id}?companyId=${selectedCompany.id}`);
                 fetchRates();
             } catch (error) {
                 console.error('Error deleting exchange rate:', error);
@@ -171,7 +171,7 @@ export default function ExchangeRate() {
         try {
             setLoading(true);
             const year = fiscalYearDetails?.year || gestion;
-            const response = await axios.delete(`http://localhost:3001/api/exchange-rates/year/${year}?companyId=${selectedCompany.id}`);
+            const response = await axios.delete(`${API_URL}/api/exchange-rates/year/${year}?companyId=${selectedCompany.id}`);
             alert(`Se eliminaron ${response.data.deletedCount} registros de tipo de cambio del año ${year}.`);
             await fetchRates();
         } catch (error) {
@@ -334,7 +334,7 @@ export default function ExchangeRate() {
 
             for (let i = 0; i < ratesToImport.length; i += batchSize) {
                 const batch = ratesToImport.slice(i, i + batchSize);
-                const response = await axios.post('http://localhost:3001/api/exchange-rates/bulk', { companyId: selectedCompany.id, data: batch });
+                const response = await axios.post('${API_URL}/api/exchange-rates/bulk', { companyId: selectedCompany.id, data: batch });
                 totalSuccess += response.data.successCount || 0;
                 totalErrors += response.data.errorCount || 0;
                 if (response.data.errors) {
@@ -391,7 +391,7 @@ export default function ExchangeRate() {
                         currency: 'USD',
                         companyId: selectedCompany.id,
                     };
-                    await axios.post('http://localhost:3001/api/exchange-rates', payload);
+                    await axios.post('${API_URL}/api/exchange-rates', payload);
                     fetchRates(); // Refetch to update map and view
                 } catch (error) {
                     console.error('Error saving exchange rate:', error);
@@ -402,7 +402,7 @@ export default function ExchangeRate() {
                 try {
                     // When clearing a cell, we send null for BOTH to trigger deletion on backend
                     // Or we could send null for just the rateType, but usually we want to clear the entry if user clears the cell in this matrix view
-                    await axios.post('http://localhost:3001/api/exchange-rates', {
+                    await axios.post('${API_URL}/api/exchange-rates', {
                         date,
                         currency: 'USD',
                         companyId: selectedCompany.id,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import DatePicker from 'react-datepicker';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -55,7 +56,7 @@ export default function Journal() {
 
     const checkMahoragaStatus = async () => {
         try {
-            const response = await axios.get(`/api/ai/mahoraga/config/${companyId}`);
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${companyId}`);
             if (response.data.success) {
                 setMahoragaActive(response.data.active_pages.includes('Journal'));
             }
@@ -73,7 +74,7 @@ export default function Journal() {
 
     const fetchTransactions = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/transactions?companyId=${companyId}`);
+            const response = await axios.get(`${API_URL}/api/transactions?companyId=${companyId}`);
             setTransactions(response.data.data);
             setLoading(false);
         } catch (error) {
@@ -84,7 +85,7 @@ export default function Journal() {
 
     const fetchAccounts = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/accounts?companyId=${companyId}`);
+            const response = await axios.get(`${API_URL}/api/accounts?companyId=${companyId}`);
             setAccounts(response.data.data);
         } catch (error) {
             console.error('Error fetching accounts:', error);
@@ -93,7 +94,7 @@ export default function Journal() {
 
     const fetchTransactionDetails = async (id) => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/transactions/${id}`);
+            const response = await axios.get(`${API_URL}/api/transactions/${id}`);
             setSelectedTransaction(response.data.data);
             setShowDetailModal(true);
         } catch (error) {
@@ -274,9 +275,9 @@ export default function Journal() {
             };
 
             if (selectedTransaction) {
-                await axios.put(`http://localhost:3001/api/transactions/${selectedTransaction.id}`, formattedData);
+                await axios.put(`${API_URL}/api/transactions/${selectedTransaction.id}`, formattedData);
             } else {
-                await axios.post('http://localhost:3001/api/transactions', formattedData);
+                await axios.post(`${API_URL}/api/transactions`, formattedData);
             }
 
             setShowModal(false);
@@ -297,7 +298,7 @@ export default function Journal() {
     const handleDelete = async (id) => {
         if (window.confirm('¿Está seguro de eliminar este asiento? Esta acción no se puede deshacer.')) {
             try {
-                await axios.delete(`http://localhost:3001/api/transactions/${id}`, {
+                await axios.delete(`${API_URL}/api/transactions/${id}`, {
                     params: { companyId: selectedCompany.id }
                 });
                 fetchTransactions();
@@ -325,7 +326,7 @@ export default function Journal() {
 
     const handleEdit = async (transaction) => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/transactions/${transaction.id}`);
+            const response = await axios.get(`${API_URL}/api/transactions/${transaction.id}`);
             const details = response.data.data;
 
             setSelectedTransaction(details);

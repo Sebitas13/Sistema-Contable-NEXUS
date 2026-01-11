@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import MahoragaWheel from './MahoragaWheel';
 
 const MahoragaActivationButton = ({
@@ -30,7 +31,7 @@ const MahoragaActivationButton = ({
 
   const loadMahoragaStatus = async () => {
     try {
-      const response = await axios.get('/api/ai/mahoraga/status');
+      const response = await axios.get(`${API_URL}/api/ai/mahoraga/status`);
       setMahoragaStatus(response.data.mahoraga);
     } catch (error) {
       console.error('Error cargando estado de Mahoraga:', error);
@@ -39,7 +40,7 @@ const MahoragaActivationButton = ({
 
   const checkActivationPermission = async () => {
     try {
-      const response = await axios.get('/api/ai/mahoraga/can-activate', {
+      const response = await axios.get(`${API_URL}/api/ai/mahoraga/can-activate`, {
         params: {
           operation,
           userId,
@@ -89,7 +90,7 @@ const MahoragaActivationButton = ({
 
   const activateMahoraga = async () => {
     try {
-      const response = await axios.post('/api/ai/mahoraga/activate', {
+      const response = await axios.post(`${API_URL}/api/ai/mahoraga/activate`, {
         operation,
         userId,
         context
@@ -122,7 +123,7 @@ const MahoragaActivationButton = ({
     if (!pendingActivation) return;
 
     try {
-      await axios.post('/api/ai/mahoraga/confirm', {
+      await axios.post(`${API_URL}/api/ai/mahoraga/confirm`, {
         activationId: pendingActivation.id,
         userId
       });
@@ -144,7 +145,7 @@ const MahoragaActivationButton = ({
     if (!pendingActivation) return;
 
     try {
-      await axios.post('/api/ai/mahoraga/reject', {
+      await axios.post(`${API_URL}/api/ai/mahoraga/reject`, {
         activationId: pendingActivation.id,
         userId,
         reason: 'Usuario rechazó la activación'

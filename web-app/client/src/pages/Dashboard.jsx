@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import axios from 'axios';
+import API_URL from '../api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { FinancialStatementEngine } from '../utils/FinancialStatementEngine';
@@ -35,11 +36,11 @@ export default function Dashboard() {
 
       // 1. Obtener TODOS los catálogos y movimientos como hace el Balance General
       const [accountsRes, bcRes, adjRes, statsRes, transRes] = await Promise.all([
-        axios.get(`/api/accounts`, { params: { companyId } }),
-        axios.get(`/api/reports/ledger`, { params: { companyId, excludeAdjustments: true, excludeClosing: true } }),
-        axios.get(`/api/reports/ledger`, { params: { companyId, adjustmentsOnly: true, excludeClosing: true } }),
-        axios.get(`/api/companies/${companyId}/stats`),
-        axios.get(`/api/transactions`, { params: { companyId } })
+        axios.get(`${API_URL}/api/accounts`, { params: { companyId } }),
+        axios.get(`${API_URL}/api/reports/ledger`, { params: { companyId, excludeAdjustments: true, excludeClosing: true } }),
+        axios.get(`${API_URL}/api/reports/ledger`, { params: { companyId, adjustmentsOnly: true, excludeClosing: true } }),
+        axios.get(`${API_URL}/api/companies/${companyId}/stats`),
+        axios.get(`${API_URL}/api/transactions`, { params: { companyId } })
       ]);
 
       const allAccounts = accountsRes.data.data || [];

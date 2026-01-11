@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import API_URL from '../api';
 
 const CompanyContext = createContext();
 
@@ -29,7 +30,7 @@ export const CompanyProvider = ({ children }) => {
     // Fetch all companies
     const fetchCompanies = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/companies');
+            const response = await fetch(`${API_URL}/api/companies`);
             const data = await response.json();
             if (data.success) {
                 setCompanies(data.data);
@@ -42,7 +43,7 @@ export const CompanyProvider = ({ children }) => {
     // Fetch company by ID
     const fetchCompanyById = async (id) => {
         try {
-            const response = await fetch(`http://localhost:3001/api/companies/${id}`);
+            const response = await fetch(`${API_URL}/api/companies/${id}`);
             const data = await response.json();
             if (data.success) {
                 setSelectedCompany(data.data);
@@ -58,7 +59,7 @@ export const CompanyProvider = ({ children }) => {
     const selectCompany = async (companyId) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:3001/api/companies/${companyId}`);
+            const response = await fetch(`${API_URL}/api/companies/${companyId}`);
             const data = await response.json();
             if (data.success) {
                 setSelectedCompany(data.data);
@@ -80,7 +81,7 @@ export const CompanyProvider = ({ children }) => {
     // Create new company
     const createCompany = async (companyData) => {
         try {
-            const response = await fetch('http://localhost:3001/api/companies', {
+            const response = await fetch(`${API_URL}/api/companies`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ export const CompanyProvider = ({ children }) => {
     // Update company
     const updateCompany = async (companyId, companyData) => {
         try {
-            const response = await fetch(`http://localhost:3001/api/companies/${companyId}`, {
+            const response = await fetch(`${API_URL}/api/companies/${companyId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ export const CompanyProvider = ({ children }) => {
     // Delete company
     const deleteCompany = async (companyId) => {
         try {
-            const response = await fetch(`http://localhost:3001/api/companies/${companyId}`, {
+            const response = await fetch(`${API_URL}/api/companies/${companyId}`, {
                 method: 'DELETE',
             });
             const data = await response.json();

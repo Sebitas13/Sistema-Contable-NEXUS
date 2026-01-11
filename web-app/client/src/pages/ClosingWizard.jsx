@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 import { getFiscalYearDetails } from '../utils/fiscalYearUtils';
 
@@ -25,7 +26,7 @@ export default function ClosingWizard({ onClose, onSuccess }) {
             const savedState = JSON.parse(localStorage.getItem(key) || '{}');
             const { reservaLegalPct = 5, overrideReservaLegal = false } = savedState;
 
-            const response = await axios.post('http://localhost:3001/api/reports/closing-entries-proposal', {
+            const response = await axios.post(`${API_URL}/api/reports/closing-entries-proposal`, {
                 companyId: selectedCompany.id,
                 gestion: gestion,
                 reservaLegalPct,
@@ -54,7 +55,7 @@ export default function ClosingWizard({ onClose, onSuccess }) {
                 type: 'Cierre',
             }));
 
-            await axios.post('http://localhost:3001/api/transactions/batch', {
+            await axios.post(`${API_URL}/api/transactions/batch`, {
                 companyId: selectedCompany.id,
                 transactions: transactionsToSave,
             });
