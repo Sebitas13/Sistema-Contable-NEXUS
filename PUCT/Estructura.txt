@@ -1,0 +1,60 @@
+2. Estructura Jerárquica y Codificación Detallada del PUCT
+La codificación del Plan Único de Cuentas Tributario (PUCT) se organiza en una estructura de cinco (5) niveles. Su aplicación implica transponer las cuentas analíticas de una empresa a esta estructura codificada para la presentación digital del Balance de Comprobación de Sumas y Saldos.
+La estructura es la siguiente:
+Nivel
+Detalle
+Código (Ejemplo)
+Carácter 
+Restricciones de Modificación
+1er Nivel
+C = CLASE DE CUENTA
+1 (ACTIVO)
+Cerrado (según PUCT)
+No se puede adicionar.
+2do Nivel
+G = GRUPO
+1 (ACTIVO CORRIENTE)
+Cerrado (según PUCT)
+No se puede adicionar.
+3er Nivel
+SG = SUBGRUPO
+1 (EFECTIVO Y EQUIVALENTES)
+Cerrado (según PUCT)
+No se puede adicionar.
+4to Nivel
+CP = CUENTA PRINCIPAL
+001 (CAJA)
+Cerrado (según PUCT)
+No se puede adicionar sin previa autorización del SIN.
+5to Nivel
+CA = CUENTA ANALÍTICA
+001 (CAJA M/N)
+Abierto (según actividad del contribuyente)
+Puede ser denominada y registrada por el contribuyente sin previa autorización del SIN, según su necesidad y actividad económica.
+Implicaciones clave para su aplicación (niveles 1 al 4):
+Los códigos desde el 1er Nivel (Clase de Cuenta) hasta el 4to Nivel (Cuenta Principal) son cerrados y los contribuyentes no pueden adicionar cuentas nuevas sin la autorización previa del Servicio de Impuestos Nacionales (SIN). Su aplicación debe basarse en el plan de cuentas publicado por el SIN.
+3. Procedimiento para Adicionar Cuentas Principales (CP - 4to Nivel)
+Si su aplicación necesita soportar una estructura que exija una Cuenta Principal (CP) que no esté contemplada en el PUCT, el contribuyente debe seguir un proceso formal de solicitud ante el SIN. Su aplicación debe, por lo tanto, reconocer que el sistema base es rígido en estos niveles:
+Para solicitar la adición de una Cuenta Principal (CP) en el PUCT, el contribuyente debe enviar una nota formal a la Gerencia Distrital o GRACO de su jurisdicción, especificando lo siguiente:
+1. Justificación de la necesidad de utilizar la Cuenta Principal propuesta.
+2. Identificación de la actividad económica en la que se utilizará la cuenta.
+3. Identificación de la Clase (C), Grupo (G) y Subgrupo (SG) donde se requiere adicionar la Cuenta Principal.
+4. Denominación de la Cuenta Principal que se requiere adicionar.
+5. Descripción detallada del movimiento contable (Débitos y Créditos) que tendrá la Cuenta Principal.
+El SIN tiene un plazo no mayor a 10 días hábiles para notificar al contribuyente (vía Buzón Tributario) sobre la aceptación o rechazo de la solicitud.
+4. La Importancia del Nivel Analítico (CA - 5to Nivel)
+El 5to Nivel (Cuenta Analítica - CA) es el punto de flexibilidad y es donde las cuentas internas de su cliente se mapearán al PUCT.
+• El contribuyente puede denominar y registrar las cuentas analíticas sin previa autorización del SIN.
+• La aplicación debe permitir la transposición de las cuentas analíticas propias de la empresa a un código de 5to nivel del PUCT, manteniendo el nombre genérico y respetando la naturaleza de la Cuenta Principal (CP) a la que se agrupa.
+• Las cuentas analíticas que forman parte de la misma Cuenta Principal (CP) deben recibir un código correlativo (ej. 001, 002, 003, etc.) en el 5to nivel.
+Ejemplo de Transposición (Mapeo):
+Tomando el ejemplo de la cuenta de una empresa y su transposición al PUCT:
+Cuentas Analíticas de la Empresa
+Código PUCT (5 Niveles)
+CAJA MONEDA NACIONAL
+1 1 1 001 001
+CAJA MONEDA EXTRANJERA
+1 1 1 001 002
+CAJA CHICA
+1 1 1 001 003
+En este ejemplo: 1-1-1-001 es la Cuenta Principal de "CAJA" (Cerrada), y 001, 002, 003 son las Cuentas Analíticas internas (Abiertas)		

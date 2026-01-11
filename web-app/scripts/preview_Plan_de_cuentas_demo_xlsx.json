@@ -1,0 +1,2117 @@
+[
+  {
+    "index": 1,
+    "code": "100-00-00",
+    "name": "ACTIVO",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 2,
+    "code": "100-10-00",
+    "name": "DISPONIBILIDADES",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 3,
+    "code": "100-10-01",
+    "name": "Caja Moneda Nacional",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 4,
+    "code": "100-10-02",
+    "name": "Caja Moneda Extranjera",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 5,
+    "code": "100-10-03",
+    "name": "Caja Chica",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 6,
+    "code": "100-10-04",
+    "name": "Banco Union S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 7,
+    "code": "100-10-05",
+    "name": "Banco Sol S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 8,
+    "code": "100-10-06",
+    "name": "Banco de Oro S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 9,
+    "code": "100-10-07",
+    "name": "Banco de la Fortuna S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 10,
+    "code": "100-10-08",
+    "name": "Banco Mercantil Santa Cruz S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 11,
+    "code": "100-10-09",
+    "name": "Banco Nacional de Bolivia S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 12,
+    "code": "100-10-10",
+    "name": "Banco La Paz S.A",
+    "level": 3,
+    "parent_code": "100-10-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 13,
+    "code": "100-20-00",
+    "name": "CUENTAS POR COBRAR",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 14,
+    "code": "100-20-01",
+    "name": "Cuentas por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 15,
+    "code": "100-20-02",
+    "name": "Letras por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 16,
+    "code": "100-20-03",
+    "name": "Letras renovadas por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 17,
+    "code": "100-20-04",
+    "name": "Documentos por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 18,
+    "code": "100-20-05",
+    "name": "Anticipos a proveedores",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 19,
+    "code": "100-20-06",
+    "name": "Consignatario",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 20,
+    "code": "100-20-07",
+    "name": "Cuentas incobrables",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 21,
+    "code": "100-20-08",
+    "name": "Cuentas del personal",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 22,
+    "code": "100-20-09",
+    "name": "Alquileres por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 23,
+    "code": "100-20-10",
+    "name": "Comisiones por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 24,
+    "code": "100-20-11",
+    "name": "Intereses por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 25,
+    "code": "100-20-12",
+    "name": "Seguros por cobrar",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 26,
+    "code": "100-20-13",
+    "name": "Clientes",
+    "level": 3,
+    "parent_code": "100-20-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 27,
+    "code": "100-30-00",
+    "name": "INVENTARIOS",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 28,
+    "code": "100-30-01",
+    "name": "Inventario inicial",
+    "level": 3,
+    "parent_code": "100-30-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 29,
+    "code": "100-30-02",
+    "name": "Inventario final",
+    "level": 3,
+    "parent_code": "100-30-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 30,
+    "code": "100-30-03",
+    "name": "Inventario de Mercaderias",
+    "level": 3,
+    "parent_code": "100-30-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 31,
+    "code": "100-30-04",
+    "name": "Inventarios",
+    "level": 3,
+    "parent_code": "100-30-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 32,
+    "code": "100-40-00",
+    "name": "PAGOS ANTICIPADOS",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 33,
+    "code": "100-40-01",
+    "name": "Anticipos al personal",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 34,
+    "code": "100-40-02",
+    "name": "Credito Fiscal",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 35,
+    "code": "100-40-03",
+    "name": "Comisiones pagadas por adelantado",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 36,
+    "code": "100-40-04",
+    "name": "Intereses pagados por adelantado",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 37,
+    "code": "100-40-05",
+    "name": "Alquileres pagados por adelantado",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 38,
+    "code": "100-40-06",
+    "name": "Publicidad y Propagada pagado por adelantado",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 39,
+    "code": "100-40-07",
+    "name": "Seguros pagados por adelantado",
+    "level": 3,
+    "parent_code": "100-40-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 40,
+    "code": "100-50-00",
+    "name": "INVERSIONES",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 41,
+    "code": "100-50-01",
+    "name": "Acciones en otras empresas",
+    "level": 3,
+    "parent_code": "100-50-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 42,
+    "code": "100-50-02",
+    "name": "Certificados de aportacion",
+    "level": 3,
+    "parent_code": "100-50-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 43,
+    "code": "100-50-03",
+    "name": "Depositos a plazo fijo",
+    "level": 3,
+    "parent_code": "100-50-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 44,
+    "code": "100-50-04",
+    "name": "Depositos en caja de ahorros",
+    "level": 3,
+    "parent_code": "100-50-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 45,
+    "code": "100-60-00",
+    "name": "BIENES DE USO",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 46,
+    "code": "100-60-01",
+    "name": "Muebles y enseres",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 47,
+    "code": "100-60-02",
+    "name": "Equipos de computacion",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 48,
+    "code": "100-60-03",
+    "name": "Vehiculos automotores",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 49,
+    "code": "100-60-04",
+    "name": "Edificaciones",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 50,
+    "code": "100-60-05",
+    "name": "Terrenos",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 51,
+    "code": "100-60-06",
+    "name": "Maquinaria en general",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 52,
+    "code": "100-60-07",
+    "name": "Equipos e instalaciones",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 53,
+    "code": "100-60-08",
+    "name": "Barcos y lanchas en general",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 54,
+    "code": "100-60-09",
+    "name": "Vehiculos automotores",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 55,
+    "code": "100-60-10",
+    "name": "Aviones",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 56,
+    "code": "100-60-11",
+    "name": "Maquinaria para la construccion",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 57,
+    "code": "100-60-12",
+    "name": "Maquinaria agrícola",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 58,
+    "code": "100-60-13",
+    "name": "Animales de trabajo",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 59,
+    "code": "100-60-14",
+    "name": "Herramientas en general",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 60,
+    "code": "100-60-15",
+    "name": "Reproductores y hembras de pedigree o puros por cruza",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 61,
+    "code": "100-60-16",
+    "name": "Canales de regadio y pozos",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 62,
+    "code": "100-60-18",
+    "name": "Estanques bañaderos y abrevaderos",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 63,
+    "code": "100-60-19",
+    "name": "Alambrados, tranqueras y vallas",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 64,
+    "code": "100-60-20",
+    "name": "Viviendas para el personal",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 65,
+    "code": "100-60-21",
+    "name": "Muebles y enseres en las viviendas para el personal",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 66,
+    "code": "100-60-22",
+    "name": "Silos, almacenes y galpones",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 67,
+    "code": "100-60-23",
+    "name": "Tinglados y cobertizos de madera",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 68,
+    "code": "100-60-24",
+    "name": "Tinglados y cobertizos de metal",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 69,
+    "code": "100-60-25",
+    "name": "Instalaciones de electrificacion y telefonia rurales",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 70,
+    "code": "100-60-26",
+    "name": "Caminos interiores",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 71,
+    "code": "100-60-27",
+    "name": "Caña de azucar",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 72,
+    "code": "100-60-28",
+    "name": "Vides",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 73,
+    "code": "100-60-29",
+    "name": "Frutales",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 74,
+    "code": "100-60-30",
+    "name": "Otras plantaciones (segun experiencia del contribuyente)",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 75,
+    "code": "100-60-31",
+    "name": "Pozos Petroleros",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 76,
+    "code": "100-60-32",
+    "name": "Lineas de Recoleccion de la industria petrolera",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 77,
+    "code": "100-60-33",
+    "name": "Equipos de campo de la industria petrolera",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 78,
+    "code": "100-60-34",
+    "name": "Plantas de Procesamiento de la industria petrolera",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 79,
+    "code": "100-60-35",
+    "name": "Ductos de la industria petrolera",
+    "level": 3,
+    "parent_code": "100-60-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 80,
+    "code": "100-70-00",
+    "name": "DIFERIDO",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 81,
+    "code": "100-70-01",
+    "name": "Descuento en emision de bonos",
+    "level": 3,
+    "parent_code": "100-70-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 82,
+    "code": "100-80-00",
+    "name": "INTANGIBLE",
+    "level": 2,
+    "parent_code": "100-00-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 83,
+    "code": "100-80-01",
+    "name": "Gastos de organizacion",
+    "level": 3,
+    "parent_code": "100-80-00",
+    "type": "Activo",
+    "confidence": 75
+  },
+  {
+    "index": 84,
+    "code": "100-80-02",
+    "name": "Derecho de llave",
+    "level": 3,
+    "parent_code": "100-80-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 85,
+    "code": "200-00-00",
+    "name": "PASIVO",
+    "level": 1,
+    "parent_code": null,
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 86,
+    "code": "200-10-00",
+    "name": "OBLIGACIONES TRIBUTARIAS",
+    "level": 2,
+    "parent_code": "200-00-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 87,
+    "code": "200-10-01",
+    "name": "Debito Fiscal",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 88,
+    "code": "200-10-02",
+    "name": "Impuesto a las transacciones por pagar",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 89,
+    "code": "200-10-03",
+    "name": "Regimen complementario al IVA",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 90,
+    "code": "200-10-04",
+    "name": "Impuesto a las utilidades de las empresas por pagar",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 91,
+    "code": "200-10-05",
+    "name": "Retencion RC-IVA por pagar 13% (servicios)",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 75
+  },
+  {
+    "index": 92,
+    "code": "200-10-06",
+    "name": "Retencion IT por pagar 3% (servicios)",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 75
+  },
+  {
+    "index": 93,
+    "code": "200-10-07",
+    "name": "Retencion IUE por pagar 5% (servicios)",
+    "level": 3,
+    "parent_code": "200-10-00",
+    "type": "Pasivo",
+    "confidence": 75
+  },
+  {
+    "index": 94,
+    "code": "200-20-00",
+    "name": "OBLIGACIONES LABORALES",
+    "level": 2,
+    "parent_code": "200-00-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 95,
+    "code": "200-20-01",
+    "name": "Sueldos y salarios por pagar",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 75
+  },
+  {
+    "index": 96,
+    "code": "200-20-02",
+    "name": "Aguinaldos por pagar",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 97,
+    "code": "200-20-03",
+    "name": "Caja Nacional de salud",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 98,
+    "code": "200-20-04",
+    "name": "AFP",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 99,
+    "code": "200-20-05",
+    "name": "INFOCAL",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 100,
+    "code": "200-20-06",
+    "name": "Fondo nacional de vivienda",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 101,
+    "code": "200-20-07",
+    "name": "Fondo complementario de comercio",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 102,
+    "code": "200-20-08",
+    "name": "Indemnizaciones por pagar",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 103,
+    "code": "200-20-09",
+    "name": "Subsidios por pagar",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 104,
+    "code": "200-20-10",
+    "name": "Retenciones laborales por pagar",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 105,
+    "code": "200-20-11",
+    "name": "Aportes patronales por pagar",
+    "level": 3,
+    "parent_code": "200-20-00",
+    "type": "Pasivo",
+    "confidence": 80
+  },
+  {
+    "index": 106,
+    "code": "200-30-00",
+    "name": "OBLIGACIONES COMERCIALES",
+    "level": 2,
+    "parent_code": "200-00-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 107,
+    "code": "200-30-01",
+    "name": "Cuentas por pagar",
+    "level": 3,
+    "parent_code": "200-30-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 108,
+    "code": "200-30-02",
+    "name": "Letras por pagar",
+    "level": 3,
+    "parent_code": "200-30-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 109,
+    "code": "200-30-03",
+    "name": "Documentos por pagar",
+    "level": 3,
+    "parent_code": "200-30-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 110,
+    "code": "200-30-04",
+    "name": "Otras cuentas por pagar",
+    "level": 3,
+    "parent_code": "200-30-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 111,
+    "code": "200-30-05",
+    "name": "Cuentas corrientes de socios",
+    "level": 3,
+    "parent_code": "200-30-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 112,
+    "code": "200-30-06",
+    "name": "Anticipo de clientes",
+    "level": 3,
+    "parent_code": "200-30-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 113,
+    "code": "200-40-00",
+    "name": "OTRAS OBLIGACIONES",
+    "level": 2,
+    "parent_code": "200-00-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 114,
+    "code": "200-40-01",
+    "name": "Comisiones por pagar",
+    "level": 3,
+    "parent_code": "200-40-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 115,
+    "code": "200-40-02",
+    "name": "Intereses por pagar",
+    "level": 3,
+    "parent_code": "200-40-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 116,
+    "code": "200-40-03",
+    "name": "Publicidad y Propagada por pagar",
+    "level": 3,
+    "parent_code": "200-40-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 117,
+    "code": "200-40-04",
+    "name": "Otras cuentas por pagar",
+    "level": 3,
+    "parent_code": "200-40-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 118,
+    "code": "200-40-05",
+    "name": "Cuenta corriente de socios",
+    "level": 3,
+    "parent_code": "200-40-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 119,
+    "code": "200-40-06",
+    "name": "Previsiones Varias",
+    "level": 3,
+    "parent_code": "200-40-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 120,
+    "code": "200-50-00",
+    "name": "INGRESOS ANTICIPADOS",
+    "level": 2,
+    "parent_code": "200-00-00",
+    "type": "Pasivo",
+    "confidence": 75
+  },
+  {
+    "index": 121,
+    "code": "200-50-01",
+    "name": "Alquileres percibidos por adelantado",
+    "level": 3,
+    "parent_code": "200-50-00",
+    "type": "Pasivo",
+    "confidence": 75
+  },
+  {
+    "index": 122,
+    "code": "200-50-02",
+    "name": "Comisiones percibidas por adelantado",
+    "level": 3,
+    "parent_code": "200-50-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 123,
+    "code": "200-50-03",
+    "name": "Intereses percibidos por adelantado",
+    "level": 3,
+    "parent_code": "200-50-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 124,
+    "code": "200-60-00",
+    "name": "OBLIGACIONES A LARGO PLAZO",
+    "level": 2,
+    "parent_code": "200-00-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 125,
+    "code": "200-60-01",
+    "name": "Prestamos por pagar",
+    "level": 3,
+    "parent_code": "200-60-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 126,
+    "code": "200-60-02",
+    "name": "Bonos por pagar",
+    "level": 3,
+    "parent_code": "200-60-00",
+    "type": "Pasivo",
+    "confidence": 70
+  },
+  {
+    "index": 127,
+    "code": "200-60-03",
+    "name": "Prevision para indemnizaciones",
+    "level": 3,
+    "parent_code": "200-60-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 128,
+    "code": "200-60-04",
+    "name": "Creditos diferidos",
+    "level": 3,
+    "parent_code": "200-60-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 129,
+    "code": "200-60-05",
+    "name": "Prima en emision de bonos",
+    "level": 3,
+    "parent_code": "200-60-00",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 130,
+    "code": "300-00-00",
+    "name": "PATRIMONIO",
+    "level": 1,
+    "parent_code": null,
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 131,
+    "code": "300-10-00",
+    "name": "CAPITAL",
+    "level": 2,
+    "parent_code": "300-00-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 132,
+    "code": "300-10-01",
+    "name": "Capital pagado",
+    "level": 3,
+    "parent_code": "300-10-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 133,
+    "code": "300-10-02",
+    "name": "Capital limitado",
+    "level": 3,
+    "parent_code": "300-10-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 134,
+    "code": "300-10-03",
+    "name": "Ajuste de capital",
+    "level": 3,
+    "parent_code": "300-10-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 135,
+    "code": "300-10-04",
+    "name": "Aportes pendientes de capitalizacion",
+    "level": 3,
+    "parent_code": "300-10-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 136,
+    "code": "300-20-00",
+    "name": "RESERVAS",
+    "level": 2,
+    "parent_code": "300-00-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 137,
+    "code": "300-20-01",
+    "name": "Reserva legal",
+    "level": 3,
+    "parent_code": "300-20-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 138,
+    "code": "300-20-02",
+    "name": "Reserva para revaluos tecnicos",
+    "level": 3,
+    "parent_code": "300-20-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 139,
+    "code": "300-20-03",
+    "name": "Reserva para reinversion de capital",
+    "level": 3,
+    "parent_code": "300-20-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 140,
+    "code": "300-20-04",
+    "name": "Reserva para reposicion de capital",
+    "level": 3,
+    "parent_code": "300-20-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 141,
+    "code": "300-20-05",
+    "name": "Ajuste de reservas patrimoniales",
+    "level": 3,
+    "parent_code": "300-20-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 142,
+    "code": "300-30-00",
+    "name": "RESULTADOS ACUMULADOS",
+    "level": 2,
+    "parent_code": "300-00-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 143,
+    "code": "300-30-01",
+    "name": "Resultados acumulados",
+    "level": 3,
+    "parent_code": "300-30-00",
+    "type": "Patrimonio",
+    "confidence": 80
+  },
+  {
+    "index": 144,
+    "code": "400-00-00",
+    "name": "CUENTAS REGULADORAS",
+    "level": 1,
+    "parent_code": null,
+    "type": "Reguladora",
+    "confidence": 85
+  },
+  {
+    "index": 145,
+    "code": "400-10-00",
+    "name": "PREVISIONES",
+    "level": 2,
+    "parent_code": "400-00-00",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 146,
+    "code": "400-10-01",
+    "name": "Prevision para cuentas incobrables",
+    "level": 3,
+    "parent_code": "400-10-00",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 147,
+    "code": "400-10-02",
+    "name": "Prevision para obsolescencia de inventarios",
+    "level": 3,
+    "parent_code": "400-10-00",
+    "type": "Reguladora",
+    "confidence": 75
+  },
+  {
+    "index": 148,
+    "code": "400-10-03",
+    "name": "Letras descontadas",
+    "level": 3,
+    "parent_code": "400-10-00",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 149,
+    "code": "400-20-00",
+    "name": "DEPRECIACIONES ACUMULADAS",
+    "level": 2,
+    "parent_code": "400-00-00",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 150,
+    "code": "400-20-01",
+    "name": "Depreciacion acumulada muebles y enseres",
+    "level": 3,
+    "parent_code": "400-20-00",
+    "type": "Reguladora",
+    "confidence": 85
+  },
+  {
+    "index": 151,
+    "code": "400-20-02",
+    "name": "Depreciacion acumulada equipos de computacion",
+    "level": 3,
+    "parent_code": "400-20-00",
+    "type": "Reguladora",
+    "confidence": 85
+  },
+  {
+    "index": 152,
+    "code": "400-20-03",
+    "name": "Depreciacion acumulada vehiculos automotores",
+    "level": 3,
+    "parent_code": "400-20-00",
+    "type": "Reguladora",
+    "confidence": 85
+  },
+  {
+    "index": 153,
+    "code": "400-20-04",
+    "name": "Depreciacion acumulada edificaciones",
+    "level": 3,
+    "parent_code": "400-20-00",
+    "type": "Reguladora",
+    "confidence": 85
+  },
+  {
+    "index": 154,
+    "code": "400-30-00",
+    "name": "AMORTIZACIONES ACUMULADAS",
+    "level": 2,
+    "parent_code": "400-00-00",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 155,
+    "code": "400-30-01",
+    "name": "Amortizacion acumulada gastos de organizacion",
+    "level": 3,
+    "parent_code": "400-30-00",
+    "type": "Reguladora",
+    "confidence": 85
+  },
+  {
+    "index": 156,
+    "code": "500-00-00",
+    "name": "CUENTAS DE ORDEN",
+    "level": 1,
+    "parent_code": null,
+    "type": "Orden",
+    "confidence": 80
+  },
+  {
+    "index": 157,
+    "code": "500-10-00",
+    "name": "DEUDORAS",
+    "level": 2,
+    "parent_code": "500-00-00",
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 158,
+    "code": "500-10-01",
+    "name": "Aval de boletas",
+    "level": 3,
+    "parent_code": "500-10-00",
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 159,
+    "code": "500-10-02",
+    "name": "Mercaderias recibidas en consignacion",
+    "level": 3,
+    "parent_code": "500-10-00",
+    "type": "Orden",
+    "confidence": 75
+  },
+  {
+    "index": 160,
+    "code": "500-20-00",
+    "name": "ACREEDORAS",
+    "level": 2,
+    "parent_code": "500-00-00",
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 161,
+    "code": "500-20-01",
+    "name": "Boletas en garantia",
+    "level": 3,
+    "parent_code": "500-20-00",
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 162,
+    "code": "500-20-02",
+    "name": "Consignante",
+    "level": 3,
+    "parent_code": "500-20-00",
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 163,
+    "code": "600-00-00",
+    "name": "CUENTAS DE COSTO",
+    "level": 1,
+    "parent_code": null,
+    "type": "Costo",
+    "confidence": 75
+  },
+  {
+    "index": 164,
+    "code": "600-10-00",
+    "name": "COSTO DE MERCADERIA VENDIDA",
+    "level": 2,
+    "parent_code": "600-00-00",
+    "type": "Costo",
+    "confidence": 75
+  },
+  {
+    "index": 165,
+    "code": "600-10-01",
+    "name": "Costo de ventas",
+    "level": 3,
+    "parent_code": "600-10-00",
+    "type": "Costo",
+    "confidence": 75
+  },
+  {
+    "index": 166,
+    "code": "600-10-02",
+    "name": "Compras",
+    "level": 3,
+    "parent_code": "600-10-00",
+    "type": "Costo",
+    "confidence": 75
+  },
+  {
+    "index": 167,
+    "code": "700-00-00",
+    "name": "GASTOS DE OPERACION",
+    "level": 1,
+    "parent_code": null,
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 168,
+    "code": "700-10-00",
+    "name": "GASTOS DE ADMINISTRACION",
+    "level": 2,
+    "parent_code": "700-00-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 169,
+    "code": "700-10-01",
+    "name": "Sueldos y salarios",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 170,
+    "code": "700-10-02",
+    "name": "Subsidios pagados",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 171,
+    "code": "700-10-03",
+    "name": "Aguinaldos pagados",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 172,
+    "code": "700-10-04",
+    "name": "Indemnizaciones Pagadas",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 173,
+    "code": "700-10-05",
+    "name": "Pasajes y viaticos",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 174,
+    "code": "700-10-06",
+    "name": "Retenciones Laborales",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 70
+  },
+  {
+    "index": 175,
+    "code": "700-10-06",
+    "name": "Aportes Patronales",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 80
+  },
+  {
+    "index": 176,
+    "code": "700-10-07",
+    "name": "Gastos de Mantenimiento",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 177,
+    "code": "700-10-08",
+    "name": "Gastos generales",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 178,
+    "code": "700-10-09",
+    "name": "Servicios basicos",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 179,
+    "code": "700-10-10",
+    "name": "Servicio de telefonia",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 180,
+    "code": "700-10-11",
+    "name": "Servicio de agua potable",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 181,
+    "code": "700-10-12",
+    "name": "Servicio de energia electrica",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 182,
+    "code": "700-10-13",
+    "name": "Franqueo de cartas",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 183,
+    "code": "700-10-14",
+    "name": "Servicio de te",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 184,
+    "code": "700-10-15",
+    "name": "Servicio de refrigerio",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 185,
+    "code": "700-10-16",
+    "name": "Prensa Escrita",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 186,
+    "code": "700-10-17",
+    "name": "Material de Escritorio",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 187,
+    "code": "700-10-18",
+    "name": "Comisiones Comerciales",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 188,
+    "code": "700-10-19",
+    "name": "Seguros Pagados",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 189,
+    "code": "700-10-20",
+    "name": "Faltantes en caja",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 70
+  },
+  {
+    "index": 190,
+    "code": "700-10-21",
+    "name": "Perdida en venta de bienes de uso",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 191,
+    "code": "700-10-22",
+    "name": "Intereses pagados a proveedores",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 70
+  },
+  {
+    "index": 192,
+    "code": "700-10-23",
+    "name": "Alquileres Pagados",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 193,
+    "code": "700-10-24",
+    "name": "Depreciacion muebles y enseres",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 194,
+    "code": "700-10-25",
+    "name": "Depreciacion equipos de computacion",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 195,
+    "code": "700-10-26",
+    "name": "Depreciacion vehiculos automotores",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 196,
+    "code": "700-10-27",
+    "name": "Depreciacion edificaciones",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 197,
+    "code": "700-10-28",
+    "name": "Amortizacion Gastos de Organizacion",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 198,
+    "code": "700-10-29",
+    "name": "Gastos Navideños",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 199,
+    "code": "700-10-30",
+    "name": "Honorarios Pagados",
+    "level": 3,
+    "parent_code": "700-10-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 200,
+    "code": "700-20-00",
+    "name": "GASTOS DE VENTA",
+    "level": 2,
+    "parent_code": "700-00-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 201,
+    "code": "700-20-01",
+    "name": "Impuesto a las transacciones",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 202,
+    "code": "700-20-02",
+    "name": "Publicidad y propaganda",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 203,
+    "code": "700-20-03",
+    "name": "Comisiones de venta",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 204,
+    "code": "700-20-04",
+    "name": "Suministro de almacenes",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 205,
+    "code": "700-20-05",
+    "name": "Fletes de venta",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 206,
+    "code": "700-20-06",
+    "name": "Fletes en compras",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 207,
+    "code": "700-20-07",
+    "name": "Descuento en ventas",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 208,
+    "code": "700-20-08",
+    "name": "Devolucion en ventas",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 209,
+    "code": "700-20-09",
+    "name": "Gastos judiciales",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 210,
+    "code": "700-20-10",
+    "name": "Gastos por protesto",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 211,
+    "code": "700-20-11",
+    "name": "Perdida por obsolecencia de inventario",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 212,
+    "code": "700-20-12",
+    "name": "Perdida en cuentas incobrables",
+    "level": 3,
+    "parent_code": "700-20-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 213,
+    "code": "700-30-00",
+    "name": "GASTOS FINANCIEROS",
+    "level": 2,
+    "parent_code": "700-00-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 214,
+    "code": "700-30-01",
+    "name": "Intereses pagados",
+    "level": 3,
+    "parent_code": "700-30-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 215,
+    "code": "700-30-02",
+    "name": "Comisiones bancarias",
+    "level": 3,
+    "parent_code": "700-30-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 216,
+    "code": "700-30-03",
+    "name": "Gastos bancarios",
+    "level": 3,
+    "parent_code": "700-30-00",
+    "type": "Gasto",
+    "confidence": 75
+  },
+  {
+    "index": 217,
+    "code": "700-30-04",
+    "name": "Impuesto a las transacciones financieras",
+    "level": 3,
+    "parent_code": "700-30-00",
+    "type": "Gasto",
+    "confidence": 50
+  },
+  {
+    "index": 218,
+    "code": "800-00-00",
+    "name": "INGRESOS",
+    "level": 1,
+    "parent_code": null,
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 219,
+    "code": "800-10-00",
+    "name": "INGRESOS OPERATIVOS",
+    "level": 2,
+    "parent_code": "800-00-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 220,
+    "code": "800-10-01",
+    "name": "Ventas",
+    "level": 3,
+    "parent_code": "800-10-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 221,
+    "code": "800-10-02",
+    "name": "Descuento en compras",
+    "level": 3,
+    "parent_code": "800-10-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 222,
+    "code": "800-10-03",
+    "name": "Devoluciones y rebajas en compras",
+    "level": 3,
+    "parent_code": "800-10-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 223,
+    "code": "800-20-00",
+    "name": "INGRESOS NO OPERATIVOS",
+    "level": 2,
+    "parent_code": "800-00-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 224,
+    "code": "800-20-01",
+    "name": "Alquileres percibidos",
+    "level": 3,
+    "parent_code": "800-20-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 225,
+    "code": "800-20-02",
+    "name": "Comisiones percibidas",
+    "level": 3,
+    "parent_code": "800-20-00",
+    "type": "Ingreso",
+    "confidence": 50
+  },
+  {
+    "index": 226,
+    "code": "800-20-03",
+    "name": "Intereses percibidos",
+    "level": 3,
+    "parent_code": "800-20-00",
+    "type": "Ingreso",
+    "confidence": 50
+  },
+  {
+    "index": 227,
+    "code": "800-20-04",
+    "name": "Ingresos del Exterior",
+    "level": 3,
+    "parent_code": "800-20-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 228,
+    "code": "800-20-05",
+    "name": "Dividendos Percibidos",
+    "level": 3,
+    "parent_code": "800-20-00",
+    "type": "Ingreso",
+    "confidence": 50
+  },
+  {
+    "index": 229,
+    "code": "800-20-06",
+    "name": "Ganancia por Venta de Activo Fijo",
+    "level": 3,
+    "parent_code": "800-20-00",
+    "type": "Ingreso",
+    "confidence": 75
+  },
+  {
+    "index": 230,
+    "code": "900-00-00",
+    "name": "OTRAS CUENTAS DE RESULTADOS",
+    "level": 1,
+    "parent_code": null,
+    "type": "Otra cuenta de resultados",
+    "confidence": 50
+  },
+  {
+    "index": 231,
+    "code": "900-10-00",
+    "name": "CUENTAS POR SU SALDO",
+    "level": 2,
+    "parent_code": "900-00-00",
+    "type": "Otra cuenta de resultados",
+    "confidence": 50
+  },
+  {
+    "index": 232,
+    "code": "900-10-01",
+    "name": "Perdidas y ganancias",
+    "level": 3,
+    "parent_code": "900-10-00",
+    "type": "Otra cuenta de resultados",
+    "confidence": 85
+  },
+  {
+    "index": 233,
+    "code": "900-10-02",
+    "name": "Ajuste por inflacion y tenencia de bienes",
+    "level": 3,
+    "parent_code": "900-10-00",
+    "type": "Otra cuenta de resultados",
+    "confidence": 70
+  },
+  {
+    "index": 234,
+    "code": "900-10-03",
+    "name": "Diferencia de cambio",
+    "level": 3,
+    "parent_code": "900-10-00",
+    "type": "Otra cuenta de resultados",
+    "confidence": 50
+  },
+  {
+    "index": 235,
+    "code": "900-10-04",
+    "name": "Resultados por exposicion a la inflacion",
+    "level": 3,
+    "parent_code": "900-10-00",
+    "type": "Otra cuenta de resultados",
+    "confidence": 50
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "index": 1,
+    "code": "100",
+    "name": "",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 2,
+    "code": "110",
+    "name": "",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 3,
+    "code": "111",
+    "name": "111.01",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 4,
+    "code": "112",
+    "name": "112.01",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 5,
+    "code": "113",
+    "name": "113.01",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 6,
+    "code": "114",
+    "name": "114.01",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 7,
+    "code": "115",
+    "name": "115.01",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 8,
+    "code": "117",
+    "name": "",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 9,
+    "code": "118",
+    "name": "",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 10,
+    "code": "119",
+    "name": "",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  }
+]

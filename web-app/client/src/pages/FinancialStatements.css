@@ -1,0 +1,28 @@
+/* FinancialStatements.css */
+
+.border-top-primary {
+    border-top: 4px solid #0d6efd !important;
+}
+
+.border-top-danger {
+    border-top: 4px solid #dc3545 !important;
+}
+
+.border-top-info {
+    border-top: 4px solid #0dcaf0 !important;
+}
+
+.table-opacity-10 {
+    --bs-table-bg-type: rgba(var(--bs-success-rgb), 0.1);
+}
+
+.fst-italic {
+    font-style: italic !important;
+}
+
+/* Hover effect enhancement */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Specific indent styles if needed, though inline style in JS handles dynamic indent well */

@@ -1,0 +1,1732 @@
+[
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor",
+    "name": "PythonSkillExtractor",
+    "file": "scripts/extract_skills_py.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Extractor de skills para archivos Python",
+    "keywords": [
+      "skills",
+      "extractor",
+      "pythonskillextractor",
+      "python",
+      "archivos"
+    ],
+    "anchors": [
+      "^pythonskillextractor$",
+      ".*skills.*",
+      ".*extractor.*",
+      ".*pythonskillextractor.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299406"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.__init__",
+    "name": "PythonSkillExtractor.__init__",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "init"
+    ],
+    "anchors": [
+      "^__init__$",
+      ".*init.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299463"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.extract_function_info",
+    "name": "PythonSkillExtractor.extract_function_info",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, node, file_path, source_code)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Extrae información de una función desde el AST",
+    "keywords": [
+      "function",
+      "info",
+      "extrae",
+      "función",
+      "extract",
+      "información",
+      "desde"
+    ],
+    "anchors": [
+      "^extract_function_info$",
+      ".*function.*",
+      ".*info.*",
+      ".*extrae.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299510"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.extract_class_info",
+    "name": "PythonSkillExtractor.extract_class_info",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, node, file_path, source_code)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Extrae información de una clase y sus métodos",
+    "keywords": [
+      "class",
+      "info",
+      "extrae",
+      "métodos",
+      "extract",
+      "clase",
+      "información"
+    ],
+    "anchors": [
+      "^extract_class_info$",
+      ".*class.*",
+      ".*info.*",
+      ".*extrae.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299584"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.generate_keywords",
+    "name": "PythonSkillExtractor.generate_keywords",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, name, doc)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Genera keywords automáticamente del nombre y documentación",
+    "keywords": [
+      "automáticamente",
+      "generate",
+      "genera",
+      "documentación",
+      "nombre",
+      "keywords"
+    ],
+    "anchors": [
+      "^generate_keywords$",
+      ".*automáticamente.*",
+      ".*generate.*",
+      ".*genera.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299635"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.generate_anchors",
+    "name": "PythonSkillExtractor.generate_anchors",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, name, keywords)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Genera anchors para matching de consultas",
+    "keywords": [
+      "consultas",
+      "generate",
+      "genera",
+      "anchors",
+      "matching"
+    ],
+    "anchors": [
+      "^generate_anchors$",
+      ".*consultas.*",
+      ".*generate.*",
+      ".*genera.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299684"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.generate_examples",
+    "name": "PythonSkillExtractor.generate_examples",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, name)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Genera ejemplos para funciones puras",
+    "keywords": [
+      "ejemplos",
+      "puras",
+      "generate",
+      "genera",
+      "funciones",
+      "examples"
+    ],
+    "anchors": [
+      "^generate_examples$",
+      ".*ejemplos.*",
+      ".*puras.*",
+      ".*generate.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299730"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.process_file",
+    "name": "PythonSkillExtractor.process_file",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, file_path)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Procesa un archivo Python y extrae skills",
+    "keywords": [
+      "skills",
+      "file",
+      "extrae",
+      "archivo",
+      "procesa",
+      "process",
+      "python"
+    ],
+    "anchors": [
+      "^process_file$",
+      ".*skills.*",
+      ".*file.*",
+      ".*extrae.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299774"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.find_python_files",
+    "name": "PythonSkillExtractor.find_python_files",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Encuentra todos los archivos Python a procesar",
+    "keywords": [
+      "files",
+      "procesar",
+      "todos",
+      "encuentra",
+      "find",
+      "python",
+      "archivos"
+    ],
+    "anchors": [
+      "^find_python_files$",
+      ".*files.*",
+      ".*procesar.*",
+      ".*todos.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299815"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::PythonSkillExtractor.is_method_of_class",
+    "name": "PythonSkillExtractor.is_method_of_class",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "(self, func_node, tree)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Verifica si una función es un método de clase (tiene ancestro ClassDef)",
+    "keywords": [
+      "verifica",
+      "método",
+      "class",
+      "función",
+      "tiene",
+      "clase",
+      "method"
+    ],
+    "anchors": [
+      "^is_method_of_class$",
+      ".*verifica.*",
+      ".*método.*",
+      ".*class.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.299857"
+  },
+  {
+    "id": "scripts/extract_skills_py.py::main",
+    "name": "main",
+    "file": "scripts/extract_skills_py.py",
+    "type": "function",
+    "signature": "()",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Función principal",
+    "keywords": [
+      "principal",
+      "main",
+      "función"
+    ],
+    "anchors": [
+      "^main$",
+      ".*principal.*",
+      ".*main.*",
+      ".*función.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.307051"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentType",
+    "name": "AdjustmentType",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "adjustmenttype"
+    ],
+    "anchors": [
+      "^adjustmenttype$",
+      ".*adjustmenttype.*",
+      "/ajuste|adjustment|inflacion/i"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.383147"
+  },
+  {
+    "id": "ai_adjustment_engine.py::Account",
+    "name": "Account",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "account"
+    ],
+    "anchors": [
+      "^account$",
+      ".*account.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.383223"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentParameters",
+    "name": "AdjustmentParameters",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "adjustmentparameters"
+    ],
+    "anchors": [
+      "^adjustmentparameters$",
+      ".*adjustmentparameters.*",
+      "/ajuste|adjustment|inflacion/i"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.383281"
+  },
+  {
+    "id": "ai_adjustment_engine.py::TransactionEntry",
+    "name": "TransactionEntry",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "transactionentry"
+    ],
+    "anchors": [
+      "^transactionentry$",
+      ".*transactionentry.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.383444"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ProposedTransaction",
+    "name": "ProposedTransaction",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "proposedtransaction"
+    ],
+    "anchors": [
+      "^proposedtransaction$",
+      ".*proposedtransaction.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.384889"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentRequest",
+    "name": "AdjustmentRequest",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "adjustmentrequest"
+    ],
+    "anchors": [
+      "^adjustmentrequest$",
+      ".*adjustmentrequest.*",
+      "/ajuste|adjustment|inflacion/i"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.385188"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentResponse",
+    "name": "AdjustmentResponse",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "adjustmentresponse"
+    ],
+    "anchors": [
+      "^adjustmentresponse$",
+      ".*adjustmentresponse.*",
+      "/ajuste|adjustment|inflacion/i"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.386372"
+  },
+  {
+    "id": "ai_adjustment_engine.py::SemanticRule",
+    "name": "SemanticRule",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "semanticrule"
+    ],
+    "anchors": [
+      "^semanticrule$",
+      ".*semanticrule.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.386435"
+  },
+  {
+    "id": "ai_adjustment_engine.py::DepreciationConfig",
+    "name": "DepreciationConfig",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "depreciationconfig"
+    ],
+    "anchors": [
+      "^depreciationconfig$",
+      ".*depreciationconfig.*",
+      "/depreciacion|depreciation|activo.*fijo/i"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.386474"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSConfig",
+    "name": "ARSConfig",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "arsconfig"
+    ],
+    "anchors": [
+      "^arsconfig$",
+      ".*arsconfig.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.386535"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema",
+    "name": "AdjustmentProfileSchema",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Esquema de Contexto de Dominio Gobernable (ARS Context Model V3.0)",
+    "keywords": [
+      "gobernable",
+      "esquema",
+      "context",
+      "contexto",
+      "adjustmentprofileschema",
+      "dominio"
+    ],
+    "anchors": [
+      "^adjustmentprofileschema$",
+      ".*gobernable.*",
+      ".*esquema.*",
+      ".*context.*",
+      "/ajuste|adjustment|inflacion/i"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.386655"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema.__init__",
+    "name": "AdjustmentProfileSchema.__init__",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, profile_data=None)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "init"
+    ],
+    "anchors": [
+      "^__init__$",
+      ".*init.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.386667"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._get_default_ars_profile",
+    "name": "AdjustmentProfileSchema._get_default_ars_profile",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Perfil ARS-DSPy por defecto con contexto completo",
+    "keywords": [
+      "profile",
+      "dspy",
+      "default",
+      "contexto",
+      "perfil",
+      "defecto",
+      "completo"
+    ],
+    "anchors": [
+      "^_get_default_ars_profile$",
+      ".*profile.*",
+      ".*dspy.*",
+      ".*default.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.390717"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_data_retrieval_config",
+    "name": "AdjustmentProfileSchema._load_data_retrieval_config",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cargar configuración de recuperación de datos",
+    "keywords": [
+      "recuperación",
+      "datos",
+      "retrieval",
+      "configuración",
+      "config",
+      "data",
+      "cargar",
+      "load"
+    ],
+    "anchors": [
+      "^_load_data_retrieval_config$",
+      ".*recuperación.*",
+      ".*datos.*",
+      ".*retrieval.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.390799"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_reasoning_config",
+    "name": "AdjustmentProfileSchema._load_reasoning_config",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cargar configuración de razonamiento adaptativo",
+    "keywords": [
+      "reasoning",
+      "configuración",
+      "config",
+      "cargar",
+      "razonamiento",
+      "load",
+      "adaptativo"
+    ],
+    "anchors": [
+      "^_load_reasoning_config$",
+      ".*reasoning.*",
+      ".*configuración.*",
+      ".*config.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.390896"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_aitb_settings",
+    "name": "AdjustmentProfileSchema._load_aitb_settings",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cargar configuración de AITB mejorada",
+    "keywords": [
+      "settings",
+      "aitb",
+      "configuración",
+      "cargar",
+      "mejorada",
+      "load"
+    ],
+    "anchors": [
+      "^_load_aitb_settings$",
+      ".*settings.*",
+      ".*aitb.*",
+      ".*configuración.*",
+      "/aitb|inflacion|tenencia/i"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.390956"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_depreciation_settings",
+    "name": "AdjustmentProfileSchema._load_depreciation_settings",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cargar configuración de depreciación mejorada",
+    "keywords": [
+      "settings",
+      "configuración",
+      "depreciación",
+      "cargar",
+      "depreciation",
+      "mejorada",
+      "load"
+    ],
+    "anchors": [
+      "^_load_depreciation_settings$",
+      ".*settings.*",
+      ".*configuración.*",
+      ".*depreciación.*",
+      "/depreciacion|depreciation|activo.*fijo/i"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.390996"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_correction_history",
+    "name": "AdjustmentProfileSchema._load_correction_history",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cargar historial de correcciones y aprendizaje",
+    "keywords": [
+      "correction",
+      "correcciones",
+      "historial",
+      "cargar",
+      "history",
+      "load",
+      "aprendizaje"
+    ],
+    "anchors": [
+      "^_load_correction_history$",
+      ".*correction.*",
+      ".*correcciones.*",
+      ".*historial.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391039"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_performance_metrics",
+    "name": "AdjustmentProfileSchema._load_performance_metrics",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cargar métricas de desempeño",
+    "keywords": [
+      "metrics",
+      "performance",
+      "cargar",
+      "load",
+      "desempeño",
+      "métricas"
+    ],
+    "anchors": [
+      "^_load_performance_metrics$",
+      ".*metrics.*",
+      ".*performance.*",
+      ".*cargar.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391077"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_semantic_rules",
+    "name": "AdjustmentProfileSchema._load_semantic_rules",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, rule_type)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "load",
+      "semantic",
+      "rules"
+    ],
+    "anchors": [
+      "^_load_semantic_rules$",
+      ".*load.*",
+      ".*semantic.*",
+      ".*rules.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391116"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_depreciation_configs",
+    "name": "AdjustmentProfileSchema._load_depreciation_configs",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "depreciation",
+      "configs",
+      "load"
+    ],
+    "anchors": [
+      "^_load_depreciation_configs$",
+      ".*depreciation.*",
+      ".*configs.*",
+      ".*load.*",
+      "/depreciacion|depreciation|activo.*fijo/i"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391140"
+  },
+  {
+    "id": "ai_adjustment_engine.py::AdjustmentProfileSchema._load_ars_config",
+    "name": "AdjustmentProfileSchema._load_ars_config",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "config",
+      "load"
+    ],
+    "anchors": [
+      "^_load_ars_config$",
+      ".*config.*",
+      ".*load.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391162"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine",
+    "name": "ARSDSPyEngine",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Motor de Razonamiento Adaptativo con patrón DSPy-like y ARS",
+    "keywords": [
+      "arsdspyengine",
+      "motor",
+      "dspy",
+      "patrón",
+      "razonamiento",
+      "adaptativo"
+    ],
+    "anchors": [
+      "^arsdspyengine$",
+      ".*arsdspyengine.*",
+      ".*motor.*",
+      ".*dspy.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391277"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.__init__",
+    "name": "ARSDSPyEngine.__init__",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, profile_schema=None)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "init"
+    ],
+    "anchors": [
+      "^__init__$",
+      ".*init.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391285"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.classify_account_semantic",
+    "name": "ARSDSPyEngine.classify_account_semantic",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account)",
+    "isPure": true,
+    "contextDeps": [],
+    "doc": "Clasificación semántica V6.0: Emparejamiento por Conceptos (Knowledge Base Matching)\n⚡ MAHORAGA TEKIŌ: Las reglas aprendidas (SCL) tienen PRIORIDAD ABSOLUTA ⚡",
+    "keywords": [
+      "knowledge",
+      "emparejamiento",
+      "semantic",
+      "classify",
+      "conceptos",
+      "account",
+      "semántica",
+      "clasificación"
+    ],
+    "anchors": [
+      "^classify_account_semantic$",
+      ".*knowledge.*",
+      ".*emparejamiento.*",
+      ".*semantic.*",
+      "/clasificar|classify|cuenta|account/i"
+    ],
+    "examples": [
+      {
+        "input": {
+          "account": {
+            "code": "1.1.01.001",
+            "name": "Edificio Administrativo"
+          }
+        },
+        "output": {
+          "type": "non_monetary",
+          "confidence": 0.95,
+          "tags": [
+            "NoMonetario",
+            "ActivoFijo"
+          ]
+        }
+      }
+    ],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.391778"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.calculate_adaptive_confidence",
+    "name": "ARSDSPyEngine.calculate_adaptive_confidence",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, adjustment_type, base_confidence)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Cálculo de confianza adaptativa basado en ambigüedad semántica",
+    "keywords": [
+      "calculate",
+      "adaptativa",
+      "basado",
+      "confianza",
+      "ambigüedad",
+      "cálculo",
+      "adaptive",
+      "confidence"
+    ],
+    "anchors": [
+      "^calculate_adaptive_confidence$",
+      ".*calculate.*",
+      ".*adaptativa.*",
+      ".*basado.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392151"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.calculate_depreciation_pot",
+    "name": "ARSDSPyEngine.calculate_depreciation_pot",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, params)",
+    "isPure": true,
+    "contextDeps": [],
+    "doc": "Cálculo de depreciación con Program of Thought (PoT)",
+    "keywords": [
+      "thought",
+      "depreciación",
+      "calculate",
+      "program",
+      "depreciation",
+      "cálculo"
+    ],
+    "anchors": [
+      "^calculate_depreciation_pot$",
+      ".*thought.*",
+      ".*depreciación.*",
+      ".*calculate.*",
+      "/depreciacion|depreciation|activo.*fijo/i"
+    ],
+    "examples": [
+      {
+        "input": {
+          "account": {
+            "code": "1.2.01.001",
+            "name": "Maquinaria",
+            "balance": 10000
+          },
+          "params": {
+            "ufv_initial": 1.0,
+            "ufv_final": 1.1
+          }
+        },
+        "output": {
+          "amount": 833.33,
+          "confidence": 0.95,
+          "audit_trail": "[DEPRECIACIÓN]"
+        }
+      }
+    ],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392198"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.calculate_aitb_pot",
+    "name": "ARSDSPyEngine.calculate_aitb_pot",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, params)",
+    "isPure": true,
+    "contextDeps": [],
+    "doc": "Cálculo AITB estricto NC 3 con Coeficiente Corrector",
+    "keywords": [
+      "estricto",
+      "aitb",
+      "calculate",
+      "coeficiente",
+      "corrector",
+      "cálculo"
+    ],
+    "anchors": [
+      "^calculate_aitb_pot$",
+      ".*estricto.*",
+      ".*aitb.*",
+      ".*calculate.*",
+      "/aitb|inflacion|tenencia/i"
+    ],
+    "examples": [
+      {
+        "input": {
+          "account": {
+            "code": "1.1.01.001",
+            "name": "Edificio",
+            "balance": 50000
+          },
+          "params": {
+            "ufv_initial": 1.0,
+            "ufv_final": 1.15
+          }
+        },
+        "output": {
+          "amount": 6250,
+          "confidence": 0.98,
+          "audit_trail": "[AITB]"
+        }
+      }
+    ],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392244"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.calculate_provision_pot",
+    "name": "ARSDSPyEngine.calculate_provision_pot",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, params)",
+    "isPure": true,
+    "contextDeps": [],
+    "doc": "Cálculo de provisión inteligente",
+    "keywords": [
+      "provision",
+      "calculate",
+      "inteligente",
+      "cálculo",
+      "provisión"
+    ],
+    "anchors": [
+      "^calculate_provision_pot$",
+      ".*provision.*",
+      ".*calculate.*",
+      ".*inteligente.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392285"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine.generate_adjustments",
+    "name": "ARSDSPyEngine.generate_adjustments",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, request)",
+    "isPure": false,
+    "contextDeps": [
+      "company_id",
+      "gestion"
+    ],
+    "doc": "Motor ARS principal con Certeza Dinámica y Strategic Reflectivism",
+    "keywords": [
+      "dinámica",
+      "motor",
+      "generate",
+      "principal",
+      "strategic",
+      "adjustments",
+      "certeza"
+    ],
+    "anchors": [
+      "^generate_adjustments$",
+      ".*dinámica.*",
+      ".*motor.*",
+      ".*generate.*",
+      "/ajuste|adjustment|inflacion/i"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392317"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine._create_depreciation_transaction",
+    "name": "ARSDSPyEngine._create_depreciation_transaction",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, amount, confidence, audit)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Crear asiento de depreciación con estructura estándar",
+    "keywords": [
+      "estándar",
+      "create",
+      "depreciación",
+      "transaction",
+      "depreciation",
+      "asiento",
+      "estructura",
+      "crear"
+    ],
+    "anchors": [
+      "^_create_depreciation_transaction$",
+      ".*estándar.*",
+      ".*create.*",
+      ".*depreciación.*",
+      "/depreciacion|depreciation|activo.*fijo/i"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392368"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine._fuzzy_find_account",
+    "name": "ARSDSPyEngine._fuzzy_find_account",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, accounts, keywords, fallback_code, fallback_name)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Búsqueda flexible de cuenta por palabras clave.\nBusca cuentas cuyo nombre contenga alguna de las keywords (case insensitive).\nSi no encuentra, devuelve el fallback.",
+    "keywords": [
+      "palabras",
+      "cuenta",
+      "flexible",
+      "búsqueda",
+      "clave",
+      "account",
+      "fuzzy",
+      "find"
+    ],
+    "anchors": [
+      "^_fuzzy_find_account$",
+      ".*palabras.*",
+      ".*cuenta.*",
+      ".*flexible.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392448"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine._create_aitb_transaction",
+    "name": "ARSDSPyEngine._create_aitb_transaction",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, amount, confidence, audit, available_accounts=None)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Crear asiento AITB con estructura NC-3 y búsqueda flexible de cuenta",
+    "keywords": [
+      "create",
+      "aitb",
+      "transaction",
+      "asiento",
+      "búsqueda",
+      "estructura",
+      "crear"
+    ],
+    "anchors": [
+      "^_create_aitb_transaction$",
+      ".*create.*",
+      ".*aitb.*",
+      ".*transaction.*",
+      "/aitb|inflacion|tenencia/i"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392529"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine._create_provision_transaction",
+    "name": "ARSDSPyEngine._create_provision_transaction",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, account, amount, confidence, audit)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Crear asiento de provisión estándar",
+    "keywords": [
+      "provision",
+      "estándar",
+      "create",
+      "transaction",
+      "asiento",
+      "crear",
+      "provisión"
+    ],
+    "anchors": [
+      "^_create_provision_transaction$",
+      ".*provision.*",
+      ".*estándar.*",
+      ".*create.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392656"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ARSDSPyEngine._generate_concise_reasoning",
+    "name": "ARSDSPyEngine._generate_concise_reasoning",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, audit_trails, stats, confidence)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Generar reasoning conciso (shorter CoT)",
+    "keywords": [
+      "reasoning",
+      "shorter",
+      "generate",
+      "conciso",
+      "concise",
+      "generar"
+    ],
+    "anchors": [
+      "^_generate_concise_reasoning$",
+      ".*reasoning.*",
+      ".*shorter.*",
+      ".*generate.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392713"
+  },
+  {
+    "id": "ai_adjustment_engine.py::ExplainRequest",
+    "name": "ExplainRequest",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "explainrequest"
+    ],
+    "anchors": [
+      "^explainrequest$",
+      ".*explainrequest.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392850"
+  },
+  {
+    "id": "ai_adjustment_engine.py::FeedbackErrorTag",
+    "name": "FeedbackErrorTag",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "feedbackerrortag"
+    ],
+    "anchors": [
+      "^feedbackerrortag$",
+      ".*feedbackerrortag.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392920"
+  },
+  {
+    "id": "ai_adjustment_engine.py::FeedbackRequest",
+    "name": "FeedbackRequest",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "feedbackrequest"
+    ],
+    "anchors": [
+      "^feedbackrequest$",
+      ".*feedbackrequest.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392950"
+  },
+  {
+    "id": "ai_adjustment_engine.py::LearningResponse",
+    "name": "LearningResponse",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "learningresponse"
+    ],
+    "anchors": [
+      "^learningresponse$",
+      ".*learningresponse.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.392994"
+  },
+  {
+    "id": "ai_adjustment_engine.py::HardRulesValidator",
+    "name": "HardRulesValidator",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Sello de Contención 1: Sanidad Contable Inmutable (V5.0)",
+    "keywords": [
+      "hardrulesvalidator",
+      "contención",
+      "sello",
+      "contable",
+      "inmutable",
+      "sanidad"
+    ],
+    "anchors": [
+      "^hardrulesvalidator$",
+      ".*hardrulesvalidator.*",
+      ".*contención.*",
+      ".*sello.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.393116"
+  },
+  {
+    "id": "ai_adjustment_engine.py::HardRulesValidator.validate_adaptation",
+    "name": "HardRulesValidator.validate_adaptation",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(account_name, correct_type)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "validate",
+      "adaptation"
+    ],
+    "anchors": [
+      "^validate_adaptation$",
+      ".*validate.*",
+      ".*adaptation.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.393134"
+  },
+  {
+    "id": "ai_adjustment_engine.py::HardRulesValidator.verify_integrity_gate",
+    "name": "HardRulesValidator.verify_integrity_gate",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(feedback, account_balance)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Mahoraga's Logic Gate (Materiality Check)",
+    "keywords": [
+      "verify",
+      "check",
+      "gate",
+      "materiality",
+      "logic",
+      "mahoraga",
+      "integrity"
+    ],
+    "anchors": [
+      "^verify_integrity_gate$",
+      ".*verify.*",
+      ".*check.*",
+      ".*gate.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.393180"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaEngine",
+    "name": "MahoragaEngine",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "El General Divino Mahoraga (V6.0 - Divine Grade): Motor de Adaptación Determinística.\n⚡ LA RUEDA DE OCHO EMPUÑADURAS (Hōjin) ⚡\n\nAprende de los 'golpes' (correcciones) y evoluciona la Rueda (Reglas).\nImplementa el patrón Tekiō (Adaptación) en tres fases:\n- Fase 1: Resistencia/Inmunidad (Validación Hard Rules)\n- Fase 2: Contra-Estrategia (Eliminación de reglas conflictivas + Nueva regla suprema)\n- Fase 3: Optimización de Energía (Ajuste de pesos de confianza)",
+    "keywords": [
+      "divino",
+      "mahoragaengine",
+      "general",
+      "mahoraga",
+      "grade",
+      "divine"
+    ],
+    "anchors": [
+      "^mahoragaengine$",
+      ".*divino.*",
+      ".*mahoragaengine.*",
+      ".*general.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.393748"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaEngine.learn_from_feedback",
+    "name": "MahoragaEngine.learn_from_feedback",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, feedback)",
+    "isPure": false,
+    "contextDeps": [
+      "company_id"
+    ],
+    "doc": "⚡ EL GIRO DE LA RUEDA (Hōjin Rotation) ⚡\nTransforma un error humano en inmunidad algorítmica.\nV6.0 FIX: Usa el perfil existente de la DB (no el por defecto)",
+    "keywords": [
+      "feedback",
+      "learn",
+      "transforma",
+      "rotation",
+      "hōjin",
+      "giro",
+      "from",
+      "rueda"
+    ],
+    "anchors": [
+      "^learn_from_feedback$",
+      ".*feedback.*",
+      ".*learn.*",
+      ".*transforma.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.393788"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaEngine.find_pattern_candidates",
+    "name": "MahoragaEngine.find_pattern_candidates",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, rules)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Fase 3: Generalización de Patrones (Heurística simple)",
+    "keywords": [
+      "candidates",
+      "generalización",
+      "patrones",
+      "heurística",
+      "simple",
+      "fase",
+      "find",
+      "pattern"
+    ],
+    "anchors": [
+      "^find_pattern_candidates$",
+      ".*candidates.*",
+      ".*generalización.*",
+      ".*patrones.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.393864"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaEngine.prune_cold_storage",
+    "name": "MahoragaEngine.prune_cold_storage",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Poda de la Rueda (Performance Maintenance V5.0)\nMueve reglas obsoletas (> 2 gestiones sin uso) a Cold Storage.",
+    "keywords": [
+      "prune",
+      "storage",
+      "performance",
+      "maintenance",
+      "poda",
+      "cold",
+      "mueve",
+      "rueda"
+    ],
+    "anchors": [
+      "^prune_cold_storage$",
+      ".*prune.*",
+      ".*storage.*",
+      ".*performance.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394116"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaEngine._map_type_to_tag",
+    "name": "MahoragaEngine._map_type_to_tag",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, type_str)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "type"
+    ],
+    "anchors": [
+      "^_map_type_to_tag$",
+      ".*type.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394186"
+  },
+  {
+    "id": "ai_adjustment_engine.py::SkillResolver",
+    "name": "SkillResolver",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Resuelve y ejecuta skills del sistema Node.js desde Python\nPermite a Mahoraga acceder a las funciones del sistema contable",
+    "keywords": [
+      "skills",
+      "resuelve",
+      "ejecuta",
+      "sistema",
+      "node",
+      "skillresolver"
+    ],
+    "anchors": [
+      "^skillresolver$",
+      ".*skills.*",
+      ".*resuelve.*",
+      ".*ejecuta.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394378"
+  },
+  {
+    "id": "ai_adjustment_engine.py::SkillResolver.__init__",
+    "name": "SkillResolver.__init__",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "init"
+    ],
+    "anchors": [
+      "^__init__$",
+      ".*init.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394391"
+  },
+  {
+    "id": "ai_adjustment_engine.py::SkillResolver._extract_keywords",
+    "name": "SkillResolver._extract_keywords",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, text)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Extrae keywords relevantes del texto",
+    "keywords": [
+      "texto",
+      "extrae",
+      "extract",
+      "relevantes",
+      "keywords"
+    ],
+    "anchors": [
+      "^_extract_keywords$",
+      ".*texto.*",
+      ".*extrae.*",
+      ".*extract.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394637"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaSkillEngine",
+    "name": "MahoragaSkillEngine",
+    "file": "ai_adjustment_engine.py",
+    "type": "class",
+    "signature": "",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "Versión extendida de Mahoraga con resolución de skills",
+    "keywords": [
+      "skills",
+      "extendida",
+      "versión",
+      "mahoraga",
+      "mahoragaskillengine",
+      "resolución"
+    ],
+    "anchors": [
+      "^mahoragaskillengine$",
+      ".*skills.*",
+      ".*extendida.*",
+      ".*versión.*"
+    ],
+    "examples": [],
+    "confidence": 0.85,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394811"
+  },
+  {
+    "id": "ai_adjustment_engine.py::MahoragaSkillEngine.__init__",
+    "name": "MahoragaSkillEngine.__init__",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(self, profile_schema=None)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "init"
+    ],
+    "anchors": [
+      "^__init__$",
+      ".*init.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.394830"
+  },
+  {
+    "id": "ai_adjustment_engine.py::calculate_concept_score",
+    "name": "calculate_concept_score",
+    "file": "ai_adjustment_engine.py",
+    "type": "function",
+    "signature": "(acc_name, concept_keywords)",
+    "isPure": false,
+    "contextDeps": [],
+    "doc": "",
+    "keywords": [
+      "concept",
+      "calculate",
+      "score"
+    ],
+    "anchors": [
+      "^calculate_concept_score$",
+      ".*concept.*",
+      ".*calculate.*",
+      ".*score.*"
+    ],
+    "examples": [],
+    "confidence": 0.9,
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-27T21:19:55.443334"
+  }
+]

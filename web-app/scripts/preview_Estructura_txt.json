@@ -1,0 +1,182 @@
+[
+  {
+    "index": 1,
+    "code": "2.-Estructura-Jerárquica-y-Codificación",
+    "name": "Detallada del PUCT",
+    "level": 5,
+    "parent_code": "2.-Estructura-Jerárquica-y-000000000000",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 2,
+    "code": "1",
+    "name": "(ACTIVO)",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 3,
+    "code": "1",
+    "name": "(ACTIVO CORRIENTE)",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 4,
+    "code": "1",
+    "name": "(EFECTIVO Y EQUIVALENTES)",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 5,
+    "code": "1",
+    "name": "(CAJA)",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 6,
+    "code": "1",
+    "name": "(CAJA M/N)",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 70
+  },
+  {
+    "index": 7,
+    "code": "1-al",
+    "name": "4):",
+    "level": 2,
+    "parent_code": "1-00",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 8,
+    "code": "3.-Procedimiento-para-Adicionar-Cuentas",
+    "name": "Principales (CP - 4to Nivel)",
+    "level": 5,
+    "parent_code": "3.-Procedimiento-para-Adicionar-0000000",
+    "type": "Patrimonio",
+    "confidence": 50
+  },
+  {
+    "index": 9,
+    "code": "1.-Justificación-de-la-necesidad",
+    "name": "de utilizar la Cuenta Principal propuesta.",
+    "level": 5,
+    "parent_code": "1.-Justificación-de-la-000000000",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 10,
+    "code": "2.-Identificación-de-la-actividad",
+    "name": "económica en la que se utilizará la cuenta.",
+    "level": 5,
+    "parent_code": "2.-Identificación-de-la-000000000",
+    "type": "Pasivo",
+    "confidence": 50
+  },
+  {
+    "index": 11,
+    "code": "3.-Identificación-de-la-Clase",
+    "name": "(C), Grupo (G) y Subgrupo (SG) donde se requiere adicionar la Cuenta Principal.",
+    "level": 5,
+    "parent_code": "3.-Identificación-de-la-00000",
+    "type": "Patrimonio",
+    "confidence": 50
+  },
+  {
+    "index": 12,
+    "code": "4.-Denominación-de-la-Cuenta",
+    "name": "Principal que se requiere adicionar.",
+    "level": 5,
+    "parent_code": "4.-Denominación-de-la-000000",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 13,
+    "code": "5.-Descripción-detallada-del-movimiento",
+    "name": "contable (Débitos y Créditos) que tendrá la Cuenta Principal.",
+    "level": 5,
+    "parent_code": "5.-Descripción-detallada-del-0000000000",
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 14,
+    "code": "0",
+    "name": "días hábiles para notificar al contribuyente (vía Buzón Tributario) sobre la aceptación o rechazo de la solicitud.",
+    "level": 1,
+    "parent_code": null,
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 15,
+    "code": "4.-La-Importancia-del-Nivel",
+    "name": "Analítico (CA - 5to Nivel)",
+    "level": 5,
+    "parent_code": "4.-La-Importancia-del-00000",
+    "type": "Reguladora",
+    "confidence": 50
+  },
+  {
+    "index": 16,
+    "code": "5",
+    "name": "Niveles)",
+    "level": 1,
+    "parent_code": null,
+    "type": "Orden",
+    "confidence": 50
+  },
+  {
+    "index": 17,
+    "code": "1-1-1-001",
+    "name": "001",
+    "level": 4,
+    "parent_code": "1-1-1-000",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 18,
+    "code": "1-1-1-001",
+    "name": "002",
+    "level": 4,
+    "parent_code": "1-1-1-000",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 19,
+    "code": "1-1-1-001",
+    "name": "003",
+    "level": 4,
+    "parent_code": "1-1-1-000",
+    "type": "Activo",
+    "confidence": 50
+  },
+  {
+    "index": 20,
+    "code": "1-1-1-001-es-la-Cuenta",
+    "name": "Principal de \"CAJA\" (Cerrada), y 001, 002, 003 son las Cuentas Analíticas internas (Abiertas)",
+    "level": 7,
+    "parent_code": "1-1-1-001-es-la-000000",
+    "type": "Activo",
+    "confidence": 70
+  }
+]

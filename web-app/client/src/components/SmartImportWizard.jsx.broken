@@ -1,0 +1,657 @@
+import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
+import axios from 'axios';
+
+export default function SmartImportWizard({ onClose, onSuccess }) {
+    const [step, setStep] = useState(1);
+    const [file, setFile] = useState(null);
+    const [sheets, setSheets] = useState([]);
+    const [selectedSheet, setSelectedSheet] = useState('');
+    const [range, setRange] = useState({ startRow: 1, endRow: 100, startCol: 'A', endCol: 'C' });
+    const [rawData, setRawData] = useState([]);
+    const [columnMapping, setColumnMapping] = useState({ code: '', name: '', type: '' });
+    const [detectedConfig, setDetectedConfig] = useState(null);
+    const [previewData, setPreviewData] = useState([]);
+    const [importing, setImporting] = useState(false);
+
+    // Tipos de cuenta disponibles con iconos Bootstrap
+    const ACCOUNT_TYPES = [
+        { value: 'Activo', label: 'Activo', icon: 'bi-cash-stack', color: 'success' },
+        { value: 'Pasivo', label: 'Pasivo', icon: 'bi-graph-down', color: 'danger' },
+        { value: 'Patrimonio', label: 'Patrimonio', icon: 'bi-bank', color: 'primary' },
+        { value: 'Reguladora', label: 'Reguladora', icon: 'bi-scales', color: 'secondary' },
+        { value: 'Orden', label: 'Orden', icon: 'bi-card-list', color: 'info' },
+        { value: 'Costo', label: 'Costo', icon: 'bi-box-seam', color: 'warning' },
+        { value: 'Gasto', label: 'Gasto', icon: 'bi-credit-card', color: 'danger' },
+        { value: 'Ingreso', label: 'Ingreso', icon: 'bi-arrow-up-circle', color: 'success' },
+        { value: 'Resultado', label: 'Resultado', icon: 'bi-graph-up', color: 'primary' }
+    ];
+
+    // Step 1: File Upload
+    const handleFileUpload = async (e) => {
+        const uploadedFile = e.target.files[0];
+        if (!uploadedFile) return;
+
+        setFile(uploadedFile);
+        const reader = new FileReader();
+
+        reader.onload = (evt) => {
+            const data = evt.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            setSheets(workbook.SheetNames);
+            if (workbook.SheetNames.length > 0) {
+                setSelectedSheet(workbook.SheetNames[0]);
+            }
+            setStep(2);
+        };
+
+        reader.readAsBinaryString(uploadedFile);
+    };
+
+    // Step 2: Load data
+    const loadSheetData = () => {
+        if (!file || !selectedSheet) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const data = evt.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const worksheet = workbook.Sheets[selectedSheet];
+
+            // FORCE A1 START: Ensure row numbers match Excel exactly
+            if (worksheet['!ref']) {
+                const refRange = XLSX.utils.decode_range(worksheet['!ref']);
+                refRange.s.r = 0; // Start at Row 0 (Excel Row 1)
+                refRange.s.c = 0; // Start at Col 0 (Excel Col A)
+                worksheet['!ref'] = XLSX.utils.encode_range(refRange);
+            }
+
+            // Use blankrows: true to keep empty rows so index matches row number
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: true });
+
+            // Slice based on user input (1-based)
+            const filteredData = jsonData.slice(range.startRow - 1, range.endRow);
+            setRawData(filteredData);
+
+            autoDetectColumns(filteredData);
+            setStep(3);
+        };
+
+        reader.readAsBinaryString(file);
+    };
+
+    // Auto-detect columns
+    const autoDetectColumns = (data) => {
+        if (data.length === 0) return;
+
+        const headers = data[0];
+        const mapping = { code: '', name: '', type: '' };
+
+        headers.forEach((header, index) => {
+            const headerLower = (header || '').toString().toLowerCase().trim();
+
+            if (headerLower.includes('código') || headerLower.includes('codigo') || headerLower.includes('code') || headerLower.includes('cta')) {
+                mapping.code = index;
+            } else if (headerLower.includes('nombre') || headerLower.includes('name') || headerLower.includes('cuenta') || headerLower.includes('descripción')) {
+                mapping.name = index;
+            } else if (headerLower.includes('tipo') || headerLower.includes('type') || headerLower.includes('naturaleza')) {
+                mapping.type = index;
+            }
+        });
+
+        if (mapping.code === '' && mapping.name === '') {
+            mapping.code = 0;
+            mapping.name = 1;
+            mapping.type = 2;
+        }
+            ...prev,
+        rules: prev.rules.map(rule =>
+            rule.startsWith === startsWith ? { ...rule, type: newType } : rule
+        )
+}));
+    };
+
+const mapAccountType = (typeRaw, code, name) => {
+    let detected = 'Activo';
+    let confidence = 0; // 0-100
+
+    // 1. Explicit Type Column (Highest Confidence)
+    if (typeRaw) {
+        const typeLower = typeRaw.toString().toLowerCase().trim();
+        if (['a', 'activo', 'activos'].some(t => typeLower.includes(t))) { return { type: 'Activo', confidence: 90 }; }
+        if (['p', 'pasivo', 'pasivos'].some(t => typeLower.includes(t))) { return { type: 'Pasivo', confidence: 90 }; }
+        if (['pat', 'patrimonio', 'capital'].some(t => typeLower.includes(t))) { return { type: 'Patrimonio', confidence: 90 }; }
+        if (['i', 'ing', 'ingreso', 'ingresos'].some(t => typeLower.includes(t))) { return { type: 'Ingreso', confidence: 90 }; }
+        if (['c', 'costo', 'costos'].some(t => typeLower.includes(t))) { return { type: 'Costo', confidence: 90 }; }
+        if (['g', 'gasto', 'gastos', 'egreso'].some(t => typeLower.includes(t))) { return { type: 'Gasto', confidence: 90 }; }
+        if (typeLower.includes('reguladora')) { return { type: 'Reguladora', confidence: 90 }; }
+        if (typeLower.includes('orden')) { return { type: 'Orden', confidence: 90 }; }
+        if (typeLower.includes('resultado')) { return { type: 'Resultado', confidence: 90 }; }
+    }
+
+    // 2. Code Prefix (High Confidence if configured)
+    const codeStr = code.toString().trim();
+    if (detectedConfig) {
+        let prefix = detectedConfig.separator === 'none' ? codeStr.charAt(0) : codeStr.split(detectedConfig.separator)[0];
+        // Find exact match or startsWith match
+        const rule = detectedConfig.rules.find(r => prefix === r.startsWith || prefix.startsWith(r.startsWith));
+        if (rule) {
+            detected = rule.type;
+            confidence = 80;
+        }
+    }
+
+    // 3. Name Keywords (Medium/High Confidence override)
+    if (name) {
+        const nameLower = name.toLowerCase();
+        // Strong keywords that might override prefix
+        if (nameLower.includes('depreciacion acumulada') || nameLower.includes('reguladora')) { return { type: 'Reguladora', confidence: 85 }; }
+
+        // Standard keywords
+        if (confidence < 70) {
+            if (nameLower.includes('caja') || nameLower.includes('banco') || nameLower.includes('cobrar') || nameLower.includes('inventario')) { return { type: 'Activo', confidence: 70 }; }
+            if (nameLower.includes('pagar') || nameLower.includes('proveedor') || nameLower.includes('deuda') || nameLower.includes('impuesto')) { return { type: 'Pasivo', confidence: 70 }; }
+            if (nameLower.includes('capital') || nameLower.includes('ajuste de capital') || nameLower.includes('reserva')) { return { type: 'Patrimonio', confidence: 70 }; }
+            if (nameLower.includes('venta') || nameLower.includes('ingreso') || nameLower.includes('ganancia')) { return { type: 'Ingreso', confidence: 70 }; }
+            if (nameLower.includes('compra') || nameLower.includes('costo')) { return { type: 'Costo', confidence: 70 }; }
+            if (nameLower.includes('gasto') || nameLower.includes('sueldo') || nameLower.includes('servicio') || nameLower.includes('alquiler')) { return { type: 'Gasto', confidence: 70 }; }
+        }
+    }
+
+    return { type: detected, confidence };
+};
+
+// Detect Level (Intelligent)
+const detectLevel = (code) => {
+    if (!code) return 1;
+    const codeStr = code.toString().trim();
+
+    if (detectedConfig && detectedConfig.separator !== 'none') {
+        // Separator strategy: count significant parts (non-zero)
+        const parts = codeStr.split(detectedConfig.separator);
+
+        // Find the index of the last part that is NOT '00' or '000'
+        let level = 0;
+        for (let i = 0; i < parts.length; i++) {
+            // Check if part has any non-zero digit
+            if (/[1-9]/.test(parts[i])) {
+                level = i + 1;
+            }
+        }
+        return level > 0 ? level : 1;
+    } else {
+        // Length strategy (fallback)
+        if (codeStr.length === 1) return 1;
+        if (codeStr.length === 2) return 2;
+        if (codeStr.length === 3) return 3;
+        if (codeStr.length === 5) return 4;
+        if (codeStr.length >= 7) return 5;
+        return Math.min(codeStr.length, 5);
+    }
+};
+
+// Detect parent code
+const detectParentCode = (code) => {
+    if (!detectedConfig) return null;
+
+    const codeStr = code.toString().trim();
+    const level = detectLevel(code);
+
+    if (level <= 1) return null;
+
+    if (detectedConfig.separator === 'none') {
+        if (/^\d+$/.test(codeStr) && codeStr.length > 1) {
+            return codeStr.substring(0, codeStr.length - 1);
+        }
+    } else {
+        // Reconstruir código padre manteniendo ceros
+        const parts = codeStr.split(detectedConfig.separator);
+
+        const parentParts = parts.map((part, index) => {
+            if (index < level - 1) {
+                return part; // Keep significant
+            } else {
+                // Replace with zeros of same length
+                return part.replace(/./g, '0');
+            }
+        });
+
+        return parentParts.join(detectedConfig.separator);
+    }
+
+    return null;
+};
+
+// Generate preview
+const generatePreview = () => {
+    const preview = [];
+    const dataStart = rawData[0] && rawData[0].some((cell) => (cell || '').toString().toLowerCase().includes('código')) ? 1 : 0;
+    const seenCodes = new Set();
+    const duplicates = [];
+
+    rawData.slice(dataStart).forEach((row, index) => {
+        if (!row[columnMapping.code] || !row[columnMapping.name]) return;
+
+        const code = (row[columnMapping.code] || '').toString().trim();
+        const name = (row[columnMapping.name] || '').toString().trim();
+        const typeRaw = row[columnMapping.type] ? (row[columnMapping.type] || '').toString().trim() : '';
+
+        if (!code || !name) return;
+
+        if (seenCodes.has(code)) {
+            duplicates.push(code);
+        }
+        seenCodes.add(code);
+
+        const level = detectLevel(code);
+        const detectedResult = mapAccountType(typeRaw, code, name);
+
+        // Calculate absolute row number based on Excel file
+        const absoluteRowNumber = range.startRow + index + dataStart;
+
+        preview.push({
+            rowNumber: absoluteRowNumber,
+            code,
+            name,
+            type: detectedResult.type,
+            confidence: detectedResult.confidence,
+            level,
+            parent_code: detectParentCode(code),
+            isDuplicate: duplicates.includes(code)
+        });
+    });
+
+    if (duplicates.length > 0) {
+        alert(`⚠️ Se detectaron ${duplicates.length} códigos duplicados:\n${duplicates.slice(0, 5).join(', ')}${duplicates.length > 5 ? '...' : ''}\n\nPor favor revisa antes de importar.`);
+    }
+
+    setPreviewData(preview);
+    setStep(4);
+};
+
+// Update field
+const updateAccountField = (rowNumber, field, value) => {
+    setPreviewData(prev => prev.map(item => {
+        if (item.rowNumber === rowNumber) {
+            const updated = { ...item, [field]: value };
+            if (field === 'code') {
+                updated.parent_code = detectParentCode(value);
+                updated.level = detectLevel(value);
+            }
+            return updated;
+        }
+        return item;
+    }));
+};
+
+// Import
+const performImport = async () => {
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    try {
+        for (const account of previewData) {
+            try {
+                await axios.post('http://localhost:3001/api/accounts', {
+                    code: account.code,
+                    name: account.name,
+                    type: account.type,
+                    level: account.level,
+                    parent_code: account.parent_code
+                });
+                successCount++;
+            } catch (err) {
+                console.error(`Error importing ${account.code}:`, err);
+                if (err.response?.status === 409) {
+                    errors.push(`${account.code}: Ya existe`);
+                } else {
+                    errors.push(`${account.code}: ${err.message}`);
+                }
+                errorCount++;
+            }
+        }
+
+        let message = `✅ Importación completada:\n- Exitosas: ${successCount}\n- Errores: ${errorCount}`;
+        if (errors.length > 0 && errors.length <= 10) {
+            message += `\n\nPrimeros errores:\n${errors.slice(0, 10).join('\n')}`;
+        }
+
+        alert(message);
+        onSuccess();
+        onClose();
+    } catch (error) {
+        console.error('Import error:', error);
+        alert(`Error en la importación: ${error.message}`);
+    } finally {
+        setImporting(false);
+    }
+};
+
+// Get type info
+const getTypeInfo = (type) => {
+    return ACCOUNT_TYPES.find(t => t.value === type) || ACCOUNT_TYPES[0];
+};
+
+return (
+    <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <div className="modal-dialog modal-xl">
+            <div className="modal-content">
+                <div className="modal-header bg-primary text-white">
+                    <h5 className="modal-title">
+                        <i className="bi bi-magic me-2"></i>
+                        Asistente Inteligente de Importación - Paso {step === 3.5 ? 3 : step} de 4
+                    </h5>
+                    <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
+                </div>
+
+                <div className="modal-body">
+                    {/* Step 1 */}
+                    {step === 1 && (
+                        <div className="text-center py-5">
+                            <i className="bi bi-file-earmark-arrow-up display-1 text-primary mb-4"></i>
+                            <h4>Selecciona el archivo Excel</h4>
+                            <p className="text-muted mb-4">El sistema analizará automáticamente la estructura</p>
+                            <input type="file" className="form-control w-50 mx-auto" accept=".xlsx,.xls" onChange={handleFileUpload} />
+                        </div>
+                    )}
+
+                    {/* Step 2 */}
+                    {step === 2 && (
+                        <div>
+                            <h5 className="mb-3"><i className="bi bi-layout-text-window me-2"></i>Selecciona la hoja y rango</h5>
+                            <div className="row">
+                                <div className="col-md-6">
+                                    <label className="form-label">Hoja del Excel</label>
+                                    <select className="form-select" value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)}>
+                                        {sheets.map(sheet => <option key={sheet} value={sheet}>{sheet}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-md-6">
+                                    <label className="form-label">Archivo</label>
+                                    <input type="text" className="form-control" value={file?.name || ''} disabled />
+                                </div>
+                            </div>
+
+                            <div className="row mt-3">
+                                <div className="col-md-3">
+                                    <label className="form-label">Fila Inicial</label>
+                                    <input type="number" className="form-control" value={range.startRow} onChange={(e) => setRange({ ...range, startRow: parseInt(e.target.value) })} />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">Fila Final</label>
+                                    <input type="number" className="form-control" value={range.endRow} onChange={(e) => setRange({ ...range, endRow: parseInt(e.target.value) })} />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">Columna Inicial</label>
+                                    <input type="text" className="form-control" value={range.startCol} onChange={(e) => setRange({ ...range, startCol: e.target.value })} />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">Columna Final</label>
+                                    <input type="text" className="form-control" value={range.endCol} onChange={(e) => setRange({ ...range, endCol: e.target.value })} />
+                                </div>
+                            </div>
+
+                            <div className="alert alert-info mt-3">
+                                <i className="bi bi-info-circle me-2"></i>
+                                <strong>Sugerencia:</strong> Fila Inicial 1 o 4
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 3 */}
+                    {step === 3 && rawData.length > 0 && (
+                        <div>
+                            <h5 className="mb-3"><i className="bi bi-columns me-2"></i>Mapeo de Columnas</h5>
+                            <p className="text-muted">Verifica que las columnas sean correctas:</p>
+
+                            <div className="row">
+                                <div className="col-md-4">
+                                    <label className="form-label">Columna de Código</label>
+                                    <select className="form-select" value={columnMapping.code} onChange={(e) => setColumnMapping({ ...columnMapping, code: parseInt(e.target.value) })}>
+                                        {rawData[0] && rawData[0].map((col, idx) => (
+                                            <option key={idx} value={idx}>Col {idx + 1}: {col || '(vacía)'}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label">Columna de Nombre</label>
+                                    <select className="form-select" value={columnMapping.name} onChange={(e) => setColumnMapping({ ...columnMapping, name: parseInt(e.target.value) })}>
+                                        {rawData[0] && rawData[0].map((col, idx) => (
+                                            <option key={idx} value={idx}>Col {idx + 1}: {col || '(vacía)'}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label">Columna de Tipo (Opcional)</label>
+                                    <select className="form-select" value={columnMapping.type} onChange={(e) => setColumnMapping({ ...columnMapping, type: e.target.value === '' ? '' : parseInt(e.target.value) })}>
+                                        <option value="">Detectar automático</option>
+                                        {rawData[0] && rawData[0].map((col, idx) => (
+                                            <option key={idx} value={idx}>Col {idx + 1}: {col || '(vacía)'}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="card mt-3">
+                                <div className="card-header"><strong>Vista Previa (5 filas)</strong></div>
+                                <div className="card-body p-0">
+                                    <div className="table-responsive" style={{ maxHeight: '200px' }}>
+                                        <table className="table table-sm mb-0">
+                                            <tbody>
+                                                {rawData.slice(0, 5).map((row, idx) => (
+                                                    <tr key={idx}>
+                                                        <td className="text-muted small">{idx + 1}</td>
+                                                        {row.map((cell, cellIdx) => (
+                                                            <td key={cellIdx} className={
+                                                                cellIdx === columnMapping.code ? 'bg-primary bg-opacity-10' :
+                                                                    cellIdx === columnMapping.name ? 'bg-success bg-opacity-10' :
+                                                                        cellIdx === columnMapping.type ? 'bg-info bg-opacity-10' : ''
+                                                            }>
+                                                                <small>{cell}</small>
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 3.5: Configuración */}
+                    {step === 3.5 && detectedConfig && (
+                        <div>
+                            <h5 className="mb-3"><i className="bi bi-gear me-2"></i>Configuración Detectada</h5>
+
+                            <div className="alert alert-success">
+                                <h6><i className="bi bi-check-circle me-2"></i>Análisis Completado</h6>
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <strong>Separador:</strong> {detectedConfig.separator === 'none' ? 'Dígitos' : detectedConfig.separator}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <strong>Grupos:</strong> {Object.keys(detectedConfig.detectedGroups).join(', ')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 className="mb-3">Reglas de Clasificación</h6>
+
+                            <div className="row g-2">
+                                {detectedConfig.rules.map((rule, idx) => {
+                                    const typeInfo = getTypeInfo(rule.type);
+                                    return (
+                                        <div key={idx} className="col-md-6 col-lg-4">
+                                            <div className="card border">
+                                                <div className="card-body p-2">
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <span className="badge bg-secondary me-2">Código {rule.startsWith}xx</span>
+                                                        <select
+                                                            className="form-select form-select-sm"
+                                                            value={rule.type}
+                                                            onChange={(e) => updateConfigRule(rule.startsWith, e.target.value)}
+                                                        >
+                                                            {ACCOUNT_TYPES.map(t => (
+                                                                <option key={t.value} value={t.value}>
+                                                                    {t.label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 4: Preview */}
+                    {step === 4 && (
+                        <div>
+                            <h5 className="mb-3"><i className="bi bi-eye me-2"></i>Vista Final</h5>
+                            <div className="alert alert-info">
+                                <i className="bi bi-info-circle me-2"></i>
+                                <strong>Revisa y ajusta antes de importar</strong>
+                            </div>
+
+                            <div className="table-responsive" style={{ maxHeight: '400px', overflow: 'auto' }}>
+                                <table className="table table-sm table-bordered">
+                                    <thead className="table-light sticky-top">
+                                        <tr>
+                                            <th style={{ width: '50px' }}>Fila</th>
+                                            <th style={{ width: '130px' }}>Código</th>
+                                            <th style={{ minWidth: '180px' }}>Nombre</th>
+                                            <th style={{ width: '150px' }}>Tipo (Confianza)</th>
+                                            <th style={{ width: '70px' }}>Nivel</th>
+                                            <th style={{ width: '100px' }}>Padre</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewData.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="6" className="text-center text-muted py-4">
+                                                    No se detectaron cuentas
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            previewData.map((account) => {
+                                                const typeInfo = getTypeInfo(account.type);
+                                                return (
+                                                    <tr key={account.rowNumber} className={account.isDuplicate ? 'table-warning' : ''}>
+                                                        <td className="text-center text-muted small">
+                                                            {account.rowNumber}
+                                                            {account.isDuplicate && <i className="bi bi-exclamation-triangle text-warning ms-1" title="Duplicado"></i>}
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" className="form-control form-control-sm" value={account.code} onChange={(e) => updateAccountField(account.rowNumber, 'code', e.target.value)} />
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" className="form-control form-control-sm" value={account.name} onChange={(e) => updateAccountField(account.rowNumber, 'name', e.target.value)} />
+                                                        </td>
+                                                        <td>
+                                                            <div className="input-group input-group-sm">
+                                                                <select className="form-select" value={account.type} onChange={(e) => updateAccountField(account.rowNumber, 'type', e.target.value)}>
+                                                                    {ACCOUNT_TYPES.map(t => (
+                                                                        <option key={t.value} value={t.value}>
+                                                                            {t.label}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <span className={`input-group-text ${account.confidence > 80 ? 'text-success' : account.confidence > 50 ? 'text-warning' : 'text-danger'}`} title={`Confianza: ${account.confidence}%`}>
+                                                                    {account.confidence}%
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" className="form-control form-control-sm text-center" value={account.level} onChange={(e) => updateAccountField(account.rowNumber, 'level', parseInt(e.target.value))} min="1" max="5" />
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <small className="text-muted">{account.parent_code || '-'}</small>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="row mt-3">
+                                <div className="col-md-8">
+                                    <div className="alert alert-success mb-0">
+                                        <strong><i className="bi bi-check-circle me-2"></i>Total: {previewData.length} cuentas</strong>
+                                    </div>
+                                </div>
+                                <div className="col-md-4">
+                                    <div className="card border-info">
+                                        <div className="card-body p-2">
+                                            <small className="text-muted d-block"><strong>Distribución:</strong></small>
+                                            {ACCOUNT_TYPES.map(type => {
+                                                const count = previewData.filter(a => a.type === type.value).length;
+                                                if (count === 0) return null;
+                                                return (
+                                                    <small key={type.value} className="d-block">
+                                                        <i className={`bi ${type.icon} me-1`}></i>{type.label}: {count}
+                                                    </small>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="modal-footer">
+                    {step > 1 && step !== 3.5 && (
+                        <button className="btn btn-secondary" onClick={() => setStep(step - 1)}>
+                            <i className="bi bi-arrow-left me-1"></i> Anterior
+                        </button>
+                    )}
+
+                    {step === 3.5 && (
+                        <button className="btn btn-secondary" onClick={() => setStep(3)}>
+                            <i className="bi bi-arrow-left me-1"></i> Anterior
+                        </button>
+                    )}
+
+                    {step < 3 && (
+                        <button className="btn btn-primary" onClick={() => step === 2 ? loadSheetData() : setStep(step + 1)}>
+                            Siguiente <i className="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    )}
+
+                    {step === 3 && (
+                        <button className="btn btn-primary" onClick={analyzeChartOfAccounts}>
+                            Analizar <i className="bi bi-cpu ms-1"></i>
+                        </button>
+                    )}
+
+                    {step === 3.5 && (
+                        <button className="btn btn-primary" onClick={generatePreview}>
+                            Ver Vista Previa <i className="bi bi-eye ms-1"></i>
+                        </button>
+                    )}
+
+                    {step === 4 && (
+                        <button className="btn btn-success" onClick={performImport} disabled={importing || previewData.length === 0}>
+                            {importing ? (
+                                <><span className="spinner-border spinner-border-sm me-2"></span>Importando...</>
+                            ) : (
+                                <><i className="bi bi-check-circle me-1"></i>Importar {previewData.length} Cuentas</>
+                            )}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    </div>
+);
+}

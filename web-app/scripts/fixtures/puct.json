@@ -1,0 +1,5 @@
+[
+  { "code": "100000000", "expectedLevel": 1 },
+  { "code": "110000000", "expectedLevel": 2 },
+  { "code": "111010000", "expectedLevel": 3 }
+]

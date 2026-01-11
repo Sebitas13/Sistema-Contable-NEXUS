@@ -1,0 +1,944 @@
+/* Main styles - Bootstrap will handle most styling */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable global transitions and transforms for datepicker elements to prevent glitching */
+.react-datepicker,
+.react-datepicker *,
+.react-datepicker-popper,
+.react-datepicker-popper *,
+.react-datepicker__navigation,
+.react-datepicker__navigation *,
+.react-datepicker__day,
+.react-datepicker__month-select,
+.react-datepicker__year-select,
+.react-datepicker__header,
+.react-datepicker__month-container,
+.react-datepicker__month {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Disable hover animation for cards containing datepickers or filter elements */
+.card:has(.react-datepicker-wrapper),
+.card:has(.form-control[type="text"]):has(.form-select) {
+    transform: none !important;
+}
+
+.card:has(.react-datepicker-wrapper):hover,
+.card:has(.form-control[type="text"]):has(.form-select):hover {
+    transform: none !important;
+}
+
+/* Button animations */
+.btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Table row hover */
+.table-hover tbody tr {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    transform: scale(1.01);
+}
+
+/* Sidebar animations */
+.sidebar {
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading spinner */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* Mahoraga Divine Animations */
+@keyframes mahoraga-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.mahoraga-spin {
+    animation: mahoraga-spin 4s linear infinite;
+}
+
+.hover-spin:hover svg {
+    transform: rotate(45deg);
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .sidebar {
+        position: fixed !important;
+        left: -280px;
+        z-index: 1050;
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.show {
+        left: 0;
+    }
+
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Input validation styles */
+.form-control.is-invalid {
+    border-color: #dc3545;
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-10px);
+    }
+
+    75% {
+        transform: translateX(10px);
+    }
+}
+
+.form-control.is-valid {
+    border-color: #28a745;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Badge animations */
+.badge {
+    transition: transform 0.2s ease;
+}
+
+.badge:hover {
+    transform: scale(1.1);
+}
+
+/* Modal animations */
+.modal {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Professional gradients */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+}
+
+/* ===================================
+   Modern Date Picker Styles
+   =================================== */
+
+/* Date Picker Container */
+.react-datepicker-wrapper {
+    width: 100%;
+}
+
+.react-datepicker__input-container {
+    width: 100%;
+}
+
+/* Custom Input Field */
+.date-picker-input {
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+.date-picker-input:hover {
+    border-color: #86b7fe;
+}
+
+.date-picker-input:focus {
+    color: #212529;
+    background-color: #fff;
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Date Picker Popup */
+.react-datepicker {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow: visible;
+    font-size: 0.85rem;
+}
+
+/* Header */
+.react-datepicker__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+    padding: 0.6rem;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.react-datepicker__current-month {
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.react-datepicker__day-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    width: 2rem;
+    line-height: 1.5rem;
+    margin: 0.1rem;
+    font-size: 0.75rem;
+}
+
+/* Navigation Arrows */
+.react-datepicker__navigation {
+    top: 0.5rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    cursor: pointer !important;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.15);
+    border: none !important;
+}
+
+.react-datepicker__navigation:hover {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.react-datepicker__navigation--previous {
+    left: 0.4rem;
+}
+
+.react-datepicker__navigation--next {
+    right: 0.4rem;
+}
+
+.react-datepicker__navigation-icon::before {
+    border-color: white;
+    border-width: 2px 2px 0 0;
+    width: 5px;
+    height: 5px;
+}
+
+/* Month Container */
+.react-datepicker__month-container {
+    background-color: white;
+}
+
+.react-datepicker__month {
+    margin: 0.4rem;
+}
+
+/* Day Cells */
+.react-datepicker__day {
+    width: 2rem;
+    line-height: 2rem;
+    margin: 0.1rem;
+    border-radius: 0.3rem;
+    color: #495057;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.react-datepicker__day:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.react-datepicker__day--selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.react-datepicker__day--selected:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+}
+
+.react-datepicker__day--today {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    font-weight: 600;
+}
+
+.react-datepicker__day--keyboard-selected {
+    background-color: rgba(102, 126, 234, 0.15);
+    color: #667eea;
+}
+
+.react-datepicker__day--outside-month {
+    color: #ced4da;
+}
+
+.react-datepicker__day--disabled {
+    color: #dee2e6;
+    cursor: not-allowed;
+}
+
+.react-datepicker__day--disabled:hover {
+    background-color: transparent;
+    transform: none;
+}
+
+/* Triangle Arrow */
+.react-datepicker__triangle {
+    display: none;
+}
+
+/* Time Picker (if needed in future) */
+.react-datepicker__time-container {
+    border-left: 1px solid #f0f0f0;
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+    width: 100px;
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+}
+
+/* Portal styling for better positioning */
+.react-datepicker-popper {
+    z-index: 99999 !important;
+    margin-top: 8px !important;
+}
+
+/* Week Number (if enabled) */
+.react-datepicker__week-number {
+    color: #adb5bd;
+    font-weight: 500;
+    width: 2rem;
+    line-height: 2.5rem;
+    margin: 0.2rem;
+}
+
+/* Year & Month Dropdowns */
+.react-datepicker__year-select,
+.react-datepicker__month-select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.react-datepicker__year-select:hover,
+.react-datepicker__month-select:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.react-datepicker__year-select option,
+.react-datepicker__month-select option {
+    color: #212529;
+}
+
+/* ===================================
+   Company Selector & Multi-Company Styles
+   =================================== */
+
+/* Company Selector Page */
+.company-selector-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+}
+
+/* Hero Section */
+.company-hero {
+    text-align: center;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+}
+
+.company-hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.company-hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: fadeInDown 0.8s ease-out;
+}
+
+.company-hero-subtitle {
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 300;
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Toolbar */
+.company-toolbar {
+    max-width: 1400px;
+    margin: 0 auto 2rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-container {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-size: 1.1rem;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.search-input {
+    padding-left: 3.5rem !important;
+    border-radius: 2rem;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    height: 50px;
+    font-size: 1rem;
+}
+
+.search-input:focus {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    border: 2px solid white;
+}
+
+.btn-new-company {
+    height: 50px;
+    padding: 0 2rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    background: white;
+    color: #667eea;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.btn-new-company:hover {
+    background: #f8f9fa;
+    color: #667eea;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Companies Container */
+.companies-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Companies Grid */
+.companies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* Company Card */
+.company-card {
+    position: relative;
+    background: white;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.company-card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.company-card-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.company-card-content {
+    padding: 2rem;
+}
+
+/* Company Avatar */
+.company-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.company-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.company-avatar-initials {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 700;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Company Info */
+.company-info {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.company-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.company-nit,
+.company-location {
+    font-size: 0.95rem;
+    color: #718096;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.company-nit i,
+.company-location i {
+    color: #667eea;
+}
+
+/* Company Stats */
+.company-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f7fafc;
+    border-radius: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-item i {
+    font-size: 1.5rem;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2d3748;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Company Activity */
+.company-activity {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #718096;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    background: #fff5e6;
+    border-radius: 0.5rem;
+}
+
+.company-activity i {
+    color: #f59e0b;
+}
+
+/* Company Actions */
+.company-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-enter {
+    flex: 1;
+    padding: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-enter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+}
+
+.btn-icon {
+    width: 45px;
+    height: 45px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 2px solid #e2e8f0;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e0;
+}
+
+.btn-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-icon:disabled:hover {
+    transform: none;
+}
+
+/* No Companies State */
+.no-companies {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.no-companies i {
+    font-size: 5rem;
+    color: #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.no-companies h3 {
+    font-size: 1.75rem;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.no-companies p {
+    font-size: 1.1rem;
+    color: #718096;
+    margin-bottom: 2rem;
+}
+
+/* Loading State */
+.company-selector-loading {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.company-selector-loading p {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Company Modal */
+.company-modal .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 1.5rem 2rem;
+}
+
+.company-modal .modal-title {
+    font-weight: 600;
+}
+
+.company-modal .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+.company-modal .modal-body {
+    padding: 2rem;
+}
+
+.company-modal .form-label {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.company-modal .form-label i {
+    color: #667eea;
+}
+
+.company-modal .form-control,
+.company-modal .form-select {
+    border-radius: 0.5rem;
+    border: 2px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.company-modal .form-control:focus,
+.company-modal .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .company-hero-title {
+        font-size: 2rem;
+    }
+
+    .company-hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .companies-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .company-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-container {
+        width: 100%;
+    }
+
+    .btn-new-company {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .company-selector-page {
+        padding: 1rem;
+    }
+
+    .company-hero {
+        padding: 2rem 0;
+    }
+
+    .company-card-content {
+        padding: 1.5rem;
+    }
+
+    .company-name {
+        font-size: 1.25rem;
+    }
+
+    .company-stats {
+        gap: 0.5rem;
+    }
+}
