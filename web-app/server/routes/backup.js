@@ -204,8 +204,9 @@ router.post('/import', upload.single('file'), async (req, res) => {
             const insertCompSql = `
                 INSERT INTO companies (
                     name, nit, legal_name, address, city, country, phone, email, website, 
-                    logo_url, fiscal_year_start, currency
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    logo_url, fiscal_year_start, currency, code_mask, plan_structure, 
+                    societal_type, activity_type, operation_start_date, current_year
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
             const compResult = await txRun(tx, insertCompSql, [
                 sourceCompany.name + " (Restaurado)",
@@ -219,7 +220,13 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 sourceCompany.website,
                 sourceCompany.logo_url,
                 sourceCompany.fiscal_year_start,
-                sourceCompany.currency
+                sourceCompany.currency,
+                sourceCompany.code_mask,
+                sourceCompany.plan_structure,
+                sourceCompany.societal_type,
+                sourceCompany.activity_type,
+                sourceCompany.operation_start_date,
+                sourceCompany.current_year
             ]);
             NEW_COMPANY_ID = compResult.lastID;
 

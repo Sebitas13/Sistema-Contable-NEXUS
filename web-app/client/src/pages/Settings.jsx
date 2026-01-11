@@ -344,7 +344,10 @@ export default function Settings() {
                 }
                 setActivePages(Array.isArray(pages) ? pages : []);
             }
-        } catch (error) { console.error("Error fetching page config:", error); }
+        } catch (error) { 
+            console.error("Error fetching page config:", error);
+            setActivePages([]); // Fallback to empty array
+        }
     };
 
     const togglePage = async (pageId) => {
@@ -389,7 +392,9 @@ export default function Settings() {
         if (!selectedCompany) return;
         try {
             const response = await axios.get(`${API_URL}/api/ai/mahoraga/status`);
-            setMahoragaStatus(response.data.mahoraga);
+            if (response.data && response.data.mahoraga) {
+                setMahoragaStatus(response.data.mahoraga);
+            }
         } catch (error) { console.error("Error fetching Mahoraga status:", error); }
     };
 
