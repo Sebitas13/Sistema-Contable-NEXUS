@@ -1284,4 +1284,119 @@ router.post('/mahoraga/config/:companyId', async (req, res) => {
   }
 });
 
+// GET /api/ai/mahoraga/config/:companyId - Obtener configuración Mahoraga
+router.get('/mahoraga/config/:companyId', (req, res) => {
+  const { companyId } = req.params;
+  
+  // Mock response - en producción guardar en DB
+  res.json({
+    success: true,
+    active_pages: ['Ledger', 'TrialBalance', 'UFV']
+  });
+});
+
+// POST /api/ai/mahoraga/config/:companyId - Guardar configuración Mahoraga
+router.post('/mahoraga/config/:companyId', (req, res) => {
+  const { companyId } = req.params;
+  const { active_pages } = req.body;
+  
+  // Mock response - en producción guardar en DB
+  res.json({
+    success: true,
+    message: 'Configuración guardada'
+  });
+});
+
+// GET /api/ai/mahoraga/insights - Obtener insights Mahoraga
+router.get('/mahoraga/insights', (req, res) => {
+  res.json({
+    success: true,
+    insights: []
+  });
+});
+
+// GET /api/ai/monitor/stats - Obtener estadísticas del monitor
+router.get('/monitor/stats', (req, res) => {
+  res.json({
+    success: true,
+    stats: {
+      total_requests: 0,
+      successful_requests: 0,
+      failed_requests: 0
+    }
+  });
+});
+
+// GET /api/ai/mahoraga/status - Obtener estado Mahoraga
+router.get('/mahoraga/status', (req, res) => {
+  res.json({
+    success: true,
+    mahoraga: {
+      mode: 'DISABLED',
+      active: false
+    }
+  });
+});
+
+// POST /api/ai/mahoraga/change-mode - Cambiar modo Mahoraga
+router.post('/mahoraga/change-mode', (req, res) => {
+  const { newMode, userId, reason } = req.body;
+  
+  res.json({
+    success: true,
+    message: 'Modo cambiado'
+  });
+});
+
+// POST /api/ai/mahoraga/emergency-stop - Parada de emergencia
+router.post('/mahoraga/emergency-stop', (req, res) => {
+  const { userId, reason } = req.body;
+  
+  res.json({
+    success: true,
+    message: 'Parada de emergencia activada'
+  });
+});
+
+// GET /api/ai/recognition/status - Obtener estado de reconocimiento
+router.get('/recognition/status', (req, res) => {
+  res.json({
+    success: true,
+    status: 'idle'
+  });
+});
+
+// GET /api/ai/skills/health - Health check de skills (redirigir a /api/skills)
+router.get('/skills/health', (req, res) => {
+  res.redirect('/api/skills/health');
+});
+
+// GET /api/ai/skills/search - Buscar skills (redirigir a /api/skills)
+router.get('/skills/search', (req, res) => {
+  res.redirect('/api/skills/search');
+});
+
+// GET /api/ai/profile/:companyId - Obtener perfil de empresa
+router.get('/profile/:companyId', (req, res) => {
+  const { companyId } = req.params;
+  
+  // Mock response - en producción obtener de DB
+  res.json({
+    success: true,
+    profile_json: {}
+  });
+});
+
+// POST /api/ai/profile/:companyId - Guardar perfil de empresa
+router.post('/profile/:companyId', (req, res) => {
+  const { companyId } = req.params;
+  const { profile_json } = req.body;
+  
+  // Mock response - en producción guardar en DB
+  res.json({
+    success: true,
+    message: 'Perfil guardado'
+  });
+});
+
 module.exports = router;
