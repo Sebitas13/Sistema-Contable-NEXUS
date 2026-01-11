@@ -90,6 +90,7 @@ export default function Settings() {
             if (key.startsWith('struct_profile_')) {
                 try {
                     const data = JSON.parse(localStorage.getItem(key));
+                    // Refresh companies to get latest data including new columns
                     const company = companies.find(c => String(c.id) === String(data.companyId));
                     profiles.push({
                         key,
@@ -166,10 +167,12 @@ export default function Settings() {
         }
     };
 
-    // Load profile on mount
+    // Load profile on mount and refresh companies data
     React.useEffect(() => {
         if (selectedCompany) {
             loadInitialProfile();
+            // Refresh companies to get latest data including new columns
+            refreshCompanies();
         }
     }, [selectedCompany]);
 
