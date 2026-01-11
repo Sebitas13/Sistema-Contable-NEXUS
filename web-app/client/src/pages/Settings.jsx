@@ -346,7 +346,7 @@ export default function Settings() {
                 }
                 setActivePages(Array.isArray(pages) ? pages : []);
             }
-        } catch (error) { 
+        } catch (error) {
             console.error("Error fetching page config:", error);
             setActivePages([]); // Fallback to empty array
         }
@@ -462,8 +462,8 @@ export default function Settings() {
             handleSearch(null);
         }
     }, [activeTab, selectedCompany]);
-		// ... rest of the file is JSX and doesn't need to be changed
-	// ... I will only replace the part of the file that is relevant
+    // ... rest of the file is JSX and doesn't need to be changed
+    // ... I will only replace the part of the file that is relevant
     return (
         <div className="container-fluid py-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -495,93 +495,7 @@ export default function Settings() {
                     <div className="col-md-10 mx-auto">
                         <BackupManager />
                     </div>
-                    <div className="col-md-8 mx-auto">
-                        <div className="card shadow-sm border-info">
-                            <div className="card-header bg-info text-white">
-                                <h5 className="mb-0"><i className="bi bi-building me-2"></i>Datos de la Empresa</h5>
-                            </div>
-                            <div className="card-body">
-                                {selectedCompany && (
-                                    <div className="row g-3">
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Razón Social</label>
-                                            <input type="text" className="form-control" value={selectedCompany.name || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">NIT</label>
-                                            <input type="text" className="form-control" value={selectedCompany.nit || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Nombre Legal</label>
-                                            <input type="text" className="form-control" value={selectedCompany.legal_name || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Dirección</label>
-                                            <input type="text" className="form-control" value={selectedCompany.address || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label small fw-bold">Ciudad</label>
-                                            <input type="text" className="form-control" value={selectedCompany.city || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label small fw-bold">País</label>
-                                            <input type="text" className="form-control" value={selectedCompany.country || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label small fw-bold">Teléfono</label>
-                                            <input type="text" className="form-control" value={selectedCompany.phone || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Email</label>
-                                            <input type="email" className="form-control" value={selectedCompany.email || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Website</label>
-                                            <input type="text" className="form-control" value={selectedCompany.website || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label small fw-bold">Moneda</label>
-                                            <input type="text" className="form-control" value={selectedCompany.currency || 'BOB'} readOnly />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label small fw-bold">Inicio Año Fiscal</label>
-                                            <input type="text" className="form-control" value={selectedCompany.fiscal_year_start || '01-01'} readOnly />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label small fw-bold">Año Actual</label>
-                                            <input type="number" className="form-control" value={selectedCompany.current_year || new Date().getFullYear()} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Tipo Societario</label>
-                                            <input type="text" className="form-control" value={selectedCompany.societal_type || 'Unipersonal'} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Tipo de Actividad</label>
-                                            <input type="text" className="form-control" value={selectedCompany.activity_type || 'Comercial'} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Máscara de Código</label>
-                                            <input type="text" className="form-control" value={selectedCompany.code_mask || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Estructura del Plan</label>
-                                            <input type="text" className="form-control" value={selectedCompany.plan_structure || ''} readOnly />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold">Fecha de Inicio de Operaciones</label>
-                                            <input type="date" className="form-control" value={selectedCompany.operation_start_date || ''} readOnly />
-                                        </div>
-                                    </div>
-                                )}
-                                {!selectedCompany && (
-                                    <div className="alert alert-warning">
-                                        <i className="bi bi-exclamation-triangle me-2"></i>
-                                        Por favor selecciona una empresa para ver sus datos.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+
                     <div className="col-md-8 mx-auto">
                         <div className="card shadow-sm border-warning">
                             <div className="card-header bg-warning text-dark">
