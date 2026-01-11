@@ -57,21 +57,18 @@ const createUfvTable = () => {
                     )
                 `);
 
-                // 4. Copy data, assigning company_id if it was NULL
-                // Handle different possible column sets in the old table
+                // 4. Copy data, assigning a default company_id
                 db.run(`
                     INSERT INTO ufv_rates (id, company_id, date, value, created_at)
                     SELECT id, 
-                           IFNULL(company_id, (SELECT id FROM companies LIMIT 1)), 
+                           (SELECT id FROM companies ORDER BY id ASC LIMIT 1), 
                            date, 
                            value, 
-                           IFNULL(created_at, CURRENT_TIMESTAMP)
+                           created_at
                     FROM ufv_rates_old
                 `, (err) => {
                     if (err) {
                         console.error("Data migration copy failed:", err.message);
-                        // This might fail if company_id column didn't exist in old table
-                        // But we saw it exists in the user's log.
                     }
                 });
 

@@ -60,16 +60,16 @@ const createTable = () => {
                     )
                 `);
 
-                // 4. Copy data, assigning company_id if it was NULL or missing
+                // 4. Copy data, mapping old schema to new multi-tenancy schema
                 db.run(`
                     INSERT INTO exchange_rates (id, company_id, date, currency, buy_rate, sell_rate, created_at)
                     SELECT id, 
-                           IFNULL(company_id, (SELECT id FROM companies LIMIT 1)), 
-                           date, 
-                           currency, 
-                           buy_rate, 
-                           sell_rate, 
-                           IFNULL(created_at, CURRENT_TIMESTAMP)
+                           (SELECT id FROM companies ORDER BY id ASC LIMIT 1),
+                           date,
+                           'USD',
+                           usd_buy,
+                           usd_sell,
+                           created_at
                     FROM exchange_rates_old
                 `, (err) => {
                     if (err) console.error("Data migration copy failed for exchange_rates:", err.message);
