@@ -2,6 +2,7 @@
  * AI Adjustment Service - Cliente para motor Python
  * Conexión entre React y FastAPI para ajustes inteligentes
  */
+
 import axios from 'axios';
 import API_URL from '../api';
 
@@ -386,6 +387,5 @@ class AIAdjustmentService {
         }
     }
 }
-
 
 export default new AIAdjustmentService();

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import API_URL from '../api';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { TreeRow } from './FinancialStatements';
 import { generarEstadoResultados } from '../utils/IncomeStatementEngine';
 import { useCompany } from '../context/CompanyContext';
+
+// Importar API_URL explícitamente para evitar errores en producción
+import API_URL from '../api';
 import AIAdjustmentPanel from '../components/AIAdjustmentPanel';
 import { getFiscalYearDetails } from '../utils/fiscalYearUtils';
 import { format } from 'date-fns';

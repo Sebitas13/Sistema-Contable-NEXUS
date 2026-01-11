@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useCompany } from '../context/CompanyContext';
-import { AccountPlanProfile } from '../utils/AccountPlanProfile';
 import MahoragaActivationButton from '../components/MahoragaActivationButton';
 import BackupManager from '../components/BackupManager';
 import API_URL from '../api';
@@ -53,7 +52,7 @@ const INITIAL_DEPRECIATION_RULES = [
 ];
 
 export default function Settings() {
-    const { selectedCompany } = useCompany();
+    const { selectedCompany, refreshCompanies } = useCompany();
     const [activeTab, setActiveTab] = useState('data'); // 'data', 'profiles', 'mahoraga'
     const [healing, setHealing] = useState(false);
     const [healResult, setHealResult] = useState(null);

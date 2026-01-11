@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import API_URL from '../api';
 import { exportToPDF, exportToExcel, importFromExcel } from '../utils/exportUtils';
 import { useCompany } from '../context/CompanyContext';
 import * as XLSX from 'xlsx';
-import * as pdfjsLib from 'pdfjs-dist';
+import 'react-datepicker/dist/react-datepicker.css';
+
+// Importar API_URL explícitamente para evitar errores en producción
+import API_URL from '../api';
 import MahoragaWheel from '../components/MahoragaWheel';
 
 // Configure PDF.js worker

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import API_URL from '../api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { exportToPDF, exportToExcel, generatePDFDoc } from '../utils/exportUtils';
 import { useCompany } from '../context/CompanyContext';
+
+// Importar API_URL explícitamente para evitar errores en producción
+import API_URL from '../api';
 import 'react-datepicker/dist/react-datepicker.css';
 import * as XLSX from 'xlsx';
 import MahoragaWheel from '../components/MahoragaWheel';
