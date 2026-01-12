@@ -40,7 +40,7 @@ export default function TrialBalance() {
     const checkMahoragaStatus = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
-            if (response.data.success) {
+            if (response.data.success && Array.isArray(response.data.active_pages)) {
                 setMahoragaActive(response.data.active_pages.includes('TrialBalance'));
             }
         } catch (error) { console.error("Error checking Mahoraga status:", error); }

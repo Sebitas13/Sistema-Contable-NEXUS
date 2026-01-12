@@ -1375,11 +1375,19 @@ router.get('/skills/search', (req, res) => {
 router.get('/profile/:companyId', (req, res) => {
   const { companyId } = req.params;
   
-  // Mock response - en producción obtener de DB
-  res.json({
-    success: true,
-    profile_json: {}
-  });
+  try {
+    // Mock response - en producción obtener de DB
+    res.json({
+      success: true,
+      profile_json: {}
+    });
+  } catch (error) {
+    console.error('Error getting AI profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
 });
 
 // POST /api/ai/profile/:companyId - Guardar perfil de empresa

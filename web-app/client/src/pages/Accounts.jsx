@@ -63,7 +63,7 @@ export default function Accounts() {
     const checkMahoragaStatus = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
-            if (response.data.success) {
+            if (response.data.success && Array.isArray(response.data.active_pages)) {
                 setMahoragaActive(response.data.active_pages.includes('Accounts'));
             }
         } catch (error) { console.error("Error checking Mahoraga status:", error); }
