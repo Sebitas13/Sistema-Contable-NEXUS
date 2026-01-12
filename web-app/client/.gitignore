@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Development files
+*.cjs
+*.js
+!src/**/*.js
+!vite.config.js
+
+# Analysis and test files
+analyze_*.cjs
+analyze_*.js
+test_*.cjs
+test_*.js
+debug_*.cjs
+inspect_*.cjs
+read_*.cjs
+
+# Documentation and data files
+*.txt
+estructura_content.txt
+puct_manual_pages.txt
+
+# Temporary files
+*.log
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
