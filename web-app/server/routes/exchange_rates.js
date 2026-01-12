@@ -128,39 +128,33 @@ router.get('/', (req, res) => {
     });
 });
 
-// POST a new rate (Upsert)
-router.post('/', (req, res) => {
+// POST a new rate (Upsert) - LIBSQL PROMISES VERSION
+router.post('/', async (req, res) => {
     const { companyId, date, currency, buy_rate, sell_rate } = req.body;
 
     if (!companyId || !date || !currency) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // If both rates are null or empty, treat as a deletion request
-    if (buy_rate === null && sell_rate === null) {
-        const deleteSql = 'DELETE FROM exchange_rates WHERE company_id = ? AND date = ? AND currency = ?';
-        db.run(deleteSql, [companyId, date, currency], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
+    try {
+        // If both rates are null or empty, treat as a deletion request
+        if (buy_rate === null && sell_rate === null) {
+            const deleteSql = 'DELETE FROM exchange_rates WHERE company_id = ? AND date = ? AND currency = ?';
+            await db.run(deleteSql, [companyId, date, currency]);
             return res.json({ message: 'Exchange rate cleared (deleted)' });
-        });
-        return;
-    }
-
-    // Standard Upsert
-    const sql = 'INSERT OR REPLACE INTO exchange_rates (company_id, date, currency, buy_rate, sell_rate) VALUES (?, ?, ?, ?, ?)';
-    db.run(sql, [companyId, date, currency, buy_rate || 0, sell_rate || 0], function (err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
         }
-        res.status(201).json({
-            message: 'Exchange rate saved',
-            id: this.lastID
-        });
-    });
+
+        // Standard Upsert
+        const sql = 'INSERT OR REPLACE INTO exchange_rates (company_id, date, currency, buy_rate, sell_rate) VALUES (?, ?, ?, ?, ?)';
+        await db.run(sql, [companyId, date, currency, buy_rate || 0, sell_rate || 0]);
+        res.json({ message: 'Exchange rate saved successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// POST bulk import
-router.post('/bulk', (req, res) => {
+// POST bulk import - LIBSQL PROMISES VERSION
+router.post('/bulk', async (req, res) => {
     const { companyId, data } = req.body;
     if (!companyId || !data || !Array.isArray(data)) {
         return res.status(400).json({ error: 'Invalid data format' });
@@ -197,43 +191,41 @@ router.post('/bulk', (req, res) => {
         });
     }
 
-    db.run('BEGIN TRANSACTION', (beginErr) => {
-        if (beginErr) return res.status(500).json({ error: beginErr.message });
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
 
-        const stmt = db.prepare('INSERT OR REPLACE INTO exchange_rates (company_id, date, currency, buy_rate, sell_rate) VALUES (?, ?, ?, ?, ?)');
+        const sql = 'INSERT OR REPLACE INTO exchange_rates (company_id, date, currency, buy_rate, sell_rate) VALUES (?, ?, ?, ?, ?)';
+        
+        // Process all rates sequentially
+        for (const item of validRates) {
+            await db.run(sql, [companyId, item.date, item.currency, item.buy_rate, item.sell_rate]);
+        }
 
-        let completed = 0;
-        let hasError = null;
-
-        validRates.forEach(item => {
-            stmt.run(companyId, item.date, item.currency, item.buy_rate, item.sell_rate, (err) => {
-                completed++;
-                if (err) hasError = err;
-
-                if (completed === validRates.length) {
-                    stmt.finalize(() => {
-                        if (hasError) {
-                            db.run('ROLLBACK');
-                            return res.status(500).json({ error: hasError.message });
-                        }
-                        db.run('COMMIT', (commitErr) => {
-                            if (commitErr) return res.status(500).json({ error: commitErr.message });
-                            res.json({
-                                message: `Importación completada: ${validRates.length} éxitos.`,
-                                successCount: validRates.length,
-                                errorCount: invalidRates.length,
-                                errors: invalidRates
-                            });
-                        });
-                    });
-                }
-            });
+        // Commit transaction
+        await db.run('COMMIT');
+        res.json({
+            message: `Importación completada: ${validRates.length} éxitos.`,
+            successCount: validRates.length,
+            errorCount: invalidRates.length,
+            errors: invalidRates
         });
-    });
+        
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error in bulk exchange rates import:', error.message);
+        res.status(500).json({ error: 'Failed to execute bulk import' });
+    }
 });
 
-// DELETE all exchange rates for a specific year - Isolated by Company
-router.delete('/year/:year', (req, res) => {
+// DELETE all exchange rates for a specific year - LIBSQL PROMISES VERSION
+router.delete('/year/:year', async (req, res) => {
     const { year } = req.params;
     const { companyId } = req.query;
 
@@ -241,32 +233,33 @@ router.delete('/year/:year', (req, res) => {
         return res.status(400).json({ error: 'companyId is required' });
     }
 
-    const sql = 'DELETE FROM exchange_rates WHERE strftime("%Y", date) = ? AND company_id = ?';
-    db.run(sql, [year, companyId], function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
+    try {
+        const sql = 'DELETE FROM exchange_rates WHERE strftime("%Y", date) = ? AND company_id = ?';
+        const result = await db.run(sql, [year, companyId]);
         res.json({
             message: `All exchange rate records for year ${year} deleted for company ${companyId}`,
-            deletedCount: this.changes
+            deletedCount: result.changes
         });
-    });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-// DELETE a rate by ID
-router.delete('/:id', (req, res) => {
+// DELETE a rate by ID - LIBSQL PROMISES VERSION
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
 
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-    const sql = 'DELETE FROM exchange_rates WHERE id = ? AND company_id = ?';
-    db.run(sql, [id, companyId], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        if (this.changes === 0) return res.status(404).json({ error: 'Rate not found or access denied' });
+    try {
+        const sql = 'DELETE FROM exchange_rates WHERE id = ? AND company_id = ?';
+        const result = await db.run(sql, [id, companyId]);
+        if (result.changes === 0) return res.status(404).json({ error: 'Rate not found or access denied' });
         res.json({ message: 'Exchange rate deleted' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;

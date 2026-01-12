@@ -77,7 +77,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST create new company
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const {
         name,
         nit,
@@ -133,27 +133,24 @@ router.post('/', (req, res) => {
         current_year || new Date().getFullYear()
     ];
 
-    db.run(sql, params, function (err) {
-        if (err) {
-            console.error('Error creating company:', err);
-            if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(400).json({ error: 'A company with this NIT already exists' });
-            }
-            return res.status(500).json({ error: err.message });
-        }
-
+    try {
+        const result = await db.run(sql, params);
+        
         // Return the created company
-        db.get('SELECT * FROM companies WHERE id = ?', [this.lastID], (err, row) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.status(201).json({ success: true, data: row, id: this.lastID });
-        });
-    });
+        const row = await db.get('SELECT * FROM companies WHERE id = ?', [result.lastID]);
+        res.status(201).json({ success: true, data: row, id: result.lastID });
+        
+    } catch (err) {
+        console.error('Error creating company:', err);
+        if (err.message.includes('UNIQUE constraint failed')) {
+            return res.status(400).json({ error: 'A company with this NIT already exists' });
+        }
+        return res.status(500).json({ error: err.message });
+    }
 });
 
-// PUT update company
-router.put('/:id', (req, res) => {
+// PUT update company - LIBSQL PROMISES VERSION
+router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const {
         name,
@@ -222,28 +219,25 @@ router.put('/:id', (req, res) => {
         id
     ];
 
-    db.run(sql, params, function (err) {
-        if (err) {
-            console.error('Error updating company:', err);
-            return res.status(500).json({ error: err.message });
-        }
-
-        if (this.changes === 0) {
+    try {
+        const result = await db.run(sql, params);
+        
+        if (result.changes === 0) {
             return res.status(404).json({ error: 'Company not found' });
         }
 
         // Return updated company
-        db.get('SELECT * FROM companies WHERE id = ?', [id], (err, row) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ success: true, data: row });
-        });
-    });
+        const row = await db.get('SELECT * FROM companies WHERE id = ?', [id]);
+        res.json({ success: true, data: row });
+        
+    } catch (err) {
+        console.error('Error updating company:', err);
+        return res.status(500).json({ error: err.message });
+    }
 });
 
-// DELETE company
-router.delete('/:id', (req, res) => {
+// DELETE company - LIBSQL PROMISES VERSION
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     // Prevent deletion of default company
@@ -254,13 +248,10 @@ router.delete('/:id', (req, res) => {
         });
     }
 
-    db.run('DELETE FROM companies WHERE id = ?', [id], function (err) {
-        if (err) {
-            console.error('Error deleting company:', err);
-            return res.status(500).json({ error: err.message });
-        }
-
-        if (this.changes === 0) {
+    try {
+        const result = await db.run('DELETE FROM companies WHERE id = ?', [id]);
+        
+        if (result.changes === 0) {
             return res.status(404).json({ error: 'Company not found' });
         }
 
@@ -269,7 +260,11 @@ router.delete('/:id', (req, res) => {
             message: 'Company and all associated data deleted successfully',
             deleted_id: id
         });
-    });
+        
+    } catch (err) {
+        console.error('Error deleting company:', err);
+        return res.status(500).json({ error: err.message });
+    }
 });
 
 // GET company statistics

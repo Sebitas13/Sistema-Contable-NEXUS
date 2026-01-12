@@ -25,8 +25,8 @@ router.get('/', (req, res) => {
     });
 });
 
-// PATCH update acquisition dates for multiple accounts (for depreciation calculation)
-router.patch('/acquisition-dates', (req, res) => {
+// PATCH update acquisition dates for multiple accounts - LIBSQL PROMISES VERSION
+router.patch('/acquisition-dates', async (req, res) => {
     const { acquisitions } = req.body; // Array of { accountCode, companyId, acquisitionDate }
 
     if (!acquisitions || !Array.isArray(acquisitions)) {
@@ -35,31 +35,42 @@ router.patch('/acquisition-dates', (req, res) => {
 
     const sql = `UPDATE accounts SET acquisition_date = ? WHERE code = ? AND company_id = ?`;
 
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
+        
         let errors = 0;
 
-        const stmt = db.prepare(sql);
-        acquisitions.forEach(acq => {
-            stmt.run([acq.acquisitionDate, acq.accountCode, acq.companyId], (err) => {
-                if (err) errors++;
-            });
-        });
-
-        stmt.finalize((err) => {
-            if (err) {
-                db.run('ROLLBACK');
-                return res.status(500).json({ error: 'Failed to update acquisition dates' });
+        // Process all acquisitions sequentially
+        for (const acq of acquisitions) {
+            try {
+                await db.run(sql, [acq.acquisitionDate, acq.accountCode, acq.companyId]);
+            } catch (err) {
+                errors++;
+                console.error(`Error updating acquisition date for account ${acq.accountCode}:`, err.message);
             }
-            db.run('COMMIT', (err) => {
-                if (err) {
-                    db.run('ROLLBACK');
-                    return res.status(500).json({ error: 'Transaction commit failed' });
-                }
-                res.json({ success: true, message: `Updated ${acquisitions.length - errors} acquisition dates` });
-            });
+        }
+
+        // Commit transaction
+        await db.run('COMMIT');
+        res.json({ 
+            success: true, 
+            message: `Updated ${acquisitions.length - errors} acquisition dates`,
+            successCount: acquisitions.length - errors,
+            errorCount: errors
         });
-    });
+        
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error updating acquisition dates:', error.message);
+        res.status(500).json({ error: 'Failed to update acquisition dates' });
+    }
 });
 
 // Create account - LIBSQL PROMISES VERSION
@@ -85,8 +96,8 @@ router.post('/', async (req, res) => {
     }
 });
 
-// POST bulk create accounts (High Performance Ingestion)
-router.post('/bulk', (req, res) => {
+// POST bulk create accounts - LIBSQL PROMISES VERSION
+router.post('/bulk', async (req, res) => {
     const { accounts, companyId } = req.body;
 
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0 || !companyId) {
@@ -95,47 +106,53 @@ router.post('/bulk', (req, res) => {
 
     const sql = 'INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)';
 
-    db.serialize(() => {
-        // 1. Iniciar Transacción (Atomicidad y Velocidad)
-        db.run('BEGIN TRANSACTION');
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
 
-        const stmt = db.prepare(sql);
         let errors = 0;
+        let successCount = 0;
 
-        accounts.forEach(acc => {
+        // Process all accounts sequentially
+        for (const acc of accounts) {
             // Validación mínima antes de insertar
-            if (acc.code && acc.name && acc.type && acc.level) {
-                stmt.run([companyId, acc.code, acc.name, acc.type, acc.level, acc.parent_code || null], (err) => {
-                    if (err) errors++;
-                });
-            } else {
+            if (!acc.code || !acc.name || !acc.type || !acc.level) {
                 errors++;
+                continue;
             }
-        });
 
-        stmt.finalize((err) => {
-            if (err) {
-                db.run('ROLLBACK');
-                return res.status(500).json({ error: 'Failed to finalize bulk insert' });
+            try {
+                await db.run(sql, [companyId, acc.code, acc.name, acc.type, acc.level, acc.parent_code || null]);
+                successCount++;
+            } catch (err) {
+                errors++;
+                console.error(`Error inserting account ${acc.code}:`, err.message);
             }
-            // 2. Commit masivo (Un solo viaje al disco)
-            db.run('COMMIT', (err) => {
-                if (err) {
-                    db.run('ROLLBACK');
-                    return res.status(500).json({ error: 'Transaction commit failed' });
-                }
-                res.json({
-                    message: `Bulk import completed. Processed ${accounts.length} accounts.`,
-                    successCount: accounts.length - errors,
-                    errorCount: errors
-                });
-            });
+        }
+
+        // Commit transaction
+        await db.run('COMMIT');
+        res.json({
+            message: `Bulk import completed. Processed ${accounts.length} accounts.`,
+            successCount: successCount,
+            errorCount: errors
         });
-    });
+        
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error in bulk account creation:', error.message);
+        res.status(500).json({ error: 'Failed to execute bulk insert' });
+    }
 });
 
-// Update account
-router.put('/:id', (req, res) => {
+// Update account - LIBSQL PROMISES VERSION
+router.put('/:id', async (req, res) => {
     const { code, name, type, level, parent_code, companyId } = req.body;
     const { id } = req.params;
 
@@ -145,17 +162,16 @@ router.put('/:id', (req, res) => {
 
     const sql = 'UPDATE accounts SET company_id = ?, code = ?, name = ?, type = ?, level = ?, parent_code = ? WHERE id = ?';
 
-    db.run(sql, [companyId, code, name, type, level, parent_code || null, id], function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
-        res.json({ message: 'Account updated', changes: this.changes });
-    });
+    try {
+        const result = await db.run(sql, [companyId, code, name, type, level, parent_code || null, id]);
+        res.json({ message: 'Account updated', changes: result.changes });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-// Delete account
-router.delete('/:id', (req, res) => {
+// Delete account - LIBSQL PROMISES VERSION
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
 
@@ -163,58 +179,72 @@ router.delete('/:id', (req, res) => {
         return res.status(400).json({ error: 'companyId is required' });
     }
 
-    // Check if it's a "delete all" request
-    if (id === 'all') {
-        const sql = 'DELETE FROM accounts WHERE company_id = ?';
-        db.run(sql, [companyId], function (err) {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
-            res.json({ message: 'All accounts deleted for company', changes: this.changes });
-        });
-        return;
-    }
-
-    const sql = 'DELETE FROM accounts WHERE id = ? AND company_id = ?';
-
-    db.run(sql, [id, companyId], function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
+    try {
+        // Check if it's a "delete all" request
+        if (id === 'all') {
+            const sql = 'DELETE FROM accounts WHERE company_id = ?';
+            const result = await db.run(sql, [companyId]);
+            res.json({ message: 'All accounts deleted for company', changes: result.changes });
             return;
         }
-        res.json({ message: 'Account deleted', changes: this.changes });
-    });
+
+        const sql = 'DELETE FROM accounts WHERE id = ? AND company_id = ?';
+        const result = await db.run(sql, [id, companyId]);
+        res.json({ message: 'Account deleted', changes: result.changes });
+        
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-// Batch update parent codes (Data Healing)
-router.patch('/batch-parents', (req, res) => {
+// Batch update parent codes - LIBSQL PROMISES VERSION
+router.patch('/batch-parents', async (req, res) => {
     const { updates, companyId } = req.body; // updates: [{ id, parent_code }]
 
     if (!updates || !Array.isArray(updates) || !companyId) {
         return res.status(400).json({ error: 'Invalid request format' });
     }
 
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+    const sql = 'UPDATE accounts SET parent_code = ? WHERE id = ? AND company_id = ?';
 
-        const stmt = db.prepare('UPDATE accounts SET parent_code = ? WHERE id = ? AND company_id = ?');
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
+
         let hasErrors = false;
+        let successCount = 0;
 
-        updates.forEach(u => {
-            stmt.run([u.parent_code, u.id, companyId], (err) => {
-                if (err) hasErrors = true;
-            });
-        });
-
-        stmt.finalize((err) => {
-            if (err || hasErrors) {
-                db.run('ROLLBACK', () => res.status(500).json({ error: 'Errors occurred during batch update' }));
-            } else {
-                db.run('COMMIT', () => res.json({ message: `Successfully updated ${updates.length} accounts` }));
+        // Process all updates sequentially
+        for (const u of updates) {
+            try {
+                await db.run(sql, [u.parent_code, u.id, companyId]);
+                successCount++;
+            } catch (err) {
+                hasErrors = true;
+                console.error(`Error updating parent code for account ${u.id}:`, err.message);
             }
-        });
-    });
+        }
+
+        // Commit or rollback based on results
+        if (hasErrors) {
+            await db.run('ROLLBACK');
+            res.status(500).json({ error: 'Errors occurred during batch update' });
+        } else {
+            await db.run('COMMIT');
+            res.json({ message: `Successfully updated ${successCount} accounts` });
+        }
+        
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error in batch parent update:', error.message);
+        res.status(500).json({ error: 'Failed to execute batch update' });
+    }
 });
 
 module.exports = router;

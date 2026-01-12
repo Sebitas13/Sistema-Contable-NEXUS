@@ -25,29 +25,35 @@ const upload = multer({
  * UTILS
  */
 
-// Helper to wrap db.all in a promise
-const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-    });
-});
+// Helper to wrap db.all in a promise - LIBSQL PROMISES VERSION
+const dbAll = async (sql, params = []) => {
+    try {
+        const rows = await db.all(sql, params);
+        return rows;
+    } catch (err) {
+        throw err;
+    }
+};
 
-// Helper to wrap db.get in a promise
-const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-    });
-});
+// Helper to wrap db.get in a promise - LIBSQL PROMISES VERSION
+const dbGet = async (sql, params = []) => {
+    try {
+        const row = await db.get(sql, params);
+        return row;
+    } catch (err) {
+        throw err;
+    }
+};
 
-// Helper to run a command in a promise
-const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-        if (err) reject(err);
-        else resolve(this);
-    });
-});
+// Helper to run a command in a promise - LIBSQL PROMISES VERSION
+const dbRun = async (sql, params = []) => {
+    try {
+        const result = await db.run(sql, params);
+        return result;
+    } catch (err) {
+        throw err;
+    }
+};
 
 /**
  * EXPORT

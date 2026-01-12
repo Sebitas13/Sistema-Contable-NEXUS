@@ -11,14 +11,14 @@ const path = require('path');
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.AI_ENGINE_URL_ALT || 'http://localhost:8000';
 const db = require('../db');
 
-// Helper function to promisify db.all
-const dbAll = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+// Helper function to promisify db.all - LIBSQL PROMISES VERSION
+const dbAll = async (sql, params = []) => {
+  try {
+    const rows = await db.all(sql, params);
+    return rows;
+  } catch (err) {
+    throw err;
+  }
 };
 
 // Diagnostic Route
@@ -79,14 +79,14 @@ router.post('/profile/:companyId', async (req, res) => {
   }
 });
 
-// Helper to get company profile from DB
-const getProfile = (companyId) => {
-  return new Promise((resolve, reject) => {
-    db.get('SELECT profile_json FROM company_adjustment_profiles WHERE company_id = ?', [companyId], (err, row) => {
-      if (err) reject(err);
-      resolve(row ? JSON.parse(row.profile_json) : null);
-    });
-  });
+// Helper to get company profile from DB - LIBSQL PROMISES VERSION
+const getProfile = async (companyId) => {
+  try {
+    const row = await db.get('SELECT profile_json FROM company_adjustment_profiles WHERE company_id = ?', [companyId]);
+    return row ? JSON.parse(row.profile_json) : null;
+  } catch (err) {
+    throw err;
+  }
 };
 
 // V6.0: Helper para deduplicar reglas por pattern (mantiene la primera = más reciente)
@@ -601,28 +601,23 @@ router.get('/adjustments/chronology/:companyId', async (req, res) => {
   }
 });
 
-// DELETE /api/ai/adjustments/chronology/:companyId/cleanup - Limpiar duplicados
+// DELETE /api/ai/adjustments/chronology/:companyId/cleanup - Limpiar duplicados - LIBSQL PROMISES VERSION
 router.delete('/adjustments/chronology/:companyId/cleanup', async (req, res) => {
   try {
     // Eliminar duplicados, mantener solo el más reciente por account_name
-    await new Promise((resolve, reject) => {
-      db.run(
-        `DELETE FROM mahoraga_adaptation_events
+    const result = await db.run(
+      `DELETE FROM mahoraga_adaptation_events
+       WHERE company_id = ?
+       AND id NOT IN (
+         SELECT MAX(id) FROM mahoraga_adaptation_events
          WHERE company_id = ?
-         AND id NOT IN (
-           SELECT MAX(id) FROM mahoraga_adaptation_events
-           WHERE company_id = ?
-           GROUP BY account_name
-         )`,
-        [req.params.companyId, req.params.companyId],
-        function (err) {
-          if (err) reject(err);
-          console.log(`🧹 Limpiados ${this.changes} eventos duplicados de cronología`);
-          resolve(this.changes);
-        }
-      );
-    });
-    res.json({ success: true, message: 'Duplicados eliminados' });
+         GROUP BY account_name
+       )`,
+      [req.params.companyId, req.params.companyId]
+    );
+    
+    console.log(`🧹 Limpiados ${result.changes} eventos duplicados de cronología`);
+    res.json({ success: true, message: 'Duplicados eliminados', cleaned: result.changes });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
