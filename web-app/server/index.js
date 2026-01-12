@@ -16,13 +16,13 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: '/:any*', // Permite cualquier origen (Vercel, Localhost, etc.)
+  origin: /^(.*)$/, // Permite cualquier origen (Vercel, Localhost, etc.)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: false // Cambiado a false para evitar conflictos con '*'
 }));
-app.options('/:any*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '/:any*');
+app.options(/^(.*)$/, (req, res) => {
+  res.header('Access-Control-Allow-Origin', /^(.*)$/);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.sendStatus(200);
