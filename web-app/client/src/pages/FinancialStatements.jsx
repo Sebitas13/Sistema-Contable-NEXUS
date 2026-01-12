@@ -151,37 +151,28 @@ export default function FinancialStatements() {
         setLoading(true);
         setError(null);
         try {
-            // Para Balance General - mantener lógica actual
-            const [accountsRes, bcRes, adjRes] = await Promise.all([
-                axios.get(`${API_URL}/api/accounts?companyId=${selectedCompany.id}`),
-                axios.get(`${API_URL}/api/reports/ledger`, {
-                    params: { companyId: selectedCompany.id, excludeAdjustments: true, excludeClosing: true }
-                }),
-                axios.get(`${API_URL}/api/reports/ledger`, {
-                    params: { companyId: selectedCompany.id, adjustmentsOnly: true, excludeClosing: true }
-                })
-            ]);
-            const allAccounts = accountsRes.data.data || [];
-            const bcData = bcRes.data.data || [];
-            const adjData = adjRes.data.data || [];
-            const bcMap = {};
-            bcData.forEach(item => bcMap[item.id] = item);
-            const adjMap = {};
-            adjData.forEach(item => adjMap[item.id] = item);
-            const mergedData = allAccounts.map(acc => {
-                const bcInfo = bcMap[acc.id] || { total_debit: 0, total_credit: 0 };
-                const adjInfo = adjMap[acc.id] || { total_debit: 0, total_credit: 0 };
-                const finalDebit = (bcInfo.total_debit || 0) + (adjInfo.total_debit || 0);
-                const finalCredit = (bcInfo.total_credit || 0) + (adjInfo.total_credit || 0);
-                return {
-                    ...acc,
-                    total_debit: finalDebit,
-                    total_credit: finalCredit,
-                    type: acc.type,
-                    parent_code: acc.parent_code
-                };
+            // Usar endpoint backend para obtener datos con parent_code_garantizado correcto
+            const response = await axios.get(`${API_URL}/api/reports/financial-statements`, {
+                params: { companyId: selectedCompany.id }
             });
-            setData(mergedData);
+
+            if (!response.data.success) {
+                throw new Error('Error en respuesta del backend');
+            }
+
+            const backendData = response.data.data || [];
+
+            // Transformar datos del backend al formato esperado por FinancialStatementEngine
+            const accounts = backendData.map(acc => ({
+                ...acc,
+                // El backend ya calcula saldo_matematico con la lógica correcta (debit-credit o credit-debit según tipo)
+                total_debit: acc.saldo_matematico > 0 ? Math.abs(acc.saldo_matematico) : 0,
+                total_credit: acc.saldo_matematico < 0 ? Math.abs(acc.saldo_matematico) : 0,
+                parent_code: acc.parent_code_garantizado, // Usar el parent_code corregido del backend
+                type: acc.type
+            }));
+
+            setData(accounts);
         } catch (err) {
             console.error(err);
             setError("Error cargando datos del Balance General.");
