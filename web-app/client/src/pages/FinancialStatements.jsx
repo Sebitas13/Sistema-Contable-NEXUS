@@ -151,7 +151,6 @@ export default function FinancialStatements() {
         setLoading(true);
         setError(null);
         try {
-            // Usar endpoint backend para obtener datos con parent_code_garantizado correcto
             const response = await axios.get(`${API_URL}/api/reports/financial-statements`, {
                 params: { companyId: selectedCompany.id }
             });
@@ -162,15 +161,41 @@ export default function FinancialStatements() {
 
             const backendData = response.data.data || [];
 
-            // Transformar datos del backend al formato esperado por FinancialStatementEngine
-            const accounts = backendData.map(acc => ({
-                ...acc,
-                // El backend ya calcula saldo_matematico con la lógica correcta (debit-credit o credit-debit según tipo)
-                total_debit: acc.saldo_matematico > 0 ? Math.abs(acc.saldo_matematico) : 0,
-                total_credit: acc.saldo_matematico < 0 ? Math.abs(acc.saldo_matematico) : 0,
-                parent_code: acc.parent_code_garantizado, // Usar el parent_code corregido del backend
-                type: acc.type
-            }));
+            // CORRECCIÓN MAHORAGA: Mapeo inteligente de Signos
+            const accounts = backendData.map(acc => {
+                const type = (acc.type || '').trim();
+                // El backend devuelve 'saldo_matematico' normalizado (Positivo para Pasivos).
+                // Pero el Engine necesita saber si es Debit o Credit puro.
+                const saldo = Number(acc.saldo_matematico);
+
+                // Determinamos la naturaleza natural de la cuenta
+                const esNaturalezaAcreedora = ['Pasivo', 'Patrimonio', 'Ingreso'].includes(type) ||
+                    ['Pasivo', 'Patrimonio', 'Ingreso'].includes(acc.group_name);
+
+                let debit = 0;
+                let credit = 0;
+
+                if (esNaturalezaAcreedora) {
+                    // Si el backend dice 100 (positivo) en Pasivo, es un CRÉDITO para el motor.
+                    // Si dice -100, es un DÉBITO (raro, pero posible).
+                    if (saldo >= 0) credit = Math.abs(saldo);
+                    else debit = Math.abs(saldo);
+                } else {
+                    // Activos, Gastos: Comportamiento normal
+                    if (saldo >= 0) debit = Math.abs(saldo);
+                    else credit = Math.abs(saldo);
+                }
+
+                return {
+                    ...acc,
+                    // Aseguramos que el Engine reciba Debe y Haber separados correctamente
+                    total_debit: debit,
+                    total_credit: credit,
+                    // Forzamos el parent_code garantizado. Si es null, el Engine intentará deducirlo.
+                    parent_code: acc.parent_code_garantizado || acc.parent_code,
+                    type: type
+                };
+            });
 
             setData(accounts);
         } catch (err) {

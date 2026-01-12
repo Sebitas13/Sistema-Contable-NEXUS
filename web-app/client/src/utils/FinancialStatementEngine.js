@@ -376,34 +376,35 @@ export class FinancialStatementEngine {
 
     inyectarUtilidad(valorSigned) {
         console.log('📊 inyectarUtilidad: valorSigned =', valorSigned);
-
+        // En el Engine: Crédito es negativo. Utilidad (Ganancia) aumenta Patrimonio (Crédito).
+        // Si valorSigned viene positivo (Ganancia del ER), lo volvemos negativo.
         const valorParaBalance = valorSigned * -1;
+
         const nodoUtilidad = {
-            id: 'utilidad-ejercicio-auto',
+            id: 'utilidad-ejercicio-auto', // ID único
             code: '',
-            name: valorSigned >= 0 ? 'Utilidad Líquida del Ejercicio' : 'Pérdida del Ejercicio',
+            name: valorSigned >= 0 ? 'UTILIDAD LÍQUIDA DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO',
             type: 'Patrimonio',
             hijos: [],
             saldo_matematico: valorParaBalance,
             total: valorParaBalance,
             esSintetico: true,
-            classification: { isPatrimonio: true }
+            esBruto: true, // Truco: Marcamos como bruto para evitar filtrados agresivos
+            classification: { isPatrimonio: true, isResultado: true }
         };
 
-        console.log('📊 Nodo utilidad creado:', nodoUtilidad);
+        // ESTRATEGIA DE BÚSQUEDA MEJORADA
+        const raicesPatrimonio = this.raices.filter(r => r.classification.isPatrimonio);
 
+        // 1. Intentar encontrar "Resultados Acumulados" recursivamente
         const buscarYInsertar = (nodos) => {
-            for (let i = 0; i < nodos.length; i++) {
-                const n = nodos[i];
-                if (n.classification.isResultadosAcumulados) {
-                    console.log('📊 Encontrada cuenta Resultados Acumulados:', n.name);
-                    if (n.hijos && n.hijos.length > 0) {
-                        n.hijos.push(nodoUtilidad);
-                        console.log('📊 Utilidad inyectada como hijo de Resultados Acumulados');
-                    } else {
-                        nodos.splice(i + 1, 0, nodoUtilidad);
-                        console.log('📊 Utilidad inyectada después de Resultados Acumulados');
-                    }
+            for (let n of nodos) {
+                // Regex más flexible
+                if (/resultad.*acumul/i.test(n.name) || /acumulad/i.test(n.name)) {
+                    if (!n.hijos) n.hijos = [];
+                    n.hijos.push(nodoUtilidad);
+                    // IMPORTANTE: Sumar al total del padre para que la jerarquía cuadre
+                    this.actualizarTotalesHaciaArriba(n, valorParaBalance);
                     return true;
                 }
                 if (n.hijos && n.hijos.length > 0) {
@@ -413,15 +414,33 @@ export class FinancialStatementEngine {
             return false;
         };
 
-        const raicesPatrimonio = this.raices.filter(r => r.classification.isPatrimonio);
-        console.log('📊 Raíces de patrimonio:', raicesPatrimonio.map(r => r.name));
-        console.log('📊 Buscando Resultados Acumulados en', raicesPatrimonio.length, 'cuentas de patrimonio');
+        // Helper para recalcular totales hacia arriba (simple visual fix)
+        this.actualizarTotalesHaciaArriba = (nodo, valor) => {
+            nodo.total = (nodo.total || 0) + valor;
+            // Nota: No podemos subir más porque no tenemos puntero al padre aquí, 
+            // pero el paso this.calcularTotales() al final del main loop lo arreglará.
+        };
 
-        const buscarSimple = buscarYInsertar(raicesPatrimonio);
-        if (!buscarSimple) {
-            console.log('📊 No se encontró Resultados Acumulados, inyectando en primera raíz de patrimonio');
-            if (raicesPatrimonio.length > 0) raicesPatrimonio[0].hijos.push(nodoUtilidad);
-            else this.raices.push(nodoUtilidad);
+        let insertado = buscarYInsertar(raicesPatrimonio);
+
+        // 2. Si falla, inyectar en la raíz de Patrimonio directamente
+        if (!insertado) {
+            console.warn('⚠️ No se encontró Resultados Acumulados. Inyectando en raíz Patrimonio.');
+            if (raicesPatrimonio.length > 0) {
+                raicesPatrimonio[0].hijos.push(nodoUtilidad);
+                // No sumamos al padre aquí porque calcularTotales lo hará
+            } else {
+                // Caso extremo: No hay patrimonio, creamos la raíz
+                const rootPat = {
+                    id: 'patrimonio-root-auto',
+                    code: '3',
+                    name: 'PATRIMONIO',
+                    hijos: [nodoUtilidad],
+                    total: 0,
+                    classification: { isPatrimonio: true }
+                };
+                this.raices.push(rootPat);
+            }
         }
     }
 
