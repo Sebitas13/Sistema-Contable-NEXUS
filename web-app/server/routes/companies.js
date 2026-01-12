@@ -113,9 +113,9 @@ router.post('/', (req, res) => {
     `;
 
     const params = [
-        name,
+        name || null,
         nit || null,
-        legal_name || name,
+        legal_name || name || null, // Fallback to name if legal_name is empty
         address || null,
         city || null,
         country || 'Bolivia',
@@ -129,7 +129,7 @@ router.post('/', (req, res) => {
         plan_structure || null,
         societal_type || 'Unipersonal',
         activity_type || 'Comercial',
-        operation_start_date || null,
+        operation_start_date && operation_start_date !== '' ? operation_start_date : null,
         current_year || new Date().getFullYear()
     ];
 
@@ -201,9 +201,25 @@ router.put('/:id', (req, res) => {
     `;
 
     const params = [
-        name, nit, legal_name, address, city, country,
-        phone, email, website, logo_url, fiscal_year_start, currency,
-        code_mask, plan_structure, societal_type, activity_type, operation_start_date, current_year, id
+        name || null, 
+        nit || null, 
+        legal_name || null, 
+        address || null, 
+        city || null, 
+        country || null,
+        phone || null, 
+        email || null, 
+        website || null, 
+        logo_url || null, 
+        fiscal_year_start || null, 
+        currency || null,
+        code_mask || null, 
+        plan_structure || null, 
+        societal_type || null, 
+        activity_type || null, 
+        operation_start_date || null, 
+        current_year || null, 
+        id
     ];
 
     db.run(sql, params, function (err) {
