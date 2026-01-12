@@ -126,59 +126,51 @@ router.get('/', (req, res) => {
     });
 });
 
-// Create a new transaction
-router.post('/', (req, res) => {
+// Create a new transaction - LIBSQL PROMISES VERSION
+router.post('/', async (req, res) => {
     const { date, gloss, type, entries, companyId } = req.body;
 
     if (!date || !gloss || !type || !entries || entries.length === 0 || !companyId) {
-        res.status(400).json({ error: 'Missing required fields' });
-        return;
+        return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const invalidEntries = entries.filter(e => !e.accountId);
-    if (invalidEntries.length > 0) {
-        res.status(400).json({ error: 'All entries must have an accountId' });
-        return;
-    }
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
 
-    const insertTransaction = 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)';
+        // Insert transaction header
+        const insertTransaction = 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)';
+        const transactionResult = await db.run(insertTransaction, [date, gloss, type, companyId]);
+        const transactionId = transactionResult.lastID;
 
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+        // Insert all entries
+        const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
+        
+        for (const entry of entries) {
+            const debit = parseFloat(entry.debit) || 0;
+            const credit = parseFloat(entry.credit) || 0;
+            await db.run(insertEntry, [transactionId, entry.accountId, debit, credit, entry.gloss || '']);
+        }
 
-        db.run(insertTransaction, [date, gloss, type, companyId], function (err) {
-            if (err) {
-                db.run('ROLLBACK');
-                res.status(400).json({ error: err.message });
-                return;
-            }
-
-            const transactionId = this.lastID;
-            const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
-            const stmt = db.prepare(insertEntry);
-
-            entries.forEach(entry => {
-                const debit = parseFloat(entry.debit) || 0;
-                const credit = parseFloat(entry.credit) || 0;
-                stmt.run([transactionId, entry.accountId, debit, credit, entry.gloss || '']);
-            });
-
-            stmt.finalize(err => {
-                if (err) {
-                    db.run('ROLLBACK');
-                    res.status(400).json({ error: err.message });
-                    return;
-                }
-
-                db.run('COMMIT');
-                res.json({
-                    message: 'Transaction created',
-                    id: transactionId,
-                    data: req.body
-                });
-            });
+        // Commit transaction
+        await db.run('COMMIT');
+        
+        res.json({
+            message: 'Transaction created',
+            id: transactionId,
+            data: req.body
         });
-    });
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error creating transaction:', error.message);
+        res.status(400).json({ error: error.message });
+    }
 });
 
 // POST /batch - Create multiple transactions at once (for closing entries)
@@ -241,65 +233,54 @@ router.post('/batch', async (req, res) => {
     }
 });
 
-// Update transaction
-router.put('/:id', (req, res) => {
+// Update transaction - LIBSQL PROMISES VERSION
+router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { date, gloss, type, entries, companyId } = req.body;
 
     if (!date || !gloss || !type || !entries || entries.length === 0 || !companyId) {
-        res.status(400).json({ error: 'Missing required fields' });
-        return;
+        return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
 
         // Update transaction header
-        db.run('UPDATE transactions SET date = ?, gloss = ?, type = ? WHERE id = ? AND company_id = ?',
-            [date, gloss, type, id, companyId],
-            function (err) {
-                if (err) {
-                    db.run('ROLLBACK');
-                    res.status(400).json({ error: err.message });
-                    return;
-                }
+        await db.run('UPDATE transactions SET date = ?, gloss = ?, type = ? WHERE id = ? AND company_id = ?',
+            [date, gloss, type, id, companyId]);
 
-                // Delete existing entries
-                db.run('DELETE FROM transaction_entries WHERE transaction_id = ?', [id], function (err) {
-                    if (err) {
-                        db.run('ROLLBACK');
-                        res.status(400).json({ error: err.message });
-                        return;
-                    }
+        // Delete existing entries
+        await db.run('DELETE FROM transaction_entries WHERE transaction_id = ?', [id]);
 
-                    // Insert new entries
-                    const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
-                    const stmt = db.prepare(insertEntry);
+        // Insert new entries
+        const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
+        
+        for (const entry of entries) {
+            const debit = parseFloat(entry.debit) || 0;
+            const credit = parseFloat(entry.credit) || 0;
+            await db.run(insertEntry, [id, entry.accountId, debit, credit, entry.gloss || '']);
+        }
 
-                    entries.forEach(entry => {
-                        const debit = parseFloat(entry.debit) || 0;
-                        const credit = parseFloat(entry.credit) || 0;
-                        stmt.run([id, entry.accountId, debit, credit, entry.gloss || '']);
-                    });
-
-                    stmt.finalize(err => {
-                        if (err) {
-                            db.run('ROLLBACK');
-                            res.status(400).json({ error: err.message });
-                            return;
-                        }
-
-                        db.run('COMMIT');
-                        res.json({ message: 'Transaction updated successfully' });
-                    });
-                });
-            }
-        );
-    });
+        // Commit transaction
+        await db.run('COMMIT');
+        res.json({ message: 'Transaction updated successfully' });
+        
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error updating transaction:', error.message);
+        res.status(400).json({ error: error.message });
+    }
 });
 
-// Delete transaction
-router.delete('/:id', (req, res) => {
+// Delete transaction - LIBSQL PROMISES VERSION
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
 
@@ -307,36 +288,36 @@ router.delete('/:id', (req, res) => {
         return res.status(400).json({ error: 'companyId is required to delete transactions' });
     }
 
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
 
         // Delete entries first (foreign key constraint)
-        db.run('DELETE FROM transaction_entries WHERE transaction_id = ?', [id], function (err) {
-            if (err) {
-                db.run('ROLLBACK');
-                res.status(400).json({ error: err.message });
-                return;
-            }
+        await db.run('DELETE FROM transaction_entries WHERE transaction_id = ?', [id]);
 
-            // Delete the transaction, ensuring it belongs to the company
-            db.run('DELETE FROM transactions WHERE id = ? AND company_id = ?', [id, companyId], function (err) {
-                if (err) {
-                    db.run('ROLLBACK');
-                    res.status(400).json({ error: err.message });
-                    return;
-                }
+        // Delete the transaction, ensuring it belongs to the company
+        const result = await db.run('DELETE FROM transactions WHERE id = ? AND company_id = ?', [id, companyId]);
+        
+        if (result.changes === 0) {
+            await db.run('ROLLBACK');
+            return res.status(404).json({ error: 'Transaction not found' });
+        }
 
-                if (this.changes === 0) {
-                    db.run('ROLLBACK');
-                    res.status(404).json({ error: 'Transaction not found' });
-                    return;
-                }
-
-                db.run('COMMIT');
-                res.json({ message: 'Transaction deleted successfully' });
-            });
-        });
-    });
+        // Commit transaction
+        await db.run('COMMIT');
+        res.json({ message: 'Transaction deleted successfully' });
+        
+    } catch (error) {
+        // Rollback on any error
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Rollback failed:', rollbackError.message);
+        }
+        
+        console.error('Error deleting transaction:', error.message);
+        res.status(400).json({ error: error.message });
+    }
 });
 
 module.exports = router;

@@ -62,29 +62,27 @@ router.patch('/acquisition-dates', (req, res) => {
     });
 });
 
-// Create new account
-router.post('/', (req, res) => {
+// Create account - LIBSQL PROMISES VERSION
+router.post('/', async (req, res) => {
     const { code, name, type, level, parent_code, companyId } = req.body;
 
     if (!code || !name || !type || !level || !companyId) {
         console.error('❌ [API] Missing required fields for account creation:', { body: req.body });
         res.status(400).json({ error: 'Missing required fields', received: req.body });
-        return;
     }
 
     const sql = 'INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)';
 
-    db.run(sql, [companyId, code, name, type, level, parent_code || null], function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
+    try {
+        const result = await db.run(sql, [companyId, code, name, type, level, parent_code || null]);
         res.json({
             message: 'Account created',
-            id: this.lastID,
+            id: result.lastID,
             data: { ...req.body, company_id: companyId }
         });
-    });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // POST bulk create accounts (High Performance Ingestion)
