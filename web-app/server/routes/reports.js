@@ -575,7 +575,7 @@ router.post('/closing-entries-proposal', async (req, res) => {
         const parentCodes = new Set(accountsWithBalances.map(a => a.parent_code).filter(Boolean));
 
         const findAccount = (namePattern, { onlyLeaf = false } = {}) => {
-            return accountsWithBalances.find(a => {
+            const matches = accountsWithBalances.filter(a => {
                 const isLeaf = !parentCodes.has(a.code);
                 const nameMatch = namePattern.test(a.name.toLowerCase());
 
@@ -584,18 +584,47 @@ router.post('/closing-entries-proposal', async (req, res) => {
                 }
                 return nameMatch;
             });
+            
+            // Si hay múltiples coincidencias, priorizar la de nivel más alto (último nivel)
+            if (matches.length > 1) {
+                console.log(`⚠️ Múltiples cuentas encontradas para "${namePattern}":`, matches.map(m => `${m.name} (nivel ${m.level})`));
+                return matches.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
+            }
+            
+            return matches[0];
         };
 
         const pygAccount = findAccount(/p[eé]rdidas y ganancias|resultado del ejercicio/i, { onlyLeaf: true });
         const raAccount = findAccount(/resultado(s)? acumulado(s)?/i, { onlyLeaf: true });
         // Priorizar nombre específico para IUE
-        let iueAccount = accountsWithBalances.find(a => {
+        let iueAccount = accountsWithBalances.filter(a => {
             const isLeaf = !parentCodes.has(a.code);
             const nameMatch = a.name.toLowerCase().includes('impuesto a las utilidades de las empresas por pagar');
             return isLeaf && nameMatch;
         });
+        
+        if (iueAccount.length > 1) {
+            console.log(`⚠️ Múltiples cuentas IUE encontradas:`, iueAccount.map(m => `${m.name} (nivel ${m.level})`));
+            iueAccount = iueAccount.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
+        } else if (iueAccount.length === 1) {
+            iueAccount = iueAccount[0];
+        } else {
+            iueAccount = null;
+        }
+        
         if (!iueAccount) {
-            iueAccount = findAccount(/iue por pagar|impuesto a las utilidades por pagar/i, { onlyLeaf: true });
+            const iueMatches = accountsWithBalances.filter(a => {
+                const isLeaf = !parentCodes.has(a.code);
+                const nameMatch = /iue por pagar|impuesto a las utilidades por pagar/i.test(a.name.toLowerCase());
+                return isLeaf && nameMatch;
+            });
+            
+            if (iueMatches.length > 1) {
+                console.log(`⚠️ Múltiples cuentas IUE alternativas encontradas:`, iueMatches.map(m => `${m.name} (nivel ${m.level})`));
+                iueAccount = iueMatches.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
+            } else if (iueMatches.length === 1) {
+                iueAccount = iueMatches[0];
+            }
         }
 
         const rlAccount = findAccount(/reserva legal/i, { onlyLeaf: true });
@@ -607,7 +636,17 @@ router.post('/closing-entries-proposal', async (req, res) => {
                 !iueAccount ? '"IUE por Pagar"' : null,
                 !rlAccount ? '"Reserva Legal"' : null
             ].filter(Boolean).join(', ');
-            return res.status(400).json({ error: `Cuentas clave no encontradas: ${missing}. Por favor, créelas para continuar con el cierre.` });
+            
+            console.error('❌ Cuentas clave no encontradas:', missing);
+            console.error('📋 Cuentas disponibles:', accountsWithBalances.map(a => `${a.name} (${a.code}) - Nivel ${a.level} - ${a.type}`));
+            
+            return res.status(400).json({ 
+                error: `Cuentas clave no encontradas: ${missing}. Por favor, créelas para continuar con el cierre.`,
+                debug: {
+                    missing,
+                    availableAccounts: accountsWithBalances.map(a => ({ name: a.name, code: a.code, level: a.level, type: a.type }))
+                }
+            });
         }
 
         // 5. Generate Closing Entries
