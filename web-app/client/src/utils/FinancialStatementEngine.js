@@ -286,21 +286,16 @@ export class FinancialStatementEngine {
 
 
 
-    generarBalanceGeneral() {
-        // ... Logica de Balance sin cambios mayores ...
-
+    async generarBalanceGeneral() {
         const er = generarEstadoResultados(Object.values(this.mapa));
         const resultadoEjercicio = this.utilidadLiquidaExterna !== undefined ? this.utilidadLiquidaExterna : er.totales.utilidadLiquida;
         const iueMonto = this.iuePorPagar !== undefined ? this.iuePorPagar : er.totales.iue;
         const reservaMonto = this.reservaLegalMonto !== undefined ? this.reservaLegalMonto : er.totales.reservaLegal;
 
-        if (!this.utilidadInyectada) {
-            this.inyectarUtilidad(resultadoEjercicio);
-            if (iueMonto > 0) this.inyectarPasivoImpuesto(iueMonto);
-            if (reservaMonto > 0) this.inyectarReservaLegal(reservaMonto);
-            this.utilidadInyectada = true;
-            this.calcularTotales();
-        }
+        this.inyectarUtilidad(resultadoEjercicio);
+        if (iueMonto > 0) this.inyectarPasivoImpuesto(iueMonto);
+        if (reservaMonto > 0) this.inyectarReservaLegal(reservaMonto);
+        this.calcularTotales();
 
         const filtrarBalance = (tipoRequerido) => (nodo) => {
             const cls = nodo.classification;

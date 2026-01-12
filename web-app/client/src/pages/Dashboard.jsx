@@ -101,7 +101,7 @@ export default function Dashboard() {
       engine.reservaLegalMonto = reservaLegal;
 
       // Generar el balance completo para obtener los totales finales estructurales
-      const balanceGeneral = engine.generarBalanceGeneral();
+      const balanceGeneral = await engine.generarBalanceGeneral();
 
       // Extraer totales directamente de la estructura generada (Motor v4.0)
       const finalActivo = balanceGeneral.totales.activo;

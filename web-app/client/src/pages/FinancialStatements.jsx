@@ -136,7 +136,7 @@ export default function FinancialStatements() {
                     engineBG.utilidadLiquidaExterna = reporteV5.totales.utilidadLiquida;
                     engineBG.iuePorPagar = reporteV5.totales.iue;
                     engineBG.reservaLegalMonto = reporteV5.totales.reservaLegal;
-                    setBalanceGeneral(engineBG.generarBalanceGeneral());
+                    setBalanceGeneral(await engineBG.generarBalanceGeneral());
                 } catch (err) {
                     console.error("Error procesando datos en motor:", err);
                     setError("Ocurrió un error al procesar la jerarquía de cuentas.");
