@@ -12,6 +12,11 @@ const axios = require('axios');
 const VERSION = "1.0.0";
 const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 
+// Helper function to format dates
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+
 // Ensure upload directory exists
 fs.ensureDirSync(path.join(__dirname, '../temp/uploads/'));
 
@@ -164,7 +169,7 @@ router.post('/dry-run', upload.single('file'), async (req, res) => {
 router.post('/import', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    // Helper to run commands within a transaction
+    // Helper to run commands within a transaction - LIBSQL COMPATIBLE VERSION
     const txRun = async (tx, sql, params = []) => {
         // Helper to convert BigInt to Number for JSON serialization
         function normalizeValue(value) {
@@ -173,11 +178,16 @@ router.post('/import', upload.single('file'), async (req, res) => {
             }
             return value;
         }
-        const rs = await tx.execute({ sql, args: params });
-        return {
-            lastID: normalizeValue(rs.lastInsertRowid),
-            changes: rs.rowsAffected,
-        };
+        
+        try {
+            const result = await db.run(sql, params);
+            return {
+                lastID: normalizeValue(result.lastID),
+                changes: normalizeValue(result.changes),
+            };
+        } catch (err) {
+            throw err;
+        }
     };
 
     try {
@@ -203,8 +213,10 @@ router.post('/import', upload.single('file'), async (req, res) => {
 
         let NEW_COMPANY_ID;
 
-        // Use the driver's native transaction handling
-        await db.transaction(async (tx) => {
+        // Use LibSQL transaction handling
+        await db.run('BEGIN TRANSACTION');
+        
+        try {
             const sourceCompany = companies[0];
 
             const insertCompSql = `
@@ -214,7 +226,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
                     societal_type, activity_type, operation_start_date, current_year
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-            const compResult = await txRun(tx, insertCompSql, [
+            const compResult = await txRun(null, insertCompSql, [
                 sourceCompany.name + " (Restaurado)",
                 sourceCompany.nit,
                 sourceCompany.legal_name,
@@ -238,7 +250,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
 
             const accountIdMap = new Map();
             for (const acc of accounts) {
-                const accRes = await txRun(tx,
+                const accRes = await txRun(null,
                     `INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)`,
                     [NEW_COMPANY_ID, acc.code, acc.name, acc.type, acc.level, acc.parent_code]
                 );
@@ -246,7 +258,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
             }
 
             for (const transaction of transactions) {
-                const txRes = await txRun(tx,
+                const txRes = await txRun(null,
                     `INSERT INTO transactions (company_id, date, gloss, type, created_at) VALUES (?, ?, ?, ?, ?)`,
                     [NEW_COMPANY_ID, transaction.date, transaction.gloss, transaction.type, transaction.created_at]
                 );
@@ -256,7 +268,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 for (const entry of entries) {
                     const newAccId = accountIdMap.get(entry.account_id);
                     if (!newAccId) continue;
-                    await txRun(tx,
+                    await txRun(null,
                         `INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)`,
                         [NEW_TX_ID, newAccId, entry.debit, entry.credit, entry.gloss]
                     );
@@ -264,25 +276,31 @@ router.post('/import', upload.single('file'), async (req, res) => {
             }
 
             for (const rate of ufv_rates) {
-                await txRun(tx, `INSERT OR IGNORE INTO ufv_rates (date, value) VALUES (?, ?)`,
-                    [rate.date, rate.value]);
+                await txRun(null, `INSERT OR IGNORE INTO ufv_rates (company_id, date, value) VALUES (?, ?, ?)`,
+                    [NEW_COMPANY_ID, rate.date, rate.value]);
             }
             for (const rate of exchange_rates) {
                 if (rate.currency === 'USD') {
-                    await txRun(tx, `INSERT OR IGNORE INTO exchange_rates (date, usd_buy, usd_sell) VALUES (?, ?, ?)`,
-                        [rate.date, rate.buy_rate, rate.sell_rate]);
+                    await txRun(null, `INSERT OR IGNORE INTO exchange_rates (company_id, date, usd_buy, usd_sell) VALUES (?, ?, ?, ?)`,
+                        [NEW_COMPANY_ID, rate.date, rate.buy_rate, rate.sell_rate]);
                 }
             }
 
             for (const profile of profiles) {
-                await txRun(tx, `INSERT OR IGNORE INTO company_adjustment_profiles (company_id, profile_json, version) VALUES (?, ?, ?)`,
+                await txRun(null, `INSERT OR IGNORE INTO company_adjustment_profiles (company_id, profile_json, version) VALUES (?, ?, ?)`,
                     [NEW_COMPANY_ID, profile.profile_json, profile.version]);
             }
             for (const event of mahoraga_events) {
-                await txRun(tx, `INSERT OR IGNORE INTO mahoraga_adaptation_events (id, company_id, user, origin_trans, account_code, account_name, action, event_data, timestamp, reverted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                await txRun(null, `INSERT OR IGNORE INTO mahoraga_adaptation_events (id, company_id, user, origin_trans, account_code, account_name, action, event_data, timestamp, reverted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [event.id, NEW_COMPANY_ID, event.user, event.origin_trans, event.account_code, event.account_name, event.action, event.event_data, event.timestamp, event.reverted]);
             }
-        });
+            
+            await db.run('COMMIT');
+            
+        } catch (error) {
+            await db.run('ROLLBACK');
+            throw error;
+        }
 
         // If transaction was successful, proceed
         try {
