@@ -2,34 +2,33 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db'); // Importar la conexión compartida
 
+// Importar utilidades nuevas
+const { shouldUseDynamicCors, corsMiddleware } = require('./utils');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-const allowedOrigins = [
-  'https://sistemacontablenexus.vercel.app',
-  'http://localhost:3000', // Para que sigas pudiendo probar en tu laptop
-  'http://localhost:5173', // Por si usas Vite localmente
-  'http://localhost:8000', // Para el motor Python AI local
-  'http://localhost:8003', // Para el motor Python AI en puerto alternativo
+// Middleware - CORS dinámico o estático
+if (shouldUseDynamicCors()) {
+    console.log('🌐 Usando CORS dinámico para producción');
+    app.use(corsMiddleware);
+} else {
+    console.log('🔧 Usando CORS estático para desarrollo');
+    app.use(cors({
+        origin: /^(.*)$/, // Permite cualquier origen (Vercel, Localhost, etc.)
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        credentials: false // Cambiado a false para evitar conflictos con '*'
+    }));
+    app.options(/^(.*)$/, (req, res) => {
+        res.header('Access-Control-Allow-Origin', /^(.*)$/);
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        res.sendStatus(200);
+    });
+}
 
-];
-
-app.use(cors({
-  origin: /^(.*)$/, // Permite cualquier origen (Vercel, Localhost, etc.)
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: false // Cambiado a false para evitar conflictos con '*'
-}));
 app.use(express.json());
-app.options(/^(.*)$/, (req, res) => {
-  res.header('Access-Control-Allow-Origin', /^(.*)$/);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.sendStatus(200);
-});
-
-
 
 // Routes
 const transactionsRouter = require('./routes/transactions');
