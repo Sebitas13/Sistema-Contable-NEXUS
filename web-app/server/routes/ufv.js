@@ -193,27 +193,25 @@ router.post('/batch', (req, res) => {
     });
 });
 
-// Add UFV record
-router.post('/', (req, res) => {
+// Add UFV record - LIBSQL PROMISES VERSION
+router.post('/', async (req, res) => {
     const { date, value, companyId } = req.body;
 
-    if (!companyId) {
-        return res.status(400).json({ error: 'companyId is required' });
+    if (!date || value === undefined || !companyId) {
+        return res.status(400).json({ error: 'date, value, and companyId are required' });
     }
 
-    const sql = 'INSERT OR REPLACE INTO ufv_rates (company_id, date, value) VALUES (?, ?, ?)';
-
-    db.run(sql, [companyId, date, value], function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
-        res.json({ message: 'UFV added/updated', id: this.lastID });
-    });
+    try {
+        const sql = 'INSERT OR REPLACE INTO ufv_rates (company_id, date, value) VALUES (?, ?, ?)';
+        const result = await db.run(sql, [companyId, date, value]);
+        res.json({ message: 'UFV added/updated', id: result.lastID });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-// Bulk import UFV records - PROVEN ROBUST TRANSACTION PATTERN
-router.post('/bulk', (req, res) => {
+// Bulk import UFV records - LIBSQL PROMISES VERSION
+router.post('/bulk', async (req, res) => {
     const { data, companyId } = req.body;
 
     if (!companyId) {
@@ -258,73 +256,67 @@ router.post('/bulk', (req, res) => {
 
     console.log(`Starting UFV Bulk Import for company ${companyId}. Records to process: ${validUfvs.length}`);
 
-    // 2. High-Performance Bulk Insert - MANUALLY CONTROLLED TRANSACTION
+    // 2. High-Performance Bulk Insert - LIBSQL PROMISES VERSION
     const sql = 'INSERT OR REPLACE INTO ufv_rates (company_id, date, value) VALUES (?, ?, ?)';
 
-    db.run('BEGIN TRANSACTION', (beginErr) => {
-        if (beginErr) {
-            console.error("CRITICAL: Failed to start transaction:", beginErr.message);
-            return res.status(500).json({ error: "Database busy or transaction error: " + beginErr.message });
-        }
-
-        const stmt = db.prepare(sql);
-        stmt.on('error', (stmtErr) => {
-            console.error("Statement error event caught (prevention of crash):", stmtErr.message);
-        });
-
+    try {
+        // Start transaction
+        await db.run('BEGIN TRANSACTION');
+        
         let errorOccurred = null;
         let completed = 0;
         const total = validUfvs.length;
 
-        validUfvs.forEach(item => {
-            stmt.run(companyId, item.date, item.value, (runErr) => {
+        // Process all records sequentially
+        for (const item of validUfvs) {
+            try {
+                await db.run(sql, [companyId, item.date, item.value]);
                 completed++;
-                if (runErr && !errorOccurred) {
-                    errorOccurred = runErr;
-                    console.error(`Error inserting UFV record for ${item.date}:`, runErr.message);
-                }
+            } catch (runErr) {
+                errorOccurred = runErr;
+                console.error(`Error inserting UFV record for ${item.date}:`, runErr.message);
+                break; // Stop on first error
+            }
+        }
 
-                if (completed === total) {
-                    stmt.finalize((finalizeErr) => {
-                        const finalError = errorOccurred || finalizeErr;
-                        if (finalError) {
-                            console.error("Transaction failed during inserts. Rolling back.");
-                            db.run('ROLLBACK', (rollErr) => {
-                                if (rollErr) console.warn("Rollback attempt failed (ignoring):", rollErr.message);
-                                res.status(400).json({
-                                    error: "Transaction failed: " + finalError.message,
-                                    successCount: completed - (errorOccurred ? 1 : 0),
-                                    errorCount: invalidUfvs.length + (errorOccurred ? 1 : 0),
-                                    errors: [...invalidUfvs, { reason: finalError.message }]
-                                });
-                            });
-                        } else {
-                            db.run('COMMIT', (commitErr) => {
-                                if (commitErr) {
-                                    console.error("Commit failed. Attempting cleanup rollback.");
-                                    db.run('ROLLBACK', () => {
-                                        res.status(500).json({ error: "Commit failed: " + commitErr.message });
-                                    });
-                                } else {
-                                    console.log(`✅ UFV Bulk Import Successful: ${total} records imported for company ${companyId}`);
-                                    res.json({
-                                        message: `Importación procesada con éxito. ${total} registros válidos, ${invalidUfvs.length} errores de validación.`,
-                                        successCount: total,
-                                        errorCount: invalidUfvs.length,
-                                        errors: invalidUfvs
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
+        // Commit or rollback based on results
+        if (errorOccurred) {
+            console.error("Transaction failed during inserts. Rolling back.");
+            await db.run('ROLLBACK');
+            res.status(400).json({
+                error: "Transaction failed: " + errorOccurred.message,
+                successCount: completed,
+                errorCount: invalidUfvs.length + 1,
+                errors: [...invalidUfvs, { reason: errorOccurred.message }]
             });
+        } else {
+            await db.run('COMMIT');
+            console.log(`✅ UFV Bulk Import Successful: ${total} records imported for company ${companyId}`);
+            res.json({
+                message: `Importación procesada con éxito. ${total} registros válidos, ${invalidUfvs.length} errores de validación.`,
+                successCount: total,
+                errorCount: invalidUfvs.length,
+                errors: invalidUfvs
+            });
+        }
+    } catch (transactionErr) {
+        console.error("Critical transaction error:", transactionErr.message);
+        try {
+            await db.run('ROLLBACK');
+        } catch (rollbackErr) {
+            console.warn("Rollback attempt failed:", rollbackErr.message);
+        }
+        res.status(500).json({ 
+            error: "Database transaction error: " + transactionErr.message,
+            successCount: 0,
+            errorCount: invalidUfvs.length,
+            errors: invalidUfvs
         });
-    });
+    }
 });
 
-// DELETE all UFV records for a specific year - MOVED UP TO AVOID COLLISION WITH /:id
-router.delete('/year/:year', (req, res) => {
+// DELETE all UFV records for a specific year - LIBSQL PROMISES VERSION
+router.delete('/year/:year', async (req, res) => {
     const { year } = req.params;
     const { companyId } = req.query;
 
@@ -332,24 +324,23 @@ router.delete('/year/:year', (req, res) => {
         return res.status(400).json({ error: 'companyId is required' });
     }
 
-    // Secure delete using LIKE for date pattern (year-%) AND strict company_id
-    const sql = 'DELETE FROM ufv_rates WHERE date LIKE ? AND company_id = ?';
-    const yearPattern = `${year}-%`;
-
-    db.run(sql, [yearPattern, companyId], function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
+    try {
+        // Secure delete using LIKE for date pattern (year-%) AND strict company_id
+        const sql = 'DELETE FROM ufv_rates WHERE date LIKE ? AND company_id = ?';
+        const yearPattern = `${year}-%`;
+        
+        const result = await db.run(sql, [yearPattern, companyId]);
         res.json({
             message: `All UFV records for year ${year} deleted for company ${companyId}`,
-            deletedCount: this.changes
+            deletedCount: result.changes
         });
-    });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-// DELETE single UFV record - ADDED company_id isolation for safety
-router.delete('/:id', (req, res) => {
+// DELETE single UFV record - LIBSQL PROMISES VERSION
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query; // Optional but recommended
 
@@ -361,17 +352,16 @@ router.delete('/:id', (req, res) => {
         params.push(companyId);
     }
 
-    db.run(sql, params, function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
-        if (this.changes === 0) {
+    try {
+        const result = await db.run(sql, params);
+        if (result.changes === 0) {
             res.status(404).json({ error: 'UFV record not found' });
             return;
         }
         res.json({ message: 'UFV record deleted' });
-    });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 module.exports = router;
