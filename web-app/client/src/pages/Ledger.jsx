@@ -325,7 +325,7 @@ export default function Ledger() {
             const [summaryRes, detailsRes, openingRes] = await Promise.all([
                 axios.get(`${API_URL}/api/reports/ledger`, { params: periodParams }),
                 axios.get(`${API_URL}/api/reports/ledger-details`, { params: periodParams }),
-                openingRes
+                openingPromise
             ]);
 
             setLedgerSummary(summaryRes.data.data || []);
