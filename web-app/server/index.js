@@ -21,6 +21,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: false // Cambiado a false para evitar conflictos con '*'
 }));
+app.use(express.json());
 app.options(/^(.*)$/, (req, res) => {
   res.header('Access-Control-Allow-Origin', /^(.*)$/);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -28,7 +29,7 @@ app.options(/^(.*)$/, (req, res) => {
   res.sendStatus(200);
 });
 
-app.use(express.json());
+
 
 // Routes
 const transactionsRouter = require('./routes/transactions');
