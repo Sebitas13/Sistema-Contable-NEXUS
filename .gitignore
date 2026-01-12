@@ -17,6 +17,21 @@ build/
 temp/
 uploads/
 
+# Client-specific build and analysis files
+web-app/client/dist/
+web-app/client/*.cjs
+web-app/client/analyze_*.cjs
+web-app/client/analyze_*.js
+web-app/client/test_*.cjs
+web-app/client/test_*.js
+web-app/client/debug_*.cjs
+web-app/client/inspect_*.cjs
+web-app/client/read_*.cjs
+web-app/client/*.txt
+web-app/client/estructura_content.txt
+web-app/client/puct_manual_pages.txt
+web-app/client/node_modules/
+
 # OS files
 .DS_Store
 Thumbs.db
