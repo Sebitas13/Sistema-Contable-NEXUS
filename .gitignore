@@ -18,7 +18,6 @@ temp/
 uploads/
 
 # Client-specific build and analysis files
-web-app/client/dist/
 web-app/client/*.cjs
 web-app/client/analyze_*.cjs
 web-app/client/analyze_*.js
