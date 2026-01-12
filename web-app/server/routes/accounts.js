@@ -38,7 +38,7 @@ router.patch('/acquisition-dates', async (req, res) => {
     try {
         // Start transaction
         await db.run('BEGIN TRANSACTION');
-        
+
         let errors = 0;
 
         // Process all acquisitions sequentially
@@ -53,13 +53,13 @@ router.patch('/acquisition-dates', async (req, res) => {
 
         // Commit transaction
         await db.run('COMMIT');
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             message: `Updated ${acquisitions.length - errors} acquisition dates`,
             successCount: acquisitions.length - errors,
             errorCount: errors
         });
-        
+
     } catch (error) {
         // Rollback on any error
         try {
@@ -67,7 +67,7 @@ router.patch('/acquisition-dates', async (req, res) => {
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError.message);
         }
-        
+
         console.error('Error updating acquisition dates:', error.message);
         res.status(500).json({ error: 'Failed to update acquisition dates' });
     }
@@ -137,7 +137,7 @@ router.post('/bulk', async (req, res) => {
             successCount: successCount,
             errorCount: errors
         });
-        
+
     } catch (error) {
         // Rollback on any error
         try {
@@ -145,7 +145,7 @@ router.post('/bulk', async (req, res) => {
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError.message);
         }
-        
+
         console.error('Error in bulk account creation:', error.message);
         res.status(500).json({ error: 'Failed to execute bulk insert' });
     }
@@ -191,7 +191,7 @@ router.delete('/:id', async (req, res) => {
         const sql = 'DELETE FROM accounts WHERE id = ? AND company_id = ?';
         const result = await db.run(sql, [id, companyId]);
         res.json({ message: 'Account deleted', changes: result.changes });
-        
+
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -233,7 +233,7 @@ router.patch('/batch-parents', async (req, res) => {
             await db.run('COMMIT');
             res.json({ message: `Successfully updated ${successCount} accounts` });
         }
-        
+
     } catch (error) {
         // Rollback on any error
         try {
@@ -241,9 +241,84 @@ router.patch('/batch-parents', async (req, res) => {
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError.message);
         }
-        
+
         console.error('Error in batch parent update:', error.message);
         res.status(500).json({ error: 'Failed to execute batch update' });
+    }
+});
+
+// Fix parent codes for all accounts - LIBSQL PROMISES VERSION
+router.post('/fix-parent-codes', async (req, res) => {
+    try {
+        console.log('🔧 Iniciando corrección de parent_code vía API...');
+
+        // Obtener todas las cuentas
+        const accounts = await new Promise((resolve, reject) => {
+            db.all('SELECT id, code, name, level, parent_code FROM accounts ORDER BY code', [], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        console.log(`📊 Encontradas ${accounts.length} cuentas`);
+
+        let updatedCount = 0;
+
+        // Procesar cada cuenta
+        for (const acc of accounts) {
+            let parentCode = acc.parent_code;
+
+            // Si ya tiene parent_code, saltar
+            if (parentCode) continue;
+
+            // Lógica de inferencia basada en reports.js
+            if (acc.level > 1 && acc.code.length > 1) {
+                if (acc.code.includes('.')) {
+                    const parts = acc.code.split('.');
+                    parts.pop();
+                    parentCode = parts.join('.');
+                } else if (acc.code.includes('-')) {
+                    const parts = acc.code.split('-');
+                    parts.pop();
+                    parentCode = parts.join('-');
+                } else {
+                    // Heurística para PUCT boliviano
+                    if (acc.code.length === 4) {
+                        parentCode = acc.code.substring(0, 2);
+                    } else if (acc.code.length === 6) {
+                        parentCode = acc.code.substring(0, 4);
+                    } else if (acc.code.length === 8) {
+                        parentCode = acc.code.substring(0, 6);
+                    }
+                }
+            }
+
+            if (parentCode && parentCode !== acc.parent_code) {
+                // Verificar que el padre existe
+                const parentExists = accounts.some(a => a.code === parentCode);
+                if (parentExists) {
+                    await new Promise((resolve, reject) => {
+                        db.run('UPDATE accounts SET parent_code = ? WHERE id = ?', [parentCode, acc.id], (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        });
+                    });
+                    updatedCount++;
+                }
+            }
+        }
+
+        console.log(`🎉 Proceso completado. Actualizadas ${updatedCount} cuentas.`);
+        res.json({
+            success: true,
+            message: `Parent codes fixed for ${updatedCount} accounts`,
+            totalAccounts: accounts.length,
+            updatedCount
+        });
+
+    } catch (error) {
+        console.error('❌ Error fixing parent codes:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
