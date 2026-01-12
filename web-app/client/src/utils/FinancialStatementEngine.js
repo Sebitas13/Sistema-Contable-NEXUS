@@ -9,13 +9,17 @@ import { generarEstadoResultados } from './IncomeStatementEngine';
 export class FinancialStatementEngine {
     constructor(accounts) {
         this.accounts = Array.isArray(accounts) ? accounts : [];
+        console.log('📊 FinancialStatementEngine: Cuentas recibidas:', this.accounts.length);
+
         this.mapa = this.construirMapa();
+        console.log('📊 FinancialStatementEngine: Mapa construido con', Object.keys(this.mapa).length, 'cuentas');
 
         // 1. Vincular Reguladoras a sus Activos
         this.asociarReguladorasInteligente();
 
         // 2. Construir árbol general (para Balance)
         this.raices = this.identificarRaices();
+        console.log('📊 FinancialStatementEngine: Raíces identificadas:', this.raices.length);
 
         // 3. Desglose Visual Activos
         this.desglosarCuentasConReguladoras();
@@ -162,11 +166,25 @@ export class FinancialStatementEngine {
 
     identificarRaices() {
         const raices = [];
+        const processados = new Set();
+
         Object.values(this.mapa).forEach(nodo => {
-            const padre = this.mapa[nodo.parent_code];
-            if (padre) padre.hijos.push(nodo);
-            else raices.push(nodo);
+            const codigoPadre = nodo.parent_code;
+            if (!codigoPadre) {
+                raices.push(nodo);
+                return;
+            }
+
+            const padre = this.mapa[codigoPadre];
+            if (padre) {
+                if (!padre.hijos) padre.hijos = [];
+                padre.hijos.push(nodo);
+                processados.add(nodo.code);
+            } else {
+                raices.push(nodo);
+            }
         });
+
         return raices;
     }
 
@@ -216,15 +234,29 @@ export class FinancialStatementEngine {
     }
 
     filtrarCuentasEnCero(nodos) {
+        console.log('📊 filtrarCuentasEnCero: Entrando con', nodos.length, 'nodos');
+
         return nodos.map(n => {
             const nuevo = { ...n };
             if (nuevo.hijos && nuevo.hijos.length > 0) nuevo.hijos = this.filtrarCuentasEnCero(nuevo.hijos);
             return nuevo;
         }).filter(n => {
-            if (n.esSintetico) return true;
+            if (n.esSintetico) {
+                console.log('📊   Manteniendo sintético:', n.name);
+                return true;
+            }
             const saldo = Math.abs(n.total) > 0.001;
             const hijos = n.hijos && n.hijos.length > 0;
-            return saldo || hijos;
+            const hasChildrenWithBalance = n.hijos && n.hijos.some(h => Math.abs(h.total) > 0.001);
+
+            const mantiene = saldo || hijos || hasChildrenWithBalance;
+            if (mantiene) {
+                console.log('📊   Manteniendo:', n.name, '- saldo:', saldo, '- hijos:', hijos, '- hasChildrenWithBalance:', hasChildrenWithBalance);
+            } else {
+                console.log('📊   Filtrando:', n.name, '- total:', n.total);
+            }
+
+            return mantiene;
         });
     }
 
@@ -287,7 +319,14 @@ export class FinancialStatementEngine {
 
 
     async generarBalanceGeneral() {
+        console.log('📊 generarBalanceGeneral: INICIANDO');
+        console.log('📊 utilidadLiquidaExterna:', this.utilidadLiquidaExterna);
+        console.log('📊 iuePorPagar:', this.iuePorPagar);
+        console.log('📊 reservaLegalMonto:', this.reservaLegalMonto);
+
         const er = generarEstadoResultados(Object.values(this.mapa));
+        console.log('📊 ER totales.utilidadLiquida:', er.totales.utilidadLiquida);
+
         const resultadoEjercicio = this.utilidadLiquidaExterna !== undefined ? this.utilidadLiquidaExterna : er.totales.utilidadLiquida;
         const iueMonto = this.iuePorPagar !== undefined ? this.iuePorPagar : er.totales.iue;
         const reservaMonto = this.reservaLegalMonto !== undefined ? this.reservaLegalMonto : er.totales.reservaLegal;
@@ -336,6 +375,8 @@ export class FinancialStatementEngine {
     }
 
     inyectarUtilidad(valorSigned) {
+        console.log('📊 inyectarUtilidad: valorSigned =', valorSigned);
+
         const valorParaBalance = valorSigned * -1;
         const nodoUtilidad = {
             id: 'utilidad-ejercicio-auto',
@@ -349,14 +390,19 @@ export class FinancialStatementEngine {
             classification: { isPatrimonio: true }
         };
 
+        console.log('📊 Nodo utilidad creado:', nodoUtilidad);
+
         const buscarYInsertar = (nodos) => {
             for (let i = 0; i < nodos.length; i++) {
                 const n = nodos[i];
                 if (n.classification.isResultadosAcumulados) {
+                    console.log('📊 Encontrada cuenta Resultados Acumulados:', n.name);
                     if (n.hijos && n.hijos.length > 0) {
                         n.hijos.push(nodoUtilidad);
+                        console.log('📊 Utilidad inyectada como hijo de Resultados Acumulados');
                     } else {
                         nodos.splice(i + 1, 0, nodoUtilidad);
+                        console.log('📊 Utilidad inyectada después de Resultados Acumulados');
                     }
                     return true;
                 }
@@ -368,8 +414,12 @@ export class FinancialStatementEngine {
         };
 
         const raicesPatrimonio = this.raices.filter(r => r.classification.isPatrimonio);
+        console.log('📊 Raíces de patrimonio:', raicesPatrimonio.map(r => r.name));
+        console.log('📊 Buscando Resultados Acumulados en', raicesPatrimonio.length, 'cuentas de patrimonio');
+
         const buscarSimple = buscarYInsertar(raicesPatrimonio);
         if (!buscarSimple) {
+            console.log('📊 No se encontró Resultados Acumulados, inyectando en primera raíz de patrimonio');
             if (raicesPatrimonio.length > 0) raicesPatrimonio[0].hijos.push(nodoUtilidad);
             else this.raices.push(nodoUtilidad);
         }
