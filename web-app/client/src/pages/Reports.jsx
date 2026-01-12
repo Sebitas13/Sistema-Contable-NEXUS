@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useCompany } from '../context/CompanyContext';
+import API_URL from '../api.js';
 
 export default function Reports() {
     const { selectedCompany } = useCompany();
