@@ -6,6 +6,7 @@
  * 3. Sub-grouping (Admin/Sales/Financial) & Non-Taxable Income (Dividends).
  */
 import { generarEstadoResultados } from './IncomeStatementEngine';
+import { AccountPlanProfile } from './AccountPlanProfile';
 export class FinancialStatementEngine {
     constructor(accounts) {
         this.accounts = Array.isArray(accounts) ? accounts : [];
@@ -13,6 +14,15 @@ export class FinancialStatementEngine {
 
         this.mapa = this.construirMapa();
         console.log('📊 FinancialStatementEngine: Mapa construido con', Object.keys(this.mapa).length, 'cuentas');
+
+        // NUEVO: Análisis inteligente de jerarquía (con manejo de errores)
+        try {
+            this.analysis = AccountPlanProfile.analyze(this.accounts);
+            console.log('📊 FinancialStatementEngine: Análisis inteligente completado');
+        } catch (error) {
+            console.warn('⚠️ FinancialStatementEngine: Error en análisis inteligente, usando fallback:', error.message);
+            this.analysis = { getParent: () => null }; // Fallback seguro
+        }
 
         // 1. Vincular Reguladoras a sus Activos
         this.asociarReguladorasInteligente();
@@ -169,7 +179,10 @@ export class FinancialStatementEngine {
         const processados = new Set();
 
         Object.values(this.mapa).forEach(nodo => {
-            const codigoPadre = nodo.parent_code;
+            // NUEVO: Intentar obtener parent_code de análisis inteligente, con fallback al dato original
+            const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(nodo.code) : null;
+            const codigoPadre = detectedParent || nodo.parent_code;
+
             if (!codigoPadre) {
                 raices.push(nodo);
                 return;
@@ -284,9 +297,12 @@ export class FinancialStatementEngine {
 
         filtered.forEach(node => {
             const current = cloneMap[node.code];
-            const parent = cloneMap[node.parent_code];
+            // Usar la misma lógica de jerarquía inteligente que identificarRaices
+            const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(node.code) : null;
+            const parentCode = detectedParent || node.parent_code;
+            const parent = cloneMap[parentCode];
 
-            if (parent && cloneMap[node.parent_code]) {
+            if (parent && cloneMap[parentCode]) {
                 parent.hijos.push(current);
             } else {
                 roots.push(current);
