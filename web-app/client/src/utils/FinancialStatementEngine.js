@@ -17,10 +17,33 @@ export class FinancialStatementEngine {
 
         // NUEVO: Análisis inteligente de jerarquía (con manejo de errores)
         try {
+            // Verificar que los datos tienen el formato correcto para AccountPlanProfile
+            console.log('📊 DATOS PARA ANÁLISIS - Primeros 5 registros:');
+            this.accounts.slice(0, 5).forEach((acc, i) => {
+                console.log(`  ${i + 1}. code: ${acc.code}, name: ${acc.name}, parent_code: ${acc.parent_code}`);
+            });
+
             this.analysis = AccountPlanProfile.analyze(this.accounts);
             console.log('📊 FinancialStatementEngine: Análisis inteligente completado');
+            console.log('📊 Análisis resultante:', {
+                separator: this.analysis.separator,
+                levelsCount: this.analysis.levelsCount,
+                mask: this.analysis.mask,
+                hasGetParent: !!this.analysis.getParent,
+                samples: this.analysis.samples?.slice(0, 3)
+            });
+
+            // Probar algunas detecciones de padre
+            const testCodes = this.accounts.slice(0, 5).map(acc => acc.code);
+            console.log('📊 PRUEBA de detección de padres:');
+            testCodes.forEach(code => {
+                const detected = this.analysis.getParent ? this.analysis.getParent(code) : null;
+                console.log(`  ${code} -> padre detectado: ${detected}`);
+            });
+
         } catch (error) {
             console.warn('⚠️ FinancialStatementEngine: Error en análisis inteligente, usando fallback:', error.message);
+            console.error('Stack trace:', error.stack);
             this.analysis = { getParent: () => null }; // Fallback seguro
         }
 
@@ -178,12 +201,22 @@ export class FinancialStatementEngine {
         const raices = [];
         const processados = new Set();
 
+        console.log('🔍 identificarRaices: Iniciando construcción de jerarquía');
+        console.log('🔍 Total de nodos a procesar:', Object.keys(this.mapa).length);
+
         Object.values(this.mapa).forEach(nodo => {
             // NUEVO: Intentar obtener parent_code de análisis inteligente, con fallback al dato original
             const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(nodo.code) : null;
+            const originalParent = nodo.parent_code;
             const codigoPadre = detectedParent || nodo.parent_code;
 
+            console.log(`🔍 Nodo ${nodo.code} (${nodo.name}):`);
+            console.log(`   - parent_code original: ${originalParent}`);
+            console.log(`   - parent_code detectado: ${detectedParent}`);
+            console.log(`   - parent_code final usado: ${codigoPadre}`);
+
             if (!codigoPadre) {
+                console.log(`   ✅ Agregado como RAÍZ (sin padre)`);
                 raices.push(nodo);
                 return;
             }
@@ -193,10 +226,15 @@ export class FinancialStatementEngine {
                 if (!padre.hijos) padre.hijos = [];
                 padre.hijos.push(nodo);
                 processados.add(nodo.code);
+                console.log(`   ✅ Vinculado a padre ${codigoPadre} (${padre.name})`);
             } else {
+                console.log(`   ⚠️ Padre ${codigoPadre} no encontrado, agregado como RAÍZ`);
                 raices.push(nodo);
             }
         });
+
+        console.log('🔍 Raíces finales:', raices.map(r => `${r.code} (${r.name})`));
+        console.log('🔍 Total raíces:', raices.length);
 
         return raices;
     }
