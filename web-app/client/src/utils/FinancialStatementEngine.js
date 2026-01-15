@@ -198,45 +198,56 @@ export class FinancialStatementEngine {
     }
 
     identificarRaices() {
-        const raices = [];
-        const processados = new Set();
+        // Two-pass approach for robust tree building
+        const allNodesInMap = Object.values(this.mapa);
+        const childNodeCodes = new Set();
 
-        console.log('🔍 identificarRaices: Iniciando construcción de jerarquía');
-        console.log('🔍 Total de nodos a procesar:', Object.keys(this.mapa).length);
+        // Ensure all nodes have a clean 'hijos' array to start
+        allNodesInMap.forEach(node => {
+            node.hijos = [];
+        });
 
-        Object.values(this.mapa).forEach(nodo => {
-            // NUEVO: Intentar obtener parent_code de análisis inteligente, con fallback al dato original
-            const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(nodo.code) : null;
-            const originalParent = nodo.parent_code;
-            const codigoPadre = detectedParent || nodo.parent_code;
+        // Pass 1: Link children to parents, creating ghost parents if necessary
+        allNodesInMap.forEach(node => {
+            const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(node.code) : null;
+            const parentCode = detectedParent || node.parent_code;
 
-            console.log(`🔍 Nodo ${nodo.code} (${nodo.name}):`);
-            console.log(`   - parent_code original: ${originalParent}`);
-            console.log(`   - parent_code detectado: ${detectedParent}`);
-            console.log(`   - parent_code final usado: ${codigoPadre}`);
+            if (parentCode) {
+                let parentNode = this.mapa[parentCode];
 
-            if (!codigoPadre) {
-                console.log(`   ✅ Agregado como RAÍZ (sin padre)`);
-                raices.push(nodo);
-                return;
-            }
+                // If parent doesn't exist, create a ghost parent
+                if (!parentNode) {
+                    console.warn(`Padre con código '${parentCode}' no encontrado para el nodo '${node.code}'. Creando un padre fantasma.`);
+                    parentNode = {
+                        id: `fantasma-${parentCode}`,
+                        code: parentCode,
+                        name: `Cuenta Agrupadora (${parentCode})`, // Informative name for ghost parents
+                        hijos: [],
+                        total: 0,
+                        saldo_matematico: 0,
+                        esFantasma: true,
+                        classification: this.classifyAccount({ code: parentCode }, 0, 0),
+                    };
+                    this.mapa[parentCode] = parentNode; // Add to map to be found by others
+                }
 
-            const padre = this.mapa[codigoPadre];
-            if (padre) {
-                if (!padre.hijos) padre.hijos = [];
-                padre.hijos.push(nodo);
-                processados.add(nodo.code);
-                console.log(`   ✅ Vinculado a padre ${codigoPadre} (${padre.name})`);
-            } else {
-                console.log(`   ⚠️ Padre ${codigoPadre} no encontrado, agregado como RAÍZ`);
-                raices.push(nodo);
+                // Link node to its parent and mark it as a child
+                if (parentNode !== node) { // Prevent self-reference
+                    parentNode.hijos.push(node);
+                    childNodeCodes.add(node.code);
+                } else {
+                    console.error(`Error de auto-referencia detectado para la cuenta: ${node.code}`);
+                }
             }
         });
 
-        console.log('🔍 Raíces finales:', raices.map(r => `${r.code} (${r.name})`));
-        console.log('🔍 Total raíces:', raices.length);
+        // Pass 2: Identify roots
+        // Roots are all nodes in the map that are not themselves children of another node.
+        const roots = Object.values(this.mapa).filter(node => !childNodeCodes.has(node.code));
 
-        return raices;
+        console.log('📊 FinancialStatementEngine: Raíces identificadas (V-Robust):', roots.length);
+
+        return roots;
     }
 
     desglosarCuentasConReguladoras() {
