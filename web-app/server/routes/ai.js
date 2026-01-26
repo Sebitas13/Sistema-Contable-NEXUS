@@ -11,14 +11,18 @@ const path = require('path');
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.AI_ENGINE_URL_ALT || 'http://localhost:8000';
 const db = require('../db');
 
-// Helper function to promisify db.all - LIBSQL PROMISES VERSION
-const dbAll = async (sql, params = []) => {
-  try {
-    const rows = await db.all(sql, params);
-    return rows;
-  } catch (err) {
-    throw err;
-  }
+// Helper function to promisify db.all - PROPER CALLBACK WRAPPER
+const dbAll = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        console.error('dbAll error:', err.message);
+        reject(err);
+      } else {
+        resolve(rows || []);
+      }
+    });
+  });
 };
 
 // Diagnostic Route
@@ -79,14 +83,24 @@ router.post('/profile/:companyId', async (req, res) => {
   }
 });
 
-// Helper to get company profile from DB - LIBSQL PROMISES VERSION
+// Helper to get company profile from DB - USING PROPER PROMISE WRAPPER
 const getProfile = async (companyId) => {
-  try {
-    const row = await db.get('SELECT profile_json FROM company_adjustment_profiles WHERE company_id = ?', [companyId]);
-    return row ? JSON.parse(row.profile_json) : null;
-  } catch (err) {
-    throw err;
-  }
+  return new Promise((resolve, reject) => {
+    db.get('SELECT profile_json FROM company_adjustment_profiles WHERE company_id = ?', [companyId], (err, row) => {
+      if (err) {
+        console.error('Error getting profile:', err.message);
+        // Si la tabla no existe o hay otro error, retornar null en lugar de crashear
+        resolve(null);
+      } else {
+        try {
+          resolve(row ? JSON.parse(row.profile_json) : null);
+        } catch (parseError) {
+          console.error('Error parsing profile JSON:', parseError.message);
+          resolve(null);
+        }
+      }
+    });
+  });
 };
 
 // V6.0: Helper para deduplicar reglas por pattern (mantiene la primera = más reciente)
@@ -615,7 +629,7 @@ router.delete('/adjustments/chronology/:companyId/cleanup', async (req, res) => 
        )`,
       [req.params.companyId, req.params.companyId]
     );
-    
+
     console.log(`🧹 Limpiados ${result.changes} eventos duplicados de cronología`);
     res.json({ success: true, message: 'Duplicados eliminados', cleaned: result.changes });
   } catch (error) {
@@ -1282,7 +1296,7 @@ router.post('/mahoraga/config/:companyId', async (req, res) => {
 // GET /api/ai/mahoraga/config/:companyId - Obtener configuración Mahoraga
 router.get('/mahoraga/config/:companyId', (req, res) => {
   const { companyId } = req.params;
-  
+
   // Mock response - en producción guardar en DB
   res.json({
     success: true,
@@ -1294,7 +1308,7 @@ router.get('/mahoraga/config/:companyId', (req, res) => {
 router.post('/mahoraga/config/:companyId', (req, res) => {
   const { companyId } = req.params;
   const { active_pages } = req.body;
-  
+
   // Mock response - en producción guardar en DB
   res.json({
     success: true,
@@ -1336,7 +1350,7 @@ router.get('/mahoraga/status', (req, res) => {
 // POST /api/ai/mahoraga/change-mode - Cambiar modo Mahoraga
 router.post('/mahoraga/change-mode', (req, res) => {
   const { newMode, userId, reason } = req.body;
-  
+
   res.json({
     success: true,
     message: 'Modo cambiado'
@@ -1346,7 +1360,7 @@ router.post('/mahoraga/change-mode', (req, res) => {
 // POST /api/ai/mahoraga/emergency-stop - Parada de emergencia
 router.post('/mahoraga/emergency-stop', (req, res) => {
   const { userId, reason } = req.body;
-  
+
   res.json({
     success: true,
     message: 'Parada de emergencia activada'
@@ -1374,7 +1388,7 @@ router.get('/skills/search', (req, res) => {
 // GET /api/ai/profile/:companyId - Obtener perfil de empresa
 router.get('/profile/:companyId', (req, res) => {
   const { companyId } = req.params;
-  
+
   try {
     // Mock response - en producción obtener de DB
     res.json({
@@ -1394,7 +1408,7 @@ router.get('/profile/:companyId', (req, res) => {
 router.post('/profile/:companyId', (req, res) => {
   const { companyId } = req.params;
   const { profile_json } = req.body;
-  
+
   // Mock response - en producción guardar en DB
   res.json({
     success: true,

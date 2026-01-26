@@ -145,7 +145,7 @@ router.post('/', async (req, res) => {
 
         // Insert all entries
         const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
-        
+
         for (const entry of entries) {
             const debit = parseFloat(entry.debit) || 0;
             const credit = parseFloat(entry.credit) || 0;
@@ -154,7 +154,7 @@ router.post('/', async (req, res) => {
 
         // Commit transaction
         await db.run('COMMIT');
-        
+
         res.json({
             message: 'Transaction created',
             id: transactionId,
@@ -167,7 +167,7 @@ router.post('/', async (req, res) => {
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError.message);
         }
-        
+
         console.error('Error creating transaction:', error.message);
         res.status(400).json({ error: error.message });
     }
@@ -218,7 +218,14 @@ router.post('/batch', async (req, res) => {
         }
 
         await dbRun('COMMIT');
-        res.status(201).json({ message: `${transactions.length} closing transactions created successfully.` });
+
+        // Ensure we only send response once
+        if (!res.headersSent) {
+            res.status(201).json({
+                success: true,
+                message: `${transactions.length} closing transactions created successfully.`
+            });
+        }
 
     } catch (error) {
         // Attempt to rollback
@@ -226,10 +233,17 @@ router.post('/batch', async (req, res) => {
             await dbRun('ROLLBACK');
         } catch (rollbackError) {
             console.error('CRITICAL: Failed to rollback transaction:', rollbackError);
-            // The connection might be in a bad state, but we must inform the client.
         }
-        console.error('Failed to execute batch transaction insert:', error);
-        res.status(500).json({ error: 'Failed to execute batch transaction insert.', details: error.message });
+        console.error('Failed to execute batch transaction insert:', error.message);
+
+        // Only send error response if headers haven't been sent
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to execute batch transaction insert.',
+                details: error.message
+            });
+        }
     }
 });
 
@@ -255,7 +269,7 @@ router.put('/:id', async (req, res) => {
 
         // Insert new entries
         const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
-        
+
         for (const entry of entries) {
             const debit = parseFloat(entry.debit) || 0;
             const credit = parseFloat(entry.credit) || 0;
@@ -265,7 +279,7 @@ router.put('/:id', async (req, res) => {
         // Commit transaction
         await db.run('COMMIT');
         res.json({ message: 'Transaction updated successfully' });
-        
+
     } catch (error) {
         // Rollback on any error
         try {
@@ -273,7 +287,7 @@ router.put('/:id', async (req, res) => {
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError.message);
         }
-        
+
         console.error('Error updating transaction:', error.message);
         res.status(400).json({ error: error.message });
     }
@@ -297,7 +311,7 @@ router.delete('/:id', async (req, res) => {
 
         // Delete the transaction, ensuring it belongs to the company
         const result = await db.run('DELETE FROM transactions WHERE id = ? AND company_id = ?', [id, companyId]);
-        
+
         if (result.changes === 0) {
             await db.run('ROLLBACK');
             return res.status(404).json({ error: 'Transaction not found' });
@@ -306,7 +320,7 @@ router.delete('/:id', async (req, res) => {
         // Commit transaction
         await db.run('COMMIT');
         res.json({ message: 'Transaction deleted successfully' });
-        
+
     } catch (error) {
         // Rollback on any error
         try {
@@ -314,7 +328,7 @@ router.delete('/:id', async (req, res) => {
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError.message);
         }
-        
+
         console.error('Error deleting transaction:', error.message);
         res.status(400).json({ error: error.message });
     }
