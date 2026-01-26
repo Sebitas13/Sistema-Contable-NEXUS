@@ -345,17 +345,60 @@ function generarEstadoResultados(accounts, options = {}) {
  * @returns {Object} - Estructura del Estado de Resultados
  */
 async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
+    // CORRECCIÓN CRÍTICA: Usar consultas SQL directas en lugar de fetch a localhost
+    const db = require('../db');
+
+    // Helper para promisificar db.all
+    const dbAll = (sql, params = []) => {
+        return new Promise((resolve, reject) => {
+            db.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    };
+
     try {
-        // Obtener los mismos datos que usa Worksheet
-        const [accountsRes, bcRes, adjRes, companyRes] = await Promise.all([
-            fetch(`http://localhost:3001/api/accounts?companyId=${companyId}`).then(r => r.json()),
-            fetch(`http://localhost:3001/api/reports/ledger?companyId=${companyId}&excludeAdjustments=true`).then(r => r.json()),
-            fetch(`http://localhost:3001/api/reports/ledger?companyId=${companyId}&adjustmentsOnly=true`).then(r => r.json()),
-            fetch(`http://localhost:3001/api/companies/${companyId}`).then(r => r.json())
-        ]);
-        const allAccounts = accountsRes.data || [];
-        const bcData = bcRes.data || [];
-        const adjData = adjRes.data || [];
+        // 1. Obtener todas las cuentas
+        const allAccounts = await dbAll(
+            'SELECT * FROM accounts WHERE company_id = ? ORDER BY code',
+            [companyId]
+        );
+
+        // 2. Obtener Balance de Comprobación (excluyendo ajustes)
+        const bcData = await dbAll(`
+            SELECT 
+                a.id, a.code, a.name, a.type, a.level, a.parent_code,
+                COALESCE(SUM(te.debit), 0) as total_debit,
+                COALESCE(SUM(te.credit), 0) as total_credit
+            FROM accounts a
+            LEFT JOIN transaction_entries te ON a.id = te.account_id
+            LEFT JOIN transactions t ON te.transaction_id = t.id
+            WHERE a.company_id = ? AND (t.id IS NULL OR (t.company_id = ? AND (t.type IS NULL OR t.type != 'Ajuste')))
+            GROUP BY a.id
+            HAVING total_debit > 0 OR total_credit > 0
+            ORDER BY a.code
+        `, [companyId, companyId]);
+
+        // 3. Obtener solo ajustes
+        const adjData = await dbAll(`
+            SELECT 
+                a.id, a.code, a.name, a.type, a.level, a.parent_code,
+                COALESCE(SUM(te.debit), 0) as total_debit,
+                COALESCE(SUM(te.credit), 0) as total_credit
+            FROM accounts a
+            LEFT JOIN transaction_entries te ON a.id = te.account_id
+            LEFT JOIN transactions t ON te.transaction_id = t.id
+            WHERE a.company_id = ? AND t.company_id = ? AND t.type = 'Ajuste'
+            GROUP BY a.id
+            HAVING total_debit > 0 OR total_credit > 0
+            ORDER BY a.code
+        `, [companyId, companyId]);
+
+        // 4. Obtener datos de la empresa
+        const companyRows = await dbAll('SELECT * FROM companies WHERE id = ?', [companyId]);
+        const company = companyRows[0] || {};
+
         // Mapear ajustes
         const adjMap = {};
         adjData.forEach(adj => {
@@ -364,6 +407,7 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
                 adj_credit: adj.total_credit || 0
             };
         });
+
         // Combinar datos como lo hace Worksheet
         const bcIds = new Set(bcData.map(a => a.id));
         const adjOnlyAccounts = adjData.filter(a => !bcIds.has(a.id));
@@ -383,6 +427,7 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
             });
         });
         merged.sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+
         // Clasificar cuentas como lo hace Worksheet
         const classifyAccount = (acc) => {
             const rawType = (acc.type || '').toString();
@@ -427,8 +472,6 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
                     finalIngreso = true;
                 }
             } else {
-                // Prioridad: Si el código coincide, manda el código. 
-                // Si no, si el tipo coincide, manda el tipo.
                 const resultadoAsGasto = isResultado && adjustedBalance >= 0;
                 const resultadoAsIngreso = isResultado && adjustedBalance < 0;
 
@@ -439,10 +482,6 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
                 finalGasto = false;
                 finalIngreso = false;
             }
-            const isNoImponible = /dividendos.*percibidos|ingreso.*compensacion.*tributaria|ingresos.*exterior/i.test(lowerName);
-            if (isNoImponible) {
-
-            }
             return {
                 isReguladora,
                 isOrden,
@@ -452,7 +491,8 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
                 isVariable
             };
         };
-        // Filtrar solo cuentas que van a columnas ER (como lo hace Worksheet)
+
+        // Filtrar solo cuentas que van a columnas ER
         const cuentasER = merged.filter(acc => {
             const cls = classifyAccount(acc);
             const name = (acc.name || '').toString().toLowerCase();
@@ -468,10 +508,8 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
                 balanceER
             };
         }).filter(acc => Math.abs(acc.balanceER) > 0.001);
-        // Usar el motor V5 solo con las cuentas filtradas
 
-        // Determinar si aplica reserva legal según tipo societario (si no hay override)
-        const company = companyRes.data || {};
+        // Determinar si aplica reserva legal según tipo societario
         const societalType = company.societal_type || '';
         const aplicarReservaLegal = /S\.?A|S\.?R\.?L|LTDA|S\.?C\.?A/i.test(societalType);
 
@@ -480,6 +518,7 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
             ...options
         };
 
+        console.log('📊 generarEstadoResultadosDesdeWorksheet: cuentasER encontradas:', cuentasER.length);
         return generarEstadoResultados(cuentasER, calculationOptions);
     } catch (error) {
         console.error('Error generando Estado de Resultados desde Worksheet:', error);
@@ -495,10 +534,11 @@ async function generarEstadoResultadosDesdeWorksheet(companyId, options = {}) {
                 compensacion: 0, baseImponible: 0, iue: 0, valNoImponibles: 0,
                 utilidadNeta: 0, reservaLegal: 0, utilidadLiquida: 0
             },
-            audit: ['Error al cargar datos desde Worksheet']
+            audit: ['Error al cargar datos desde Worksheet: ' + error.message]
         };
     }
 }
+
 
 // --- 3. FUNCIÓN DE CLASIFICACIÓN DE CUENTAS ---
 function classifyAccountForER(acc) {

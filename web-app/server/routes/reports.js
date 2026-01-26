@@ -584,13 +584,13 @@ router.post('/closing-entries-proposal', async (req, res) => {
                 }
                 return nameMatch;
             });
-            
+
             // Si hay múltiples coincidencias, priorizar la de nivel más alto (último nivel)
             if (matches.length > 1) {
                 console.log(`⚠️ Múltiples cuentas encontradas para "${namePattern}":`, matches.map(m => `${m.name} (nivel ${m.level})`));
                 return matches.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
             }
-            
+
             return matches[0];
         };
 
@@ -602,7 +602,7 @@ router.post('/closing-entries-proposal', async (req, res) => {
             const nameMatch = a.name.toLowerCase().includes('impuesto a las utilidades de las empresas por pagar');
             return isLeaf && nameMatch;
         });
-        
+
         if (iueAccount.length > 1) {
             console.log(`⚠️ Múltiples cuentas IUE encontradas:`, iueAccount.map(m => `${m.name} (nivel ${m.level})`));
             iueAccount = iueAccount.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
@@ -611,14 +611,14 @@ router.post('/closing-entries-proposal', async (req, res) => {
         } else {
             iueAccount = null;
         }
-        
+
         if (!iueAccount) {
             const iueMatches = accountsWithBalances.filter(a => {
                 const isLeaf = !parentCodes.has(a.code);
                 const nameMatch = /iue por pagar|impuesto a las utilidades por pagar/i.test(a.name.toLowerCase());
                 return isLeaf && nameMatch;
             });
-            
+
             if (iueMatches.length > 1) {
                 console.log(`⚠️ Múltiples cuentas IUE alternativas encontradas:`, iueMatches.map(m => `${m.name} (nivel ${m.level})`));
                 iueAccount = iueMatches.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
@@ -636,11 +636,11 @@ router.post('/closing-entries-proposal', async (req, res) => {
                 !iueAccount ? '"IUE por Pagar"' : null,
                 !rlAccount ? '"Reserva Legal"' : null
             ].filter(Boolean).join(', ');
-            
+
             console.error('❌ Cuentas clave no encontradas:', missing);
             console.error('📋 Cuentas disponibles:', accountsWithBalances.map(a => `${a.name} (${a.code}) - Nivel ${a.level} - ${a.type}`));
-            
-            return res.status(400).json({ 
+
+            return res.status(400).json({
                 error: `Cuentas clave no encontradas: ${missing}. Por favor, créelas para continuar con el cierre.`,
                 debug: {
                     missing,
@@ -795,7 +795,19 @@ router.post('/closing-entries-proposal', async (req, res) => {
             proposedTransactions.push(asientoOrden);
         }
 
-        res.json({ data: { proposedTransactions, closingDate } });
+        // FILTRAR asientos vacíos o con entries vacíos antes de retornar
+        const validTransactions = proposedTransactions.filter(t => t.entries && t.entries.length > 0);
+
+        // Verificar balance de cada asiento
+        validTransactions.forEach((trans, idx) => {
+            const totalDebit = trans.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+            const totalCredit = trans.entries.reduce((sum, e) => sum + (e.credit || 0), 0);
+            if (Math.abs(totalDebit - totalCredit) > 0.01) {
+                console.warn(`⚠️ Asiento ${idx + 1} (${trans.gloss}) está descuadrado: D=${totalDebit.toFixed(2)} H=${totalCredit.toFixed(2)}`);
+            }
+        });
+
+        res.json({ data: { proposedTransactions: validTransactions, closingDate } });
     } catch (error) {
         console.error('Error generating closing entries proposal:', error);
         res.status(500).json({ error: error.message });
