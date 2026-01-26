@@ -198,41 +198,54 @@ export class FinancialStatementEngine {
     }
 
     identificarRaices() {
-        // Two-pass approach for robust tree building
         const allNodesInMap = Object.values(this.mapa);
         const childNodeCodes = new Set();
 
-        // Ensure all nodes have a clean 'hijos' array to start
-        allNodesInMap.forEach(node => {
-            node.hijos = [];
-        });
+        allNodesInMap.forEach(node => { node.hijos = []; });
 
-        // Pass 1: Link children to parents, creating ghost parents if necessary
         allNodesInMap.forEach(node => {
+            // PRIORIDAD: Usar parent_code del backend si existe, luego detección automática
+            const backendParent = node.original_parent;
             const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(node.code) : null;
-            const parentCode = detectedParent || node.parent_code;
+            const parentCode = backendParent || detectedParent;
 
             if (parentCode) {
                 let parentNode = this.mapa[parentCode];
 
-                // If parent doesn't exist, create a ghost parent
+                // Smart Lookup: If exact match fails, try to find a padded version.
+                if (!parentNode) {
+                    const separator = this.analysis.separator || '-';
+                    const suffixRegex = new RegExp(`^[${separator}0\\s]*$`);
+
+                    const parentCandidateKey = Object.keys(this.mapa).find(key =>
+                        key.startsWith(parentCode) &&
+                        key.length > parentCode.length &&
+                        suffixRegex.test(key.substring(parentCode.length))
+                    );
+
+                    if (parentCandidateKey) {
+                        parentNode = this.mapa[parentCandidateKey];
+                        console.log(`✅ Padre encontrado con búsqueda inteligente: '${parentCode}' -> '${parentNode.code}'`);
+                    }
+                }
+
+                // If parent still not found, create a ghost parent as a last resort.
                 if (!parentNode) {
                     console.warn(`Padre con código '${parentCode}' no encontrado para el nodo '${node.code}'. Creando un padre fantasma.`);
                     parentNode = {
                         id: `fantasma-${parentCode}`,
                         code: parentCode,
-                        name: `Cuenta Agrupadora (${parentCode})`, // Informative name for ghost parents
+                        name: `Cuenta Agrupadora (${parentCode})`,
                         hijos: [],
                         total: 0,
                         saldo_matematico: 0,
                         esFantasma: true,
                         classification: this.classifyAccount({ code: parentCode }, 0, 0),
                     };
-                    this.mapa[parentCode] = parentNode; // Add to map to be found by others
+                    this.mapa[parentCode] = parentNode;
                 }
 
-                // Link node to its parent and mark it as a child
-                if (parentNode !== node) { // Prevent self-reference
+                if (parentNode !== node) {
                     parentNode.hijos.push(node);
                     childNodeCodes.add(node.code);
                 } else {
@@ -241,12 +254,8 @@ export class FinancialStatementEngine {
             }
         });
 
-        // Pass 2: Identify roots
-        // Roots are all nodes in the map that are not themselves children of another node.
         const roots = Object.values(this.mapa).filter(node => !childNodeCodes.has(node.code));
-
-        console.log('📊 FinancialStatementEngine: Raíces identificadas (V-Robust):', roots.length);
-
+        console.log('📊 FinancialStatementEngine: Raíces identificadas (V-Smart):', roots.length);
         return roots;
     }
 
@@ -346,9 +355,10 @@ export class FinancialStatementEngine {
 
         filtered.forEach(node => {
             const current = cloneMap[node.code];
-            // Usar la misma lógica de jerarquía inteligente que identificarRaices
+            // SINCRONIZADO: Misma lógica de prioridad que identificarRaices
+            const backendParent = node.parent_code || node.original_parent;
             const detectedParent = this.analysis && this.analysis.getParent ? this.analysis.getParent(node.code) : null;
-            const parentCode = detectedParent || node.parent_code;
+            const parentCode = backendParent || detectedParent;
             const parent = cloneMap[parentCode];
 
             if (parent && cloneMap[parentCode]) {

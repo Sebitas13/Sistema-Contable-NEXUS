@@ -61,7 +61,13 @@ export class AccountPlanProfile {
             levelsCount: levelInsights.length, // Use LOGICAL level count (expanded), not physical segments
             segments: segmentStats,
             // Helper to get parent based on detected structure
-            getParent: (code) => this.calculateParent(code, separator, segmentStats),
+            getParent: (code) => this.calculateParent(code, {
+                hasSeparator: !!separator,
+                separator: separator || '.',
+                segments: segmentStats,
+                levelLengths: segmentStats.map((s, i) => segmentStats.slice(0, i + 1).reduce((acc, seg) => acc + (seg.avgLength || 0), 0)),
+                levelCount: segmentStats.length
+            }),
             // Helper to guess type (AI-Ready Heuristics)
             guessType: (code) => this.heuristicTypeGuess(code, behavior)
         };
