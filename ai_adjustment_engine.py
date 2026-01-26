@@ -1642,10 +1642,13 @@ class MahoragaEngine(ARSDSPyEngine):
         """
         try:
             import requests
-
+            
+            # Fix: Use proper Python environment variable retrieval and f-string
+            api_url = os.getenv("API_BASE_URL", "http://localhost:3001")
+            
             # 1. Verificar si el ciclo está cerrado
             closing_check = requests.get(
-                "`${API_URL}/api/reports/closing-check",
+                f"{api_url}/api/reports/closing-check",
                 params={
                     "companyId": feedback.company_id,
                     "gestion": getattr(feedback, 'gestion', None) or datetime.now().year - 1

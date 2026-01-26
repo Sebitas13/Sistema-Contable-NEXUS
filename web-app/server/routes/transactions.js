@@ -173,7 +173,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// POST /batch - Create multiple transactions at once (Native Transaction V3 - Callback Pattern)
+// POST /batch - Create multiple transactions at once (Bulk SQL V4)
 router.post('/batch', async (req, res) => {
     const { transactions, companyId } = req.body;
 
@@ -182,44 +182,64 @@ router.post('/batch', async (req, res) => {
     }
 
     try {
-        // Use db.transaction with a callback. 
-        // The library typically commits if the promise resolves, and rolls back if it rejects.
-        await db.transaction(async (tx) => {
-            const insertTxSql = 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)';
-            const insertEntrySql = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
+        // Strategy V4: Use db.exec() which maps to client.batch() with STRINGS.
+        // We construct proper SQL strings. 
+        // NOTE: LibSQL batch executes sequentially.
+        // We use `last_insert_rowid()` to link entries to headers.
 
-            for (const trans of transactions) {
-                // 1. Insert transaction header
-                const txResult = await tx.execute({
-                    sql: insertTxSql,
-                    args: [trans.date, trans.gloss, trans.type, companyId]
-                });
+        const batchStmts = [];
 
-                // Converting BigInt to Number safe for IDs
-                const transactionId = Number(txResult.lastInsertRowid);
+        // Helper to escape strings safely for SQLite manual construction
+        // (Since client.batch(strings) doesn't support parameterized arrays easily in all versions)
+        const escape = (str) => {
+            if (str === null || str === undefined) return 'NULL';
+            return "'" + String(str).replace(/'/g, "''") + "'";
+        };
 
-                // 2. Insert entries
-                if (trans.entries && Array.isArray(trans.entries)) {
-                    for (const entry of trans.entries) {
-                        if (!entry.accountId) {
-                            throw new Error(`Entry in transaction "${trans.gloss}" is missing an accountId.`);
-                        }
-                        await tx.execute({
-                            sql: insertEntrySql,
-                            args: [
-                                transactionId,
-                                entry.accountId,
-                                parseFloat(entry.debit) || 0,
-                                parseFloat(entry.credit) || 0,
-                                entry.gloss || ''
-                            ]
-                        });
-                    }
-                }
+        for (const trans of transactions) {
+            // 1. Insert Header
+            // We use standard SQL syntax.
+            const dateVal = escape(trans.date);
+            const glossVal = escape(trans.gloss);
+            const typeVal = escape(trans.type);
+            const companyIdVal = escape(companyId); // Should be numeric or string, safe to escape
+
+            batchStmts.push(
+                `INSERT INTO transactions (date, gloss, type, company_id) VALUES (${dateVal}, ${glossVal}, ${typeVal}, ${companyIdVal})`
+            );
+
+            // 2. Insert Entries (Bulk)
+            if (trans.entries && Array.isArray(trans.entries) && trans.entries.length > 0) {
+                const entryValues = trans.entries.map(entry => {
+                    if (!entry.accountId) throw new Error(`Entry in transaction "${trans.gloss}" is missing an accountId.`);
+                    const accId = escape(entry.accountId);
+                    const debit = parseFloat(entry.debit) || 0;
+                    const credit = parseFloat(entry.credit) || 0;
+                    const entryGloss = escape(entry.gloss || '');
+
+                    // last_insert_rowid() refers to the transaction header inserted just above
+                    return `(last_insert_rowid(), ${accId}, ${debit}, ${credit}, ${entryGloss})`;
+                }).join(", ");
+
+                batchStmts.push(
+                    `INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES ${entryValues}`
+                );
             }
+        }
+
+        if (batchStmts.length === 0) {
+            return res.json({ success: true, message: 'No transactions to insert.' });
+        }
+
+        // Execute via db.exec (client.batch)
+        await new Promise((resolve, reject) => {
+            db.exec(batchStmts, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
         });
 
-        console.log(`✅ Batch insert successful: ${transactions.length} transactions saved.`);
+        console.log(`✅ Bulk Batch successful: ${transactions.length} txs.`);
 
         if (!res.headersSent) {
             res.status(201).json({
@@ -229,12 +249,11 @@ router.post('/batch', async (req, res) => {
         }
 
     } catch (error) {
-        console.error('CRITICAL: Failed to execute batch transaction insert:', error);
-
+        console.error('CRITICAL: Failed to execute BULK batch insert:', error);
         if (!res.headersSent) {
             res.status(500).json({
                 success: false,
-                error: 'Failed to execute batch insert.',
+                error: 'Failed to execute bulk batch insert.',
                 details: error.message
             });
         }
