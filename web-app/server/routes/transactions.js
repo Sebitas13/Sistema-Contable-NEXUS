@@ -173,7 +173,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// POST /batch - Create multiple transactions at once (for closing entries)
+// POST /batch - Create multiple transactions at once (Optimized Atomic V2)
 router.post('/batch', async (req, res) => {
     const { transactions, companyId } = req.body;
 
@@ -181,66 +181,70 @@ router.post('/batch', async (req, res) => {
         return res.status(400).json({ error: 'Invalid request format: requires a "transactions" array and "companyId".' });
     }
 
-    // Promisify db.run for use with async/await
-    const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) return reject(err);
-            // For INSERT, this.lastID is the new row's ID. For other operations, this.changes is useful.
-            resolve({ lastID: this.lastID, changes: this.changes });
-        });
-    });
+    /* 
+       ATOMIC BATCH STRATEGY V2:
+       Use db.exec() which maps to client.batch().
+       This executes all statements in a single atomic request/transaction.
+       We use sequential last_insert_rowid() logic supported by SQLite/LibSQL batch execution.
+    */
 
     try {
-        await dbRun('BEGIN TRANSACTION');
+        const batchStmts = [];
 
-        const insertTransactionSql = 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)';
-        const insertEntrySql = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
+        // Common SQL
+        const insertTxSql = 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)';
+        const insertEntrySql = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (last_insert_rowid(), ?, ?, ?, ?)';
 
         for (const trans of transactions) {
-            if (!trans.entries || !Array.isArray(trans.entries)) {
-                throw new Error(`Transaction with gloss "${trans.gloss}" has invalid entries.`);
-            }
+            // 1. Insert Header
+            batchStmts.push({
+                sql: insertTxSql,
+                args: [trans.date, trans.gloss, trans.type, companyId]
+            });
 
-            const { lastID: transactionId } = await dbRun(insertTransactionSql, [trans.date, trans.gloss, trans.type, companyId]);
+            // 2. Insert Entries (chained to header via last_insert_rowid())
+            if (trans.entries && Array.isArray(trans.entries)) {
+                for (const entry of trans.entries) {
+                    if (!entry.accountId) throw new Error(`Entry in transaction "${trans.gloss}" missing accountId`);
 
-            for (const entry of trans.entries) {
-                if (!entry.accountId) {
-                    throw new Error(`Entry in transaction with gloss "${trans.gloss}" is missing an accountId.`);
+                    batchStmts.push({
+                        sql: insertEntrySql,
+                        args: [
+                            entry.accountId,
+                            parseFloat(entry.debit) || 0,
+                            parseFloat(entry.credit) || 0,
+                            entry.gloss || ''
+                        ]
+                    });
                 }
-                await dbRun(insertEntrySql, [
-                    transactionId,
-                    entry.accountId,
-                    parseFloat(entry.debit) || 0,
-                    parseFloat(entry.credit) || 0,
-                    entry.gloss || ''
-                ]);
             }
         }
 
-        await dbRun('COMMIT');
+        if (batchStmts.length === 0) {
+            return res.json({ success: true, message: 'No transactions to insert.' });
+        }
 
-        // Ensure we only send response once
+        // Execute Atomic Batch
+        await new Promise((resolve, reject) => {
+            db.exec(batchStmts, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
         if (!res.headersSent) {
             res.status(201).json({
                 success: true,
-                message: `${transactions.length} closing transactions created successfully.`
+                message: `${transactions.length} closing transactions created successfully via atomic batch.`
             });
         }
 
     } catch (error) {
-        // Attempt to rollback
-        try {
-            await dbRun('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('CRITICAL: Failed to rollback transaction:', rollbackError);
-        }
-        console.error('Failed to execute batch transaction insert:', error.message);
-
-        // Only send error response if headers haven't been sent
+        console.error('CRITICAL: Failed to execute atomic batch transaction insert:', error);
         if (!res.headersSent) {
             res.status(500).json({
                 success: false,
-                error: 'Failed to execute batch transaction insert.',
+                error: 'Failed to execute atomic batch insert. Database might be locked or unreachable.',
                 details: error.message
             });
         }
