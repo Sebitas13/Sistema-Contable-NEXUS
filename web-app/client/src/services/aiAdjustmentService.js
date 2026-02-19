@@ -6,7 +6,7 @@
 import axios from 'axios';
 import { API_URLS } from '../api';
 
-const AI_BASE_URL = API_URLS.AI;
+const AI_BASE_URL = API_URLS.MAIN; // Fallback to main API
 
 class AIAdjustmentService {
     constructor() {
@@ -24,7 +24,7 @@ class AIAdjustmentService {
      */
     async generateAdjustments(companyId, accounts, parameters, profileSchema = null) {
         try {
-            const response = await this.client.post('/adjustments/generate', {
+            const response = await this.client.post('/api/ai/adjustments/generate', {
                 companyId,
                 accounts: accounts.map(acc => ({
                     code: acc.code,
@@ -93,7 +93,7 @@ class AIAdjustmentService {
      */
     async healthCheck() {
         try {
-            const response = await this.client.get('/health');
+            const response = await this.client.get('/api/ai/health');
             return response.data.status === 'healthy';
         } catch (error) {
             return false;
@@ -105,7 +105,7 @@ class AIAdjustmentService {
      */
     async batchValidateTransactions(transactions) {
         try {
-            const response = await this.client.post('/adjustments/batch-validate', transactions);
+            const response = await this.client.post('/api/ai/adjustments/batch-validate', transactions);
             return response.data;
         } catch (error) {
             console.error('Error en validación por lotes:', error);
@@ -118,7 +118,7 @@ class AIAdjustmentService {
      */
     async explainAdjustment(account, parameters) {
         try {
-            const response = await this.client.post('/adjustments/explain', {
+            const response = await this.client.post('/api/ai/adjustments/explain', {
                 account: {
                     code: account.code,
                     name: account.name,
@@ -139,7 +139,7 @@ class AIAdjustmentService {
      */
     async getAIConfig() {
         try {
-            const response = await this.client.get('/adjustments/config');
+            const response = await this.client.get('/api/ai/adjustments/config');
             return response.data;
         } catch (error) {
             console.error('Error obteniendo configuración AI:', error);
@@ -152,7 +152,7 @@ class AIAdjustmentService {
      */
     async generateAdjustmentsFromLedger(companyId, parameters, profileSchema = null) {
         try {
-            const response = await this.client.post('/adjustments/generate-from-ledger', {
+            const response = await this.client.post('/api/ai/adjustments/generate-from-ledger', {
                 company_id: String(companyId), // Ensure string as per error
                 accounts: [], // Required field even if empty for this endpoint
                 parameters: {
