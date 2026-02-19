@@ -433,7 +433,10 @@ class AdjustmentProfileSchema:
                 pattern=pattern_str,
                 tags=rule_data.get("tags", []),
                 source_nc=rule_data.get("source_nc", "Unknown"),
-                confidence_weight=rule_data.get("confidence_weight", 1.0)
+                confidence_weight=rule_data.get(
+                    "confidence_weight",
+                    float(rule_data.get("reasoning_weight", 1.0)) + float(rule_data.get("confidence_boost", 0.0))
+                )
             ))
         return rules
     
@@ -488,6 +491,44 @@ class ARSDSPyEngine:
                  return True
         return False
 
+    def _compile_profile_regex(self, pattern_str: str):
+        """
+        Compila regex del perfil soportando formato JS `/.../i` y formato plano.
+        """
+        raw = (pattern_str or "").strip()
+        if not raw:
+            raise re.error("Empty pattern")
+
+        body = raw
+        flags = re.IGNORECASE
+
+        js_match = re.match(r"^/(.*)/([a-zA-Z]*)$", raw)
+        if js_match:
+            body = js_match.group(1)
+            js_flags = (js_match.group(2) or "").lower()
+            flags = 0
+            if "i" in js_flags:
+                flags |= re.IGNORECASE
+            if "m" in js_flags:
+                flags |= re.MULTILINE
+            if "s" in js_flags:
+                flags |= re.DOTALL
+        elif raw.startswith("/") and raw.endswith("/") and len(raw) > 2:
+            body = raw[1:-1]
+            flags = re.IGNORECASE
+
+        return re.compile(body, flags)
+
+    def _profile_rule_matches_account(self, regex, account: Account) -> bool:
+        """
+        Permite que una regla clasifique por nombre, código o tipo.
+        """
+        candidates = [account.name or "", account.code or "", account.type or ""]
+        for value in candidates:
+            if value and regex.search(value):
+                return True
+        return False
+
     def classify_account_semantic(self, account: Account) -> Tuple[str, float, List[str], Any]:
         """
         Clasificación semántica V7.0: Prioriza reglas Regex del perfil.
@@ -504,18 +545,10 @@ class ARSDSPyEngine:
         # Check non-monetary rules first
         for rule in self.profile.non_monetary_rules:
             try:
-                # Compile regex from rule's pattern string
                 pattern_str = rule.pattern
-                if pattern_str.startswith('/') and pattern_str.endswith('/'):
-                    pattern_body = pattern_str[1:-1]
-                    flags = re.IGNORECASE
-                else:
-                    pattern_body = pattern_str
-                    flags = re.IGNORECASE
-                
-                regex = re.compile(pattern_body, flags)
-                
-                if regex.search(name_original):
+                regex = self._compile_profile_regex(pattern_str)
+
+                if self._profile_rule_matches_account(regex, account):
                     print(f"✅ Regex HIT (non_monetary): '{name_original}' matched by pattern: {pattern_str}")
                     return ("non_monetary", rule.confidence_weight, rule.tags, {"source": rule.source_nc, "pattern": pattern_str})
             except re.error:
@@ -525,18 +558,10 @@ class ARSDSPyEngine:
         # Check monetary rules if no non-monetary rule matched
         for rule in self.profile.monetary_rules:
             try:
-                # Compile regex from rule's pattern string
                 pattern_str = rule.pattern
-                if pattern_str.startswith('/') and pattern_str.endswith('/'):
-                    pattern_body = pattern_str[1:-1]
-                    flags = re.IGNORECASE
-                else:
-                    pattern_body = pattern_str
-                    flags = re.IGNORECASE
-                
-                regex = re.compile(pattern_body, flags)
+                regex = self._compile_profile_regex(pattern_str)
 
-                if regex.search(name_original):
+                if self._profile_rule_matches_account(regex, account):
                     print(f"✅ Regex HIT (monetary): '{name_original}' matched by pattern: {pattern_str}")
                     return ("monetary", rule.confidence_weight, rule.tags, {"source": rule.source_nc, "pattern": pattern_str})
             except re.error:
@@ -628,15 +653,37 @@ class ARSDSPyEngine:
         
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
         print(f"DEBUG DEP: [2] Classification: {classification}, Tags: {tags}", flush=True)
-        
-        if classification != "non_monetary" or "Depreciable" not in tags:
-            print(f"DEBUG DEP: [3] SKIPPING - not non_monetary or not Depreciable", flush=True)
+
+        if classification != "non_monetary":
+            print(f"DEBUG DEP: [3] SKIPPING - classification is not non_monetary", flush=True)
             return 0.0, 0.0, "", {}
-        
-        print(f"DEBUG DEP: [4] Passed classification check", flush=True)
-        
+
+        normalized_tags = [self._normalize_string(t) for t in (tags or [])]
+        is_amortizable = any("amortizable" in t for t in normalized_tags)
+        if is_amortizable:
+            print(f"DEBUG DEP: [3.1] SKIPPING - amortizable asset (not depreciable)", flush=True)
+            return 0.0, 0.0, "", {}
+
+        has_depreciable_tag = any("depreciable" in t for t in normalized_tags)
+
         # Buscar configuración específica usando Smart Matching
         best_config, match_score = self._smart_match_asset_type(account.name, self.profile.depreciation_configs)
+        name_norm = self._normalize_string(account.name or "")
+        fixed_asset_tokens = [
+            "edificio", "mueble", "maquinaria", "equipo", "vehicul", "herramient",
+            "comput", "instal", "obra", "pozo", "canal", "silo", "galpon", "tinglado"
+        ]
+        likely_fixed_asset = (
+            bool(re.match(r"^1[6-9]", str(account.code or "")))
+            and any(token in name_norm for token in fixed_asset_tokens)
+            and not any(token in name_norm for token in ["intangible", "diferido", "amortiz"])
+        )
+
+        if not has_depreciable_tag and match_score < 15 and not likely_fixed_asset:
+            print(f"DEBUG DEP: [3.2] SKIPPING - no depreciable tag, no strong asset match, no fixed-asset code", flush=True)
+            return 0.0, 0.0, "", {}
+
+        print(f"DEBUG DEP: [4] Passed classification check", flush=True)
         
         # Usar configuración genérica si no hay match fuerte (score < 15 es muy bajo)
         if not best_config or match_score < 15:
@@ -700,7 +747,7 @@ class ARSDSPyEngine:
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
         
         # Solo cuentas no monetarias aplican AITB (NC 3)
-        if classification == "monetary":
+        if classification != "non_monetary":
             return 0.0, 0.0, "", {}
         
         # Cálculo con Coeficiente Corrector (CC)
@@ -740,7 +787,7 @@ class ARSDSPyEngine:
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
         
         # INVARIANTE: Cuentas no monetarias solamente
-        if classification == "monetary":
+        if classification != "non_monetary":
             return 0.0, 0.0, "", {}
         
         # Obtener trayectoria de movimientos para esta cuenta
