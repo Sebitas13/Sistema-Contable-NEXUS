@@ -4,9 +4,9 @@
  */
 
 import axios from 'axios';
-import API_URL from '../api';
+import { API_URLS } from '../api';
 
-const AI_BASE_URL = `${API_URL}/api/ai`;
+const AI_BASE_URL = API_URLS.AI;
 
 class AIAdjustmentService {
     constructor() {

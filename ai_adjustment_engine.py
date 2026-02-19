@@ -1463,10 +1463,13 @@ async def generate_from_ledger(request: AdjustmentRequest):
         # Importar cliente para obtener saldos del middleware
         import httpx
         
+        # V3.1 FIX: Correctly get API_BASE_URL from environment variables
+        api_url = os.getenv("API_BASE_URL", "http://localhost:3001")
+        
         # Obtener saldos pre-ajuste desde middleware Node.js
         async with httpx.AsyncClient() as client:
             ledger_response = await client.get(
-                "`${API_URL}/api/reports/ledger",
+                f"{api_url}/api/reports/ledger", # Corrected f-string
                 params={
                     "companyId": request.company_id,
                     "excludeAdjustments": True,
@@ -1476,9 +1479,12 @@ async def generate_from_ledger(request: AdjustmentRequest):
             )
             
             if ledger_response.status_code != 200:
+                # V3.1 FIX: Log the actual error from middleware
+                error_detail = f"No se pudieron obtener los saldos del middleware. Status: {ledger_response.status_code}. Response: {ledger_response.text}"
+                print(f"ERROR: {error_detail}")
                 raise HTTPException(
                     status_code=503, 
-                    detail="No se pudieron obtener los saldos del middleware"
+                    detail=error_detail
                 )
             
             ledger_data = ledger_response.json()
@@ -1489,7 +1495,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
             chart_of_accounts = []
             try:
                 coa_response = await client.get(
-                    f"`${API_URL}/api/accounts",
+                    f"{api_url}/api/accounts", # Corrected f-string
                     params={"companyId": request.company_id},
                     timeout=10.0
                 )
