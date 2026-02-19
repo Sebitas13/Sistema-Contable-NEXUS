@@ -6,6 +6,9 @@ Cumplimiento NC-3, NC-6, DS-24051 para contabilidad boliviana
 import os
 import sys
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+import time
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Tuple, Any
 import pandas as pd
@@ -20,6 +23,44 @@ from enum import Enum
 import httpx
 
 app = FastAPI(title="Adjustment AI Engine", version="1.0.0")
+
+# V3.2 FIX: Add CORS Middleware to allow cross-origin requests from the frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# V3.2 FIX: Add detailed request logging middleware as requested by user
+class DetailedLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start_time = time.time()
+        print("="*80)
+        print(f"INFO: [REQUEST] {request.method} {request.url.path}")
+        # Imprimir solo cabeceras relevantes para no saturar
+        relevant_headers = {h: request.headers[h] for h in request.headers if h.lower() in ['content-type', 'user-agent', 'origin', 'referer']}
+        print(f"      -> Headers: {relevant_headers}")
+        try:
+            body = await request.body()
+            if body:
+                # Truncar body si es muy largo
+                body_to_log = body.decode() if len(body) < 1000 else body.decode(errors='ignore')[:1000] + '...'
+                print(f"      -> Body: {body_to_log}")
+        except Exception:
+            print("      -> Body: (Could not be read or empty)")
+        
+        response = await call_next(request)
+        
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        
+        print(f"INFO: [RESPONSE] {response.status_code} for {request.url.path} (took: {process_time:.4f}s)")
+        print("="*80)
+        return response
+
+app.add_middleware(DetailedLoggingMiddleware)
 
 # V8.0 AoT: Banker's Rounding for financial precision
 from decimal import Decimal, ROUND_HALF_EVEN
