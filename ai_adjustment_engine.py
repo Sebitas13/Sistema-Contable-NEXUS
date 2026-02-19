@@ -424,27 +424,14 @@ class AdjustmentProfileSchema:
     def _load_semantic_rules(self, rule_type: str) -> List[SemanticRule]:
         rules = []
         for rule_data in self.profile_data.get(rule_type, []):
-            pattern_str = rule_data["pattern"]
-            # Convertir string de RegExp a objeto compilado
-            if pattern_str.startswith('/') and pattern_str.endswith('/'):
-                # Extraer flags y patrón
-                pattern_parts = pattern_str[1:-1].split('/')
-                pattern_body = pattern_parts[0]
-                flags_str = pattern_parts[1] if len(pattern_parts) > 1 else ''
-                
-                # Convertir flags
-                flags = 0
-                if 'i' in flags_str:
-                    flags = re.IGNORECASE
-                
-                pattern = re.compile(pattern_body, flags)
-            else:
-                pattern = re.compile(pattern_str, re.IGNORECASE)
-            
+            pattern_str = rule_data.get("pattern", "")
+            if not pattern_str:
+                continue
+
             rules.append(SemanticRule(
-                pattern=pattern.pattern,
-                tags=rule_data["tags"],
-                source_nc=rule_data["source_nc"],
+                pattern=pattern_str,
+                tags=rule_data.get("tags", []),
+                source_nc=rule_data.get("source_nc", "Unknown"),
                 confidence_weight=rule_data.get("confidence_weight", 1.0)
             ))
         return rules
@@ -502,146 +489,77 @@ class ARSDSPyEngine:
 
     def classify_account_semantic(self, account: Account) -> Tuple[str, float, List[str], Any]:
         """
-        Clasificación semántica V6.0: Emparejamiento por Conceptos (Knowledge Base Matching)
-        ⚡ MAHORAGA TEKIŌ: Las reglas aprendidas (SCL) tienen PRIORIDAD ABSOLUTA ⚡
+        Clasificación semántica V7.0: Prioriza reglas Regex del perfil.
         """
-        name_lower = account.name.lower()
         name_original = account.name
-        
-        # 0. NC-3 Exclusions (Monetary by definition of exclusion)
+
+        # 1. NC-3 Exclusions (Highest priority)
         if self._is_nc3_excluded(name_original):
              return ("monetary", 1.0, ["Monetario-NC3"], {"source": "NC3-Rule", "reason": "Excluded from AITB"})
-        
-        # ═══════════════════════════════════════════════════════════════════
-        # FASE 2 MAHORAGA: CONTRA-ESTRATEGIA (Reglas SCL Aprendidas)
-        # Las reglas con confidence_weight > 2.0 son inmunes y tienen prioridad
-        # ═══════════════════════════════════════════════════════════════════
-        
-        # Revisar reglas monetarias aprendidas PRIMERO
-        for rule in self.profile.profile_data.get("monetary_rules", []):
-            pattern = rule.get("pattern", "")
-            weight = rule.get("confidence_weight", 1.0)
-            
-            # Si es una regla SCL de alta prioridad (weight >= 2.0), verificar match
-            if weight >= 2.0:
-                try:
-                    # Convertir patrón a regex si es necesario
-                    if pattern.startswith("^") or pattern.startswith(".*"):
-                        regex = re.compile(pattern, re.IGNORECASE)
-                        if regex.match(name_original) or regex.search(name_original):
-                            print(f"⚡ MAHORAGA HIT (monetary): '{name_original}' matched by SCL rule: {pattern}")
-                            return ("monetary", 0.99, rule.get("tags", ["Monetario"]), {
-                                **rule,
-                                "source_nc": "Mahoraga-SCL-Adaptation",
-                                "scl_override": True
-                            })
-                except re.error:
-                    pass
-        
-        # Revisar reglas NO monetarias aprendidas
-        for rule in self.profile.profile_data.get("non_monetary_rules", []):
-            pattern = rule.get("pattern", "")
-            weight = rule.get("confidence_weight", 1.0)
-            
-            if weight >= 2.0:
-                try:
-                    if pattern.startswith("^") or pattern.startswith(".*"):
-                        regex = re.compile(pattern, re.IGNORECASE)
-                        if regex.match(name_original) or regex.search(name_original):
-                            print(f"⚡ MAHORAGA HIT (non_monetary): '{name_original}' matched by SCL rule: {pattern}")
-                            return ("non_monetary", 0.99, rule.get("tags", ["NoMonetario"]), {
-                                **rule,
-                                "source_nc": "Mahoraga-SCL-Adaptation",
-                                "scl_override": True
-                            })
-                except re.error:
-                    pass
-        
-        # ═══════════════════════════════════════════════════════════════════
-        # CLASIFICACIÓN SEMÁNTICA NORMAL (Si no hay override SCL)
-        # ═══════════════════════════════════════════════════════════════════
-        
-        # Cargar base de conocimiento
-        concepts = self.profile.profile_data.get("semantic_concepts", {})
-        monetary_concepts = concepts.get("monetary", [])
-        non_monetary_concepts = concepts.get("non_monetary", [])
-        
-        best_match = None
-        best_score = 0
-        
-        # Función interna de scoring
-        def calculate_concept_score(acc_name, concept_keywords):
-            score = 0
-            acc_words = set(re.findall(r'\w+', acc_name))
-            for keyword in concept_keywords:
-                # Coincidencia exacta de palabra
-                if keyword in acc_words:
-                    score += 10
-                # Coincidencia parcial (substring)
-                elif keyword in acc_name:
-                    score += 5
-            return score
 
-        # 1. Evaluar conceptos monetarios
-        for concept in monetary_concepts:
-            score = calculate_concept_score(name_lower, concept["keywords"])
-            if score > best_score:
-                best_score = score
-                best_match = ("monetary", 0.95, concept["tags"], concept)
+        # 2. Regex-based rules from profile (monetary & non-monetary)
+        # These rules are now the primary source of classification logic.
+        
+        # Check non-monetary rules first
+        for rule in self.profile.non_monetary_rules:
+            try:
+                # Compile regex from rule's pattern string
+                pattern_str = rule.pattern
+                if pattern_str.startswith('/') and pattern_str.endswith('/'):
+                    pattern_body = pattern_str[1:-1]
+                    flags = re.IGNORECASE
+                else:
+                    pattern_body = pattern_str
+                    flags = re.IGNORECASE
+                
+                regex = re.compile(pattern_body, flags)
+                
+                if regex.search(name_original):
+                    print(f"✅ Regex HIT (non_monetary): '{name_original}' matched by pattern: {pattern_str}")
+                    return ("non_monetary", rule.confidence_weight, rule.tags, {"source": rule.source_nc, "pattern": pattern_str})
+            except re.error:
+                print(f"⚠️ WARNING: Invalid regex in non_monetary_rules: {rule.pattern}")
+                continue
 
-        # 2. Evaluar conceptos no monetarios
-        for concept in non_monetary_concepts:
-            score = calculate_concept_score(name_lower, concept["keywords"])
-            if score > best_score:
-                best_score = score
-                tags = list(concept["tags"])
-                # ⚡ FILTRO CRÍTICO: Si es depreciación acumulada, NO es depreciable por sí misma
-                if "acumulada" in name_lower and "Depreciable" in tags:
-                    tags.remove("Depreciable")
-                best_match = ("non_monetary", 0.95, tags, concept)
-        
-        
-        # Definir regla base para uso universal
+        # Check monetary rules if no non-monetary rule matched
+        for rule in self.profile.monetary_rules:
+            try:
+                # Compile regex from rule's pattern string
+                pattern_str = rule.pattern
+                if pattern_str.startswith('/') and pattern_str.endswith('/'):
+                    pattern_body = pattern_str[1:-1]
+                    flags = re.IGNORECASE
+                else:
+                    pattern_body = pattern_str
+                    flags = re.IGNORECASE
+                
+                regex = re.compile(pattern_body, flags)
+
+                if regex.search(name_original):
+                    print(f"✅ Regex HIT (monetary): '{name_original}' matched by pattern: {pattern_str}")
+                    return ("monetary", rule.confidence_weight, rule.tags, {"source": rule.source_nc, "pattern": pattern_str})
+            except re.error:
+                print(f"⚠️ WARNING: Invalid regex in monetary_rules: {rule.pattern}")
+                continue
+
+        # 3. Fallback to account type from database if no regex matched
         fallback_rule = {"source": "UniversalTypeLogic", "concept": "TypeBased"}
-
-        # 3. Empate o sin match -> Usar Tipo de Cuenta (DB - Fuente Universal)
         if account.type:
             t_norm = self._normalize_string(account.type)
-            # Universal Type Mapping
-            if "activo" in t_norm: 
-                # Activo Fijo default is Non-Monetary (handled by bias), but liquid assets (Caja) are Monetary
-                # If code starts with 1.1 (Available), usually Monetary. 
-                pass # Let code heuristics refine Activo
             if "pasivo" in t_norm: return "monetary", 0.60, ["Pasivo"], fallback_rule
             if "patrimonio" in t_norm: return "non_monetary", 0.70, ["Patrimonio"], fallback_rule
-            
-            # Ingresos, Egresos, Costos -> Result Accounts (NC-3 Non-Monetary unless excluded)
             if any(x in t_norm for x in ["ingreso", "egreso", "gasto", "costo", "resultado"]):
                  return "non_monetary", 0.70, ["Resultado"], fallback_rule
 
-        if not best_match or best_score < 5:
-            # Fallback inteligente por código (Last Resort)
-            fallback_rule = {"source": "PlanCuentas-Heuristic", "concept": "CodeBased"}
-            code_prefix = account.code.split('-')[0] if '-' in account.code else account.code[0]
+        # 4. Last resort: fallback to code heuristic
+        fallback_rule = {"source": "PlanCuentas-Heuristic", "concept": "CodeBased"}
+        if account.code.startswith('1'): return "non_monetary", 0.60, ["Activo"], fallback_rule
+        if account.code.startswith('2'): return "monetary", 0.60, ["Pasivo"], fallback_rule
+        if account.code.startswith('3'): return "non_monetary", 0.70, ["Patrimonio"], fallback_rule
+        if account.code.startswith('4'): return "non_monetary", 0.60, ["Ingreso"], fallback_rule
+        if account.code.startswith('5') or account.code.startswith('6'): return "non_monetary", 0.60, ["Gasto"], fallback_rule
             
-            # Activos (100)
-            if code_prefix.startswith('1'):
-                # Si no matcheó con "Caja/Banco" arriba, y es Activo, asumimos NoMonetario si es Activo Fijo (1.2, 1.6)
-                # Pero si es 'Clientes' (1.1.3), es Monetario.
-                pass # Dejar que el código decida genérico si no hay match fuerte
-            
-            # Clasificación básica por grupo (Heuristic fallback only)
-            if account.code.startswith('1'): return "non_monetary", 0.60, ["Activo"], fallback_rule # Bias hacia NoMonetario para seguridad
-            if account.code.startswith('2'): return "monetary", 0.60, ["Pasivo"], fallback_rule
-            if account.code.startswith('3'): return "non_monetary", 0.70, ["Patrimonio"], fallback_rule
-            
-            # Use heuristic only if type was missing
-            if account.code.startswith('4'): return "non_monetary", 0.60, ["Ingreso"], fallback_rule
-            if account.code.startswith('5') or account.code.startswith('6'): return "non_monetary", 0.60, ["Gasto"], fallback_rule
-            
-            return "unknown", 0.50, ["Desconocido"], fallback_rule
-
-        return best_match
+        return "unknown", 0.50, ["Desconocido"], fallback_rule
     
     def calculate_adaptive_confidence(self, account: Account, adjustment_type: str, base_confidence: float) -> Tuple[float, Dict]:
         """Cálculo de confianza adaptativa basado en ambigüedad semántica"""

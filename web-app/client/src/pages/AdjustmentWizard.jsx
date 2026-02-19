@@ -774,7 +774,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                     <strong>Razonamiento:</strong> {proposal.reasoning || 'Procesamiento automático'}
                                                 </div>
                                                 <div className="col-md-6">
-                                                    <strong>Período:</strong> {fiscalYearDetails?.startDate} al {fiscalYearDetails?.endDate}<br />
+                                                    <strong>Período:</strong> {format(startDate, 'yyyy-MM-dd')} al {format(endDate, 'yyyy-MM-dd')}<br />
                                                     <small className="text-muted">Generado: {proposal.processing_stats?.accounts_processed || 0} cuentas procesadas</small>
                                                 </div>
                                             </div>

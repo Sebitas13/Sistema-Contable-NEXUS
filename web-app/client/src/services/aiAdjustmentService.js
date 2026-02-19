@@ -352,7 +352,7 @@ class AIAdjustmentService {
      */
     async getChronology(companyId) {
         try {
-            const response = await this.client.get(`/adjustments/chronology/${companyId}`);
+            const response = await this.client.get(`/api/ai/adjustments/chronology/${companyId}`);
             return {
                 success: true,
                 events: response.data.events || []
