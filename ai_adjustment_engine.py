@@ -113,6 +113,7 @@ class AdjustmentParameters(BaseModel):
     ledger_trajectories: Optional[Dict[str, List[Any]]] = Field(default_factory=dict, description="{account_code: [movements]}")
     ufv_cache: Optional[Dict[str, float]] = Field(default_factory=dict, description="{date: ufv_value}")
     use_trajectory_mode: bool = Field(False, description="Habilitar cálculo por trayectoria AoT")
+    api_base_url: Optional[str] = Field(None, description="Base URL del middleware Node.js")
 
 
 class TransactionEntry(BaseModel):
@@ -1422,8 +1423,12 @@ async def generate_from_ledger(request: AdjustmentRequest):
         # Importar cliente para obtener saldos del middleware
         import httpx
         
-        # V3.1 FIX: Correctly get API_BASE_URL from environment variables
-        api_url = os.getenv("API_BASE_URL", "http://localhost:3001")
+        # Permitir que el middleware Node.js inyecte su URL en runtime (útil en serverless/proxy).
+        requested_api_url = (request.parameters.api_base_url or "").strip()
+        api_url = requested_api_url or os.getenv("API_BASE_URL", "http://localhost:3001")
+        api_url = api_url.rstrip("/")
+        if api_url.endswith("/api"):
+            api_url = api_url[:-4]
         
         # Obtener saldos pre-ajuste desde middleware Node.js
         async with httpx.AsyncClient() as client:
@@ -1518,6 +1523,8 @@ async def generate_from_ledger(request: AdjustmentRequest):
             }
             
             return result
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error en integración ledger: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

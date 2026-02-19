@@ -376,6 +376,20 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
       return res.status(400).json({ success: false, error: 'companyId is required' });
     }
 
+    req.body.company_id = String(companyId);
+    req.body.parameters = req.body.parameters || {};
+    req.body.parameters.company_id = String(companyId);
+
+    // Inyectar base URL real del middleware para que el motor Python no dependa de localhost.
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
+    const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
+    const runtimeBaseUrl = process.env.API_BASE_URL || (host ? `${protocol}://${host}` : '');
+    if (runtimeBaseUrl) {
+      req.body.parameters.api_base_url = runtimeBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+    }
+
     // V6.0: Inyectar perfil persistente fusionando correctamente arrays de reglas
     console.log(`   👤 [LOG] Fetching profile for company ${companyId}...`);
     const dbProfile = await getProfile(companyId);
@@ -439,10 +453,16 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
         proposedTransactions: [],
         confidence: 0,
       });
+    } else if (error.response) {
+      res.status(error.response.status || 500).json({
+        success: false,
+        error: error.response?.data?.detail || error.response?.data?.error || error.message,
+        details: error.response?.data || 'Check server logs for detailed stack trace.'
+      });
     } else {
       res.status(500).json({
         success: false,
-        error: error.response?.data?.detail || error.message,
+        error: error.message,
         details: 'Check server logs for detailed stack trace.'
       });
     }

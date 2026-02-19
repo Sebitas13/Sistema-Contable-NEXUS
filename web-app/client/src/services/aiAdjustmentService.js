@@ -172,15 +172,21 @@ class AIAdjustmentService {
             return response.data;
         } catch (error) {
             console.error('Error generando ajustes desde ledger:', error);
+            const backendError =
+                error.response?.data?.error ||
+                error.response?.data?.detail ||
+                error.message;
 
             // Fallback a método tradicional
             return {
                 success: false,
-                error: 'No se pudo conectar con el motor AI para obtener datos del ledger',
+                error: backendError || 'No se pudo conectar con el motor AI para obtener datos del ledger',
                 proposedTransactions: [],
                 confidence: 0,
                 reasoning: 'Fallback: motor AI no disponible',
-                warnings: ['Servicio AI no disponible para integración con ledger']
+                warnings: backendError
+                    ? [backendError]
+                    : ['Servicio AI no disponible para integración con ledger']
             };
         }
     }
