@@ -519,14 +519,90 @@ class ARSDSPyEngine:
 
         return re.compile(body, flags)
 
-    def _profile_rule_matches_account(self, regex, account: Account) -> bool:
+    def _profile_rule_matches_account(self, regex, account: Account) -> Optional[str]:
         """
         Permite que una regla clasifique por nombre, código o tipo.
         """
-        candidates = [account.name or "", account.code or "", account.type or ""]
-        for value in candidates:
+        candidates = [
+            ("name", account.name or ""),
+            ("code", account.code or ""),
+            ("type", account.type or "")
+        ]
+        for field, value in candidates:
             if value and regex.search(value):
+                return field
+        return None
+
+    def _keyword_matches_searchable(self, keyword: str, searchable: str, searchable_tokens: set) -> bool:
+        """Keyword/phrase matching with boundaries to avoid substring false positives."""
+        kw_norm = self._normalize_string(str(keyword))
+        if not kw_norm:
+            return False
+
+        if " " in kw_norm:
+            phrase_regex = r"\b" + re.escape(kw_norm).replace(r"\ ", r"\s+") + r"\b"
+            return re.search(phrase_regex, searchable) is not None
+
+        return kw_norm in searchable_tokens or any(
+            (tok.startswith(kw_norm) or kw_norm.startswith(tok)) and min(len(tok), len(kw_norm)) >= 4
+            for tok in searchable_tokens
+        )
+
+    def _has_monetary_name_signal(self, account: Account) -> bool:
+        """Monetary guardrail to prevent AITB over monetary-looking accounts."""
+        profile_data = getattr(self.profile, "profile_data", {}) or {}
+        semantic_concepts = profile_data.get("semantic_concepts", {}) or {}
+        monetary_concepts = semantic_concepts.get("monetary", []) or []
+
+        searchable = self._normalize_string(f"{account.name or ''} {account.type or ''}")
+        searchable_tokens = set(re.findall(r"[a-z0-9]+", searchable))
+        if not searchable_tokens:
+            return False
+
+        for concept in monetary_concepts:
+            for keyword in (concept.get("keywords", []) or []):
+                if self._keyword_matches_searchable(str(keyword), searchable, searchable_tokens):
+                    return True
+        return False
+
+    def _has_fixed_asset_name_signal(self, account_name: str) -> bool:
+        """
+        Fixed-asset signal based on:
+        - non-monetary semantic concepts tagged as depreciable
+        - depreciation settings keywords
+        """
+        searchable = self._normalize_string(account_name or "")
+        searchable_tokens = set(re.findall(r"[a-z0-9]+", searchable))
+        if not searchable_tokens:
+            return False
+
+        profile_data = getattr(self.profile, "profile_data", {}) or {}
+        semantic_concepts = profile_data.get("semantic_concepts", {}) or {}
+        non_monetary_concepts = semantic_concepts.get("non_monetary", []) or []
+
+        stop_words = {
+            "de", "del", "la", "las", "el", "los", "y", "o", "por", "para", "con",
+            "en", "a", "al", "un", "una", "unos", "unas"
+        }
+        generic_words = {"activos", "activo", "fijos", "fijo", "general", "varios", "otras", "otros"}
+
+        keyword_candidates: List[str] = []
+
+        for concept in non_monetary_concepts:
+            tags_norm = [self._normalize_string(t) for t in (concept.get("tags", []) or [])]
+            if any("depreciable" in tag for tag in tags_norm):
+                keyword_candidates.extend([str(k) for k in (concept.get("keywords", []) or []) if k])
+
+        for config in self.profile.depreciation_configs:
+            asset_norm = self._normalize_string(config.asset_type_keyword)
+            for token in re.findall(r"[a-z0-9]+", asset_norm):
+                if len(token) >= 4 and token not in stop_words and token not in generic_words:
+                    keyword_candidates.append(token)
+
+        for keyword in keyword_candidates:
+            if self._keyword_matches_searchable(keyword, searchable, searchable_tokens):
                 return True
+
         return False
 
     def _classify_by_semantic_concepts(self, account: Account) -> Optional[Tuple[str, float, List[str], Dict[str, Any]]]:
@@ -558,14 +634,7 @@ class ARSDSPyEngine:
                     kw_norm = self._normalize_string(str(keyword))
                     if not kw_norm:
                         continue
-                    if " " in kw_norm:
-                        phrase_regex = r"\b" + re.escape(kw_norm).replace(r"\ ", r"\s+") + r"\b"
-                        matched = re.search(phrase_regex, searchable) is not None
-                    else:
-                        matched = kw_norm in searchable_tokens or any(
-                            (tok.startswith(kw_norm) or kw_norm.startswith(tok)) and min(len(tok), len(kw_norm)) >= 4
-                            for tok in searchable_tokens
-                        )
+                    matched = self._keyword_matches_searchable(kw_norm, searchable, searchable_tokens)
 
                     if matched:
                         matches.append(kw_norm)
@@ -635,9 +704,15 @@ class ARSDSPyEngine:
                 pattern_str = rule.pattern
                 regex = self._compile_profile_regex(pattern_str)
 
-                if self._profile_rule_matches_account(regex, account):
+                matched_field = self._profile_rule_matches_account(regex, account)
+                if matched_field:
                     print(f"✅ Regex HIT (non_monetary): '{name_original}' matched by pattern: {pattern_str}")
-                    return ("non_monetary", rule.confidence_weight, rule.tags, {"source": rule.source_nc, "pattern": pattern_str})
+                    return (
+                        "non_monetary",
+                        rule.confidence_weight,
+                        rule.tags,
+                        {"source": rule.source_nc, "pattern": pattern_str, "matched_field": matched_field}
+                    )
             except re.error:
                 print(f"⚠️ WARNING: Invalid regex in non_monetary_rules: {rule.pattern}")
                 continue
@@ -648,9 +723,15 @@ class ARSDSPyEngine:
                 pattern_str = rule.pattern
                 regex = self._compile_profile_regex(pattern_str)
 
-                if self._profile_rule_matches_account(regex, account):
+                matched_field = self._profile_rule_matches_account(regex, account)
+                if matched_field:
                     print(f"✅ Regex HIT (monetary): '{name_original}' matched by pattern: {pattern_str}")
-                    return ("monetary", rule.confidence_weight, rule.tags, {"source": rule.source_nc, "pattern": pattern_str})
+                    return (
+                        "monetary",
+                        rule.confidence_weight,
+                        rule.tags,
+                        {"source": rule.source_nc, "pattern": pattern_str, "matched_field": matched_field}
+                    )
             except re.error:
                 print(f"⚠️ WARNING: Invalid regex in monetary_rules: {rule.pattern}")
                 continue
@@ -757,9 +838,40 @@ class ARSDSPyEngine:
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
         print(f"DEBUG DEP: [2] Classification: {classification}, Tags: {tags}", flush=True)
 
-        if classification != "non_monetary":
+        name_norm = self._normalize_string(account.name or "")
+        type_norm = self._normalize_string(account.type or "")
+
+        contra_signals = [
+            "depreciacion acumulada",
+            "amortizacion acumulada",
+            "agotamiento acumulado",
+            "deterioro acumulado",
+            "estimacion",
+            "provision"
+        ]
+        is_contra_account = any(signal in name_norm for signal in contra_signals) or "regul" in type_norm
+        if is_contra_account:
+            print(f"DEBUG DEP: [3.05] SKIPPING - contra/reguladora account", flush=True)
+            return 0.0, 0.0, "", {}
+
+        is_office_supply = (
+            ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
+            and any(token in name_norm for token in ["material", "suministro", "insumo", "consumible"])
+        )
+
+        tentative_fixed_asset = (
+            classification == "unknown"
+            and bool(re.match(r"^1[6-9]", str(account.code or "")))
+            and not is_office_supply
+            and not is_contra_account
+        )
+
+        if classification != "non_monetary" and not tentative_fixed_asset:
             print(f"DEBUG DEP: [3] SKIPPING - classification is not non_monetary", flush=True)
             return 0.0, 0.0, "", {}
+
+        if tentative_fixed_asset:
+            print(f"DEBUG DEP: [3] OVERRIDE - unknown class accepted by fixed-asset code heuristic", flush=True)
 
         normalized_tags = [self._normalize_string(t) for t in (tags or [])]
         is_amortizable = any("amortizable" in t for t in normalized_tags)
@@ -768,22 +880,39 @@ class ARSDSPyEngine:
             return 0.0, 0.0, "", {}
 
         has_depreciable_tag = any("depreciable" in t for t in normalized_tags)
+        matched_field = self._normalize_string(str((rule or {}).get("matched_field", "")))
+        tag_from_weak_rule = bool(has_depreciable_tag and matched_field == "type")
 
         # Buscar configuración específica usando Smart Matching
         best_config, match_score = self._smart_match_asset_type(account.name, self.profile.depreciation_configs)
-        name_norm = self._normalize_string(account.name or "")
-        fixed_asset_tokens = [
-            "edificio", "mueble", "maquinaria", "equipo", "vehicul", "herramient",
-            "comput", "instal", "obra", "pozo", "canal", "silo", "galpon", "tinglado"
-        ]
+        strong_match = match_score >= 15
+        has_fixed_asset_name_signal = self._has_fixed_asset_name_signal(account.name or "")
+
+        non_depreciable_signals = ["intangible", "diferido", "amortiz", "acumulad"]
+        is_fixed_asset_code = bool(re.match(r"^1[6-9]", str(account.code or "")))
         likely_fixed_asset = (
-            bool(re.match(r"^1[6-9]", str(account.code or "")))
-            and any(token in name_norm for token in fixed_asset_tokens)
-            and not any(token in name_norm for token in ["intangible", "diferido", "amortiz"])
+            is_fixed_asset_code
+            and not any(token in name_norm for token in non_depreciable_signals)
+            and not is_office_supply
+            and not is_contra_account
         )
 
-        if not has_depreciable_tag and match_score < 15 and not likely_fixed_asset:
-            print(f"DEBUG DEP: [3.2] SKIPPING - no depreciable tag, no strong asset match, no fixed-asset code", flush=True)
+        has_reliable_depreciation_signal = (
+            strong_match
+            or has_fixed_asset_name_signal
+            or likely_fixed_asset
+            or (has_depreciable_tag and not tag_from_weak_rule)
+        )
+        if not has_reliable_depreciation_signal:
+            print(
+                f"DEBUG DEP: [3.2] SKIPPING - insufficient fixed-asset evidence "
+                f"(tag={has_depreciable_tag}, match={match_score}, fixed_name={has_fixed_asset_name_signal}, fixed_code={likely_fixed_asset})",
+                flush=True
+            )
+            return 0.0, 0.0, "", {}
+
+        if is_office_supply and not strong_match:
+            print(f"DEBUG DEP: [3.25] SKIPPING - office supply/consumable signal", flush=True)
             return 0.0, 0.0, "", {}
 
         print(f"DEBUG DEP: [4] Passed classification check", flush=True)
@@ -848,9 +977,36 @@ class ARSDSPyEngine:
     def calculate_aitb_pot(self, account: Account, params: AdjustmentParameters) -> Tuple[float, float, str, Dict]:
         """Cálculo AITB estricto NC 3 con Coeficiente Corrector"""
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
-        
-        # Solo cuentas no monetarias aplican AITB (NC 3)
-        if classification != "non_monetary":
+
+        name_norm = self._normalize_string(account.name or "")
+        type_norm = self._normalize_string(account.type or "")
+        is_office_supply = (
+            ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
+            and any(token in name_norm for token in ["material", "suministro", "insumo", "consumible"])
+        )
+        is_contra_account = (
+            any(signal in name_norm for signal in [
+                "depreciacion acumulada",
+                "amortizacion acumulada",
+                "agotamiento acumulado",
+                "deterioro acumulado"
+            ])
+            or "regul" in type_norm
+        )
+        tentative_fixed_asset = (
+            classification == "unknown"
+            and bool(re.match(r"^1[6-9]", str(account.code or "")))
+            and not is_office_supply
+            and not is_contra_account
+            and not any(token in name_norm for token in ["intangible", "diferido", "amortiz", "acumulad"])
+        )
+
+        # Solo cuentas no monetarias aplican AITB (NC 3), con fallback para activo fijo ambiguo.
+        if classification != "non_monetary" and not tentative_fixed_asset:
+            return 0.0, 0.0, "", {}
+
+        if self._has_monetary_name_signal(account):
+            print(f"DEBUG AITB: SKIPPING {account.name} - strong monetary semantic signal", flush=True)
             return 0.0, 0.0, "", {}
         
         # Cálculo con Coeficiente Corrector (CC)
@@ -888,9 +1044,36 @@ class ARSDSPyEngine:
         Sello de Contención 1: Activos Fijos NUNCA pueden clasificarse como monetarios.
         """
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
-        
-        # INVARIANTE: Cuentas no monetarias solamente
-        if classification != "non_monetary":
+
+        name_norm = self._normalize_string(account.name or "")
+        type_norm = self._normalize_string(account.type or "")
+        is_office_supply = (
+            ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
+            and any(token in name_norm for token in ["material", "suministro", "insumo", "consumible"])
+        )
+        is_contra_account = (
+            any(signal in name_norm for signal in [
+                "depreciacion acumulada",
+                "amortizacion acumulada",
+                "agotamiento acumulado",
+                "deterioro acumulado"
+            ])
+            or "regul" in type_norm
+        )
+        tentative_fixed_asset = (
+            classification == "unknown"
+            and bool(re.match(r"^1[6-9]", str(account.code or "")))
+            and not is_office_supply
+            and not is_contra_account
+            and not any(token in name_norm for token in ["intangible", "diferido", "amortiz", "acumulad"])
+        )
+
+        # INVARIANTE: Cuentas no monetarias solamente (con fallback fijo ambiguo)
+        if classification != "non_monetary" and not tentative_fixed_asset:
+            return 0.0, 0.0, "", {}
+
+        if self._has_monetary_name_signal(account):
+            print(f"DEBUG AoT: SKIPPING {account.name} - strong monetary semantic signal")
             return 0.0, 0.0, "", {}
         
         # Obtener trayectoria de movimientos para esta cuenta

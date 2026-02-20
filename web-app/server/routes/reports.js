@@ -1119,41 +1119,63 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             });
         };
 
+        const normalizeText = (value = '') =>
+            String(value)
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+
+        const keywordMatchesSearchable = (keyword, searchable, tokens) => {
+            const kw = normalizeText(keyword);
+            if (!kw) return false;
+            if (kw.includes(' ')) {
+                const phraseRegex = new RegExp(`\\b${kw.replace(/\s+/g, '\\s+')}\\b`, 'i');
+                return phraseRegex.test(searchable);
+            }
+            return tokens.has(kw) || Array.from(tokens).some(t =>
+                (t.startsWith(kw) || kw.startsWith(t)) &&
+                Math.min(t.length, kw.length) >= 4
+            );
+        };
+
+        const hasMonetarySignal = (account, profile) => {
+            const searchable = normalizeText(`${account?.code || ''} ${account?.name || ''}`);
+            const tokens = new Set(searchable.split(/[^a-z0-9]+/).filter(Boolean));
+            const monetaryConcepts = profile?.semantic_concepts?.monetary || [];
+            return monetaryConcepts.some(concept =>
+                (concept.keywords || []).some(keyword => keywordMatchesSearchable(keyword, searchable, tokens))
+            );
+        };
+
+        const ensureRegExp = (pattern) => {
+            if (pattern instanceof RegExp) return pattern;
+            if (pattern && typeof pattern === 'object' && pattern.source) {
+                return new RegExp(pattern.source, pattern.flags || 'i');
+            }
+            if (typeof pattern === 'string') {
+                const raw = pattern.trim();
+                const jsMatch = raw.match(/^\/(.*)\/([a-zA-Z]*)$/);
+                if (jsMatch) {
+                    const body = jsMatch[1];
+                    const flags = jsMatch[2] || 'i';
+                    return new RegExp(body, flags);
+                }
+                if (raw.startsWith('/') && raw.endsWith('/') && raw.length > 2) {
+                    return new RegExp(raw.slice(1, -1), 'i');
+                }
+                return new RegExp(raw, 'i');
+            }
+            return null;
+        };
+
         // Nueva función de clasificación usando el esquema semántico V2 + Inteligencia Jerárquica
         const classifyAccountV2 = (accountCode, accountName, profile, depth = 0) => {
             const code = accountCode || '';
             const name = accountName || '';
             const combined = `${code} ${name}`.toLowerCase();
-            const normalizeText = (value = '') =>
-                String(value)
-                    .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '')
-                    .toLowerCase();
 
             // 1. Evitar recursión infinita
             if (depth > 5) return { type: 'unknown', tags: [] };
-
-            // 2. Helper function para asegurar que pattern sea RegExp
-            const ensureRegExp = (pattern) => {
-                if (pattern instanceof RegExp) return pattern;
-                if (pattern && typeof pattern === 'object' && pattern.source) {
-                    return new RegExp(pattern.source, pattern.flags || 'i');
-                }
-                if (typeof pattern === 'string') {
-                    const raw = pattern.trim();
-                    const jsMatch = raw.match(/^\/(.*)\/([a-zA-Z]*)$/);
-                    if (jsMatch) {
-                        const body = jsMatch[1];
-                        const flags = jsMatch[2] || 'i';
-                        return new RegExp(body, flags);
-                    }
-                    if (raw.startsWith('/') && raw.endsWith('/') && raw.length > 2) {
-                        return new RegExp(raw.slice(1, -1), 'i');
-                    }
-                    return new RegExp(raw, 'i');
-                }
-                return null;
-            };
 
             const classifyBySemanticConcepts = () => {
                 const concepts = profile.semantic_concepts || {};
@@ -1172,16 +1194,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                         for (const keyword of keywords) {
                             const kw = normalizeText(keyword);
                             if (!kw) continue;
-                            let matched = false;
-                            if (kw.includes(' ')) {
-                                const phraseRegex = new RegExp(`\\b${kw.replace(/\s+/g, '\\s+')}\\b`, 'i');
-                                matched = phraseRegex.test(searchable);
-                            } else {
-                                matched = tokens.has(kw) || Array.from(tokens).some(t =>
-                                    (t.startsWith(kw) || kw.startsWith(t)) &&
-                                    Math.min(t.length, kw.length) >= 4
-                                );
-                            }
+                            const matched = keywordMatchesSearchable(kw, searchable, tokens);
 
                             if (matched) {
                                 matches.push(kw);
@@ -1267,8 +1280,11 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 if (parentAccount) {
                     const parentClassification = classifyAccountV2(parentAccount.code, parentAccount.name, profile, depth + 1);
                     if (parentClassification.type !== 'unknown') {
+                        const inheritedTags = (parentClassification.tags || [])
+                            .filter(tag => !/depreciable/i.test(String(tag)));
                         return {
                             ...parentClassification,
+                            tags: inheritedTags,
                             source_nc: `${parentClassification.source_nc} (Match vía Ancestro: ${parentAccount.name})`,
                             confidence: Math.max(0.7, parentClassification.confidence - 0.05)
                         };
@@ -1305,31 +1321,105 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             return { type: 'unknown', tags: ['Desconocido'], source_nc: 'PlanCuentas-PorDefecto' };
         };
 
-        // Función para verificar si es no monetario usando el nuevo sistema
-        const isNonMonetary = (accountCode, accountName) => {
-            const classification = classifyAccountV2(accountCode, accountName, params);
-            return classification.type === 'non_monetary';
-        };
+        // Matching robusto para determinar si una cuenta es realmente depreciable
+        const getDepreciationMatch = (account, profile, classification) => {
+            const name = account?.name || '';
+            const code = String(account?.code || '');
+            const type = normalizeText(account?.type || '');
+            const searchable = normalizeText(name);
+            const tokens = new Set(searchable.split(/[^a-z0-9]+/).filter(Boolean));
+            const depConfigs = profile?.depreciation_settings?.assets_life || [];
 
-        // Función para obtener configuración de depreciación
-        const getDepreciationConfig = (accountName, profile) => {
-            const name = accountName.toLowerCase();
+            const isContraAccount =
+                /(depreciacion acumulada|amortizacion acumulada|agotamiento acumulado|deterioro acumulado|estimacion|provision)/i.test(searchable) ||
+                /regul/.test(type);
+            if (isContraAccount) {
+                return { eligible: false, reason: 'contra_account', score: 0, config: null };
+            }
 
-            for (const config of profile.depreciation_settings.assets_life) {
-                if (name.includes(config.asset_type_keyword)) {
-                    return config;
+            const isOfficeSupply =
+                (searchable.includes('escritorio') || searchable.includes('papeleria') || searchable.includes('utiles')) &&
+                ['material', 'suministro', 'insumo', 'consumible'].some(token => searchable.includes(token));
+
+            let bestConfig = null;
+            let bestScore = 0;
+            const stopWords = new Set([
+                'de', 'del', 'la', 'las', 'el', 'los', 'y', 'o', 'por', 'para', 'con',
+                'en', 'a', 'al', 'un', 'una', 'unos', 'unas'
+            ]);
+
+            for (const config of depConfigs) {
+                const assetKeyword = normalizeText(config.asset_type_keyword || '');
+                let score = 0;
+
+                if (assetKeyword && searchable === assetKeyword) {
+                    score = 100;
+                } else if (assetKeyword && searchable.includes(assetKeyword)) {
+                    score = 50 + Math.min(assetKeyword.length, 40);
+                } else {
+                    const assetWords = new Set(
+                        assetKeyword
+                            .split(/[^a-z0-9]+/)
+                            .filter(w => w.length >= 4 && !stopWords.has(w))
+                    );
+                    const commonWords = Array.from(assetWords).filter(w => tokens.has(w));
+                    if (commonWords.length > 0) {
+                        score = commonWords.reduce((acc, w) => acc + (w.length * 5), 0);
+                    }
+                }
+
+                if (config.asset_type_regex) {
+                    try {
+                        const regex = ensureRegExp(config.asset_type_regex);
+                        if (regex && regex.test(searchable)) {
+                            score = Math.max(score, 90);
+                        }
+                    } catch (error) {
+                        // Ignorar regex inválido y continuar con score por keywords.
+                    }
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestConfig = config;
                 }
             }
 
-            // Configuración por defecto
+            const strongMatch = bestScore >= 15;
+            const isFixedAssetCode = /^1[6-9]/.test(code);
+            const likelyFixedAsset =
+                isFixedAssetCode &&
+                !/(intangible|diferido|amortiz|acumulad)/i.test(searchable) &&
+                !isOfficeSupply &&
+                !isContraAccount;
+            const hasDepreciableTag = Boolean(
+                (classification?.tags || []).some(tag => /depreciable/i.test(String(tag)))
+            );
+
+            const hasReliableSignal = strongMatch || likelyFixedAsset || hasDepreciableTag;
+            if (!hasReliableSignal) {
+                return { eligible: false, reason: 'no_reliable_signal', score: bestScore, config: null };
+            }
+
+            if (isOfficeSupply && !strongMatch) {
+                return { eligible: false, reason: 'office_supply', score: bestScore, config: null };
+            }
+
+            if (!bestConfig || bestScore < 15) {
+                const fallbackConfig = depConfigs.find(c =>
+                    normalizeText(c.asset_type_keyword || '').includes('activos fijos')
+                );
+                if (!fallbackConfig) {
+                    return { eligible: false, reason: 'no_fallback_config', score: bestScore, config: null };
+                }
+                bestConfig = fallbackConfig;
+            }
+
             return {
-                asset_type_keyword: "desconocido",
-                useful_life_years: 10,
-                calculation_method: "Linear",
-                annual_rate: 0.10,
-                monthly_rate_formula: "(VALUE * annual_rate) / 12",
-                nc_reference: "Por Defecto",
-                confidence_level: 0.50,
+                eligible: true,
+                score: bestScore,
+                config: bestConfig,
+                likelyFixedAsset
             };
         };
 
@@ -1387,7 +1477,12 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
         // 6. Generar Asientos de AITB (NC3) para rubros No Monetarios
         const aitbEntries = [];
         accountsWithBalance.forEach(acc => {
-            if (isNonMonetary(acc.code, acc.name)) {
+            const classification = classifyAccountV2(acc.code, acc.name, params);
+            const depMatchForAitb = getDepreciationMatch(acc, params, classification);
+            const hasStrongMonetarySignal = hasMonetarySignal(acc, params);
+            const isNonMonetaryForAitb =
+                classification.type === 'non_monetary' || depMatchForAitb.likelyFixedAsset === true;
+            if (isNonMonetaryForAitb && !hasStrongMonetarySignal) {
                 const balance = acc.balance !== undefined ? acc.balance : (acc.total_debit - acc.total_credit);
                 const adjustment = bankersRound(balance * (ccFactor - 1), 2);
 
@@ -1425,10 +1520,18 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
         }
 
         // 7. Depreciación de Activos Fijos
-        const fixedAssets = accountsWithBalance.filter(acc => {
-            const classification = classifyAccountV2(acc.code, acc.name, params);
-            return classification.tags && classification.tags.includes('Depreciable');
-        });
+        const fixedAssets = accountsWithBalance
+            .map(acc => {
+                const classification = classifyAccountV2(acc.code, acc.name, params);
+                const depMatch = getDepreciationMatch(acc, params, classification);
+                if (!depMatch.eligible) return null;
+                return {
+                    ...acc,
+                    _classification: classification,
+                    _depMatch: depMatch
+                };
+            })
+            .filter(Boolean);
 
         console.log(`Activos Fijos detectados: ${fixedAssets.length}`);
 
@@ -1437,11 +1540,12 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             const depAccumAccount = findAccountByPatterns(accountsWithBalances, params.depreciation_settings?.dep_accum_patterns || []);
 
             fixedAssets.forEach(asset => {
-                const depreciationConfig = getDepreciationConfig(asset.name, params);
+                const depreciationConfig = asset._depMatch.config;
                 const historicalBalance = asset.balance !== undefined ? asset.balance : (asset.total_debit - asset.total_credit);
 
                 // Aplicar AITB al valor del activo para base de depreciación (NC3)
-                const aitbAdjustment = isNonMonetary(asset.code, asset.name) ?
+                const hasStrongMonetarySignal = hasMonetarySignal(asset, params);
+                const aitbAdjustment = (asset._classification?.type === 'non_monetary' && !hasStrongMonetarySignal) ?
                     bankersRound(historicalBalance * (ccFactor - 1), 2) : 0;
                 const adjustedValue = historicalBalance + aitbAdjustment;
 
