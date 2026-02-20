@@ -114,6 +114,8 @@ class AdjustmentParameters(BaseModel):
     ledger_trajectories: Optional[Dict[str, List[Any]]] = Field(default_factory=dict, description="{account_code: [movements]}")
     ufv_cache: Optional[Dict[str, float]] = Field(default_factory=dict, description="{date: ufv_value}")
     use_trajectory_mode: bool = Field(False, description="Habilitar cálculo por trayectoria AoT")
+    trajectory_start_date: Optional[str] = Field(None, description="Fecha de inicio para trayectoria (YYYY-MM-DD)")
+    trajectory_end_date: Optional[str] = Field(None, description="Fecha de fin para trayectoria (YYYY-MM-DD)")
     api_base_url: Optional[str] = Field(None, description="Base URL del middleware Node.js")
     api_base_url_candidates: Optional[List[str]] = Field(default_factory=list, description="Lista de base URLs candidatas del middleware Node.js")
     debug_trace: bool = Field(False, description="Incluir traza diagnóstica por cuenta")
@@ -1120,143 +1122,91 @@ class ARSDSPyEngine:
     
     def calculate_aitb_trajectory(self, account: Account, params: AdjustmentParameters) -> Tuple[float, float, str, Dict]:
         """
-        V8.0 AoT: Cálculo AITB por trayectoria de movimientos.
-        Cada movimiento es un 'átomo' que se ajusta individualmente con su UFV de fecha.
-        
-        Sello de Contención 1: Activos Fijos NUNCA pueden clasificarse como monetarios.
+        V8.1 AoT: Cálculo AITB por trayectoria de movimientos.
+        Incluye ajuste del Saldo Inicial (Opening Balance) y cada átomo individual.
         """
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
         aitb_rule = dict(rule or {})
 
         name_norm = self._normalize_string(account.name or "")
-        type_norm = self._normalize_string(account.type or "")
-        is_nc3_excluded = self._is_nc3_excluded(account.name or "")
-        is_result_account = self._is_result_account_for_aitb(account)
-        is_office_supply = (
-            ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
-            and any(token in name_norm for token in ["material", "suministro", "insumo", "consumible"])
-        )
-        is_contra_account = (
-            any(signal in name_norm for signal in [
-                "depreciacion acumulada",
-                "amortizacion acumulada",
-                "agotamiento acumulado",
-                "deterioro acumulado"
-            ])
-            or "regul" in type_norm
-        )
-        tentative_fixed_asset = (
-            classification == "unknown"
-            and bool(re.match(r"^1[6-9]", str(account.code or "")))
-            and not is_office_supply
-            and not is_contra_account
-            and not any(token in name_norm for token in ["intangible", "diferido", "amortiz", "acumulad"])
-        )
-
-        if is_nc3_excluded:
+        if self._is_nc3_excluded(account.name or ""):
             return 0.0, 0.0, "[SKIP-AITB-AOT] nc3_excluded", {"skip_reason": "nc3_excluded"}
 
-        # INVARIANTE: Cuentas no monetarias solamente (con fallback fijo ambiguo)
-        # y excepción controlada para cuentas de resultado.
-        if classification != "non_monetary" and not tentative_fixed_asset and not is_result_account:
-            return 0.0, 0.0, "[SKIP-AITB-AOT] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
+        if classification != "non_monetary" and not self._is_result_account_for_aitb(account):
+             if not bool(re.match(r"^1[6-9]", str(account.code or ""))):
+                return 0.0, 0.0, "[SKIP-AITB-AOT] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
-        if is_result_account and classification != "non_monetary":
-            aitb_rule["aitb_override"] = "result_account"
-            aitb_rule["result_account_detected"] = True
-
-        if self._has_monetary_name_signal(account, include_resultado=False):
-            print(f"DEBUG AoT: SKIPPING {account.name} - strong monetary semantic signal")
-            return 0.0, 0.0, "[SKIP-AITB-AOT] strong_monetary_semantic_signal", {"skip_reason": "strong_monetary_semantic_signal"}
-        
-        # Obtener trayectoria de movimientos para esta cuenta
+        # Obtener trayectoria de movimientos
         raw_trajectory = params.ledger_trajectories.get(account.code, [])
         if not raw_trajectory:
-            # Fallback a cálculo por saldo si no hay trayectoria
             print(f"DEBUG AoT: No trajectory for {account.code}, falling back to balance-based")
             return self.calculate_aitb_pot(account, params)
-        
-        # V8.0 FIX: Convert dict objects to proper access (middleware sends dicts, not Pydantic models)
-        trajectory = []
-        for mov in raw_trajectory:
-            if isinstance(mov, dict):
-                trajectory.append(mov)
-            else:
-                # Already a LedgerMovement object
-                trajectory.append(mov.dict() if hasattr(mov, 'dict') else mov)
         
         ufv_final = params.ufv_final
         total_adjustment = 0.0
         atoms_processed = []
         confidence_sum = 0.0
         
-        print(f"DEBUG AoT [{account.code}]: Processing {len(trajectory)} movements. UFV_final: {ufv_final}")
-        print(f"DEBUG AoT [{account.code}]: UFV Cache has {len(params.ufv_cache or {})} entries")
+        # 1. Ajustar el Saldo de Apertura (Opening Balance)
+        # El saldo inicial es la parte del saldo actual NO explicada por la trayectoria del periodo.
+        net_trajectory_sum = 0.0
+        for mov in raw_trajectory:
+            net_trajectory_sum += float(mov.get('debit', 0) if isinstance(mov, dict) else mov.debit)
+            net_trajectory_sum -= float(mov.get('credit', 0) if isinstance(mov, dict) else mov.credit)
+            
+        opening_balance = account.balance - net_trajectory_sum
         
-        for mov in trajectory:
-            # V8.0 FIX: Access dict keys properly
+        # Si hay un saldo de apertura material, ajustarlo desde la fecha de inicio del periodo
+        if abs(opening_balance) > 0.01:
+            ufv_initial_date = params.trajectory_start_date or params.fiscal_end_date[:4] + "-01-01"
+            ufv_at_start = (params.ufv_cache or {}).get(ufv_initial_date, params.ufv_initial)
+            
+            if ufv_at_start and ufv_at_start > 0:
+                cc_opening = ufv_final / ufv_at_start
+                if cc_opening > 1.000001:
+                    adj_opening = bankersRound(opening_balance * (cc_opening - 1), 2)
+                    total_adjustment += adj_opening
+                    atoms_processed.append({
+                        "date": f"Opening ({ufv_initial_date})",
+                        "amount": opening_balance,
+                        "ufv": ufv_at_start,
+                        "cc": round(cc_opening, 6),
+                        "adjustment": adj_opening
+                    })
+                    confidence_sum += 0.90
+                    print(f"DEBUG AoT [{account.code}]: Opening balance {opening_balance:.2f} adjusted by {adj_opening:.2f} (UFV start: {ufv_at_start})")
+
+        # 2. Ajustar cada átomo de la trayectoria
+        for mov in raw_trajectory:
             mov_date = mov.get('date', '') if isinstance(mov, dict) else mov.date
             mov_debit = float(mov.get('debit', 0) if isinstance(mov, dict) else mov.debit)
             mov_credit = float(mov.get('credit', 0) if isinstance(mov, dict) else mov.credit)
             mov_ufv = mov.get('ufv_at_date') if isinstance(mov, dict) else getattr(mov, 'ufv_at_date', None)
             
-            # Obtener UFV de la fecha del movimiento
-            # Priority: mov.ufv_at_date > ufv_cache > fallback to ufv_final (last resort)
-            ufv_at_date = mov_ufv
-            if ufv_at_date is None or ufv_at_date == 0:
-                ufv_at_date = (params.ufv_cache or {}).get(mov_date, ufv_final)
+            ufv_at_date = mov_ufv or (params.ufv_cache or {}).get(mov_date, ufv_final)
+            if not ufv_at_date or ufv_at_date == 0: continue
             
-            if ufv_at_date == 0 or ufv_at_date is None:
-                print(f"DEBUG AoT [{account.code}]: Skipping movement {mov_date} - no UFV found")
-                continue
-            
-            # Calcular Coeficiente Corrector para este átomo
             cc = ufv_final / ufv_at_date
+            net_mov = mov_debit - mov_credit
             
-            # Movimiento neto (Debit = aumenta saldo deudor, Credit = disminuye)
-            net_amount = mov_debit - mov_credit
-            
-            print(f"DEBUG AoT [{account.code}]: Date={mov_date}, Debit={mov_debit}, Credit={mov_credit}, Net={net_amount}, UFV={ufv_at_date}, CC={cc:.6f}")
-            
-            # Solo procesar si hay inflación significativa
-            if abs(net_amount) > 0.01 and cc > 1.0:
-                partial_adjustment = bankersRound(net_amount * (cc - 1), 2)
-                total_adjustment = bankersRound(total_adjustment + partial_adjustment, 2)
-                
-                print(f"DEBUG AoT [{account.code}]: Partial adjustment = {partial_adjustment}, Running total = {total_adjustment}")
-                
+            if abs(net_mov) > 0.01 and cc > 1.000001:
+                partial_adj = bankersRound(net_mov * (cc - 1), 2)
+                total_adjustment += partial_adj
                 atoms_processed.append({
                     "date": mov_date,
-                    "amount": net_amount,
+                    "amount": net_mov,
                     "ufv": ufv_at_date,
                     "cc": round(cc, 6),
-                    "adjustment": partial_adjustment
+                    "adjustment": partial_adj
                 })
-                confidence_sum += 0.95  # Base confidence for each atom
-        
-        # Confianza promedio de los átomos procesados
+                confidence_sum += 0.95
+
         atom_count = len(atoms_processed)
-        avg_confidence = (confidence_sum / atom_count) if atom_count > 0 else 0.0
-        
-        # Aplicar redondeo bancario final y valor absoluto
-        # V8.0 FIX: Net amount is negative for Credit accounts (Income/Liability)
-        # We need the MAGNITUDE of the adjustment. _create_aitb_transaction handles the direction.
+        avg_confidence = (confidence_sum / atom_count) if atom_count > 0 else 0.85
         final_adjustment = bankersRound(abs(total_adjustment), 2)
-        print(f"DEBUG AoT [{account.code}]: Raw total = {total_adjustment}. Final Magnitude = {final_adjustment} from {atom_count} atoms")
         
-        # Determinar proveniencia (Shorter CoT)
-        provenance_str = f"Regla: {aitb_rule.get('source_nc', 'AI-AoT')}"
-        if aitb_rule.get('source_nc') == "Mahoraga-SCL-Adaptation":
-            provenance_str = f"⚡ MAHORAGA TRAYECTORIA: {aitb_rule.get('provenance', {}).get('reason', 'Aprendido')}"
-        if aitb_rule.get("aitb_override") == "result_account":
-            provenance_str += " | Override Resultado-AITB"
-        
-        # Audit trail conciso (Shorter CoT)
-        # Audit trail conciso (Shorter CoT)
-        audit_trail = f"[AITB-AoT] {account.code}: {atom_count} átomos. {provenance_str}. Total Magnitud: {final_adjustment:.2f} Bs ({total_adjustment:.2f} neto)"
-        
-        # Enriched rule with trajectory metadata
-        enriched_rule = {**aitb_rule, "aot_atoms": atom_count, "aot_mode": True}
+        audit_trail = f"[AITB-AoT] {account.code}: {atom_count} ítems. Total Magnitud: {final_adjustment:.2f} Bs."
+        enriched_rule = {**aitb_rule, "aot_atoms": atom_count, "aot_mode": True, "opening_balance_adj": abs(opening_balance) > 0.01}
         
         return final_adjustment, avg_confidence, audit_trail, enriched_rule
     
@@ -2040,7 +1990,91 @@ async def generate_from_ledger(request: AdjustmentRequest):
             # El motor generate_adjustments saltará las de saldo 0 para procesamiento,
             # pero las usará como catálogo para matching.
             request.accounts = full_account_list
-            
+
+
+            # V8.1 FIX: Ensure trajectory data is available when trajectory mode is enabled.
+            # The Node middleware enriches the request with ledger_trajectories and ufv_cache,
+            # but this can fail silently (e.g. self-referential HTTP calls in serverless).
+            # If trajectory mode is on but data is missing, fetch it directly from Python.
+            has_trajectories = bool(request.parameters.ledger_trajectories)
+            if request.parameters.use_trajectory_mode and not has_trajectories:
+                print("⚡ [generate-from-ledger] Trajectory mode ON but ledger_trajectories empty. Fetching from Python side...")
+                try:
+                    # Determine fiscal date range from parameters or request
+                    traj_start = request.parameters.trajectory_start_date
+                    traj_end = request.parameters.trajectory_end_date or request.parameters.fiscal_end_date
+
+                    detail_params = {
+                        "companyId": request.company_id,
+                        "excludeAdjustments": True,
+                        "excludeClosing": True
+                    }
+                    if traj_start:
+                        detail_params["startDate"] = traj_start
+                    if traj_end:
+                        detail_params["endDate"] = traj_end
+
+                    detail_response = await client.get(
+                        f"{api_url}/api/reports/ledger-details",
+                        params=detail_params,
+                        timeout=45.0
+                    )
+
+                    if detail_response.status_code == 200:
+                        detail_data = detail_response.json().get("data", [])
+                        print(f"   [AoT-Backup] Fetched {len(detail_data)} detail rows from ledger-details")
+
+                        # Build trajectories dict keyed by account_code
+                        trajectories = {}
+                        unique_dates = set()
+                        for row in detail_data:
+                            acct_code = str(row.get("account_code", "")).strip()
+                            mov_date = str(row.get("date", ""))[:10]
+                            if not acct_code or not mov_date:
+                                continue
+                            if acct_code not in trajectories:
+                                trajectories[acct_code] = []
+                            trajectories[acct_code].append({
+                                "date": mov_date,
+                                "debit": float(row.get("debit", 0) or 0),
+                                "credit": float(row.get("credit", 0) or 0),
+                                "ufv_at_date": None,
+                                "gloss": row.get("entry_glosa") or row.get("glosa") or ""
+                            })
+                            unique_dates.add(mov_date)
+
+                        # Fetch UFV values for all unique dates
+                        ufv_cache = {}
+                        if unique_dates:
+                            try:
+                                ufv_response = await client.post(
+                                    f"{api_url}/api/ufv/batch",
+                                    json={"companyId": request.company_id, "dates": list(unique_dates)},
+                                    timeout=30.0
+                                )
+                                if ufv_response.status_code == 200:
+                                    ufv_cache = ufv_response.json().get("data", {})
+                                    print(f"   [AoT-Backup] UFV cache loaded: {len(ufv_cache)} entries")
+                            except Exception as ufv_err:
+                                print(f"   [AoT-Backup] UFV batch fetch failed: {ufv_err}")
+
+                        # Inject UFV values into each trajectory movement
+                        for acct_code, movements in trajectories.items():
+                            for mov in movements:
+                                mov["ufv_at_date"] = ufv_cache.get(mov["date"])
+
+                        # Set the trajectory data on the request parameters
+                        request.parameters.ledger_trajectories = trajectories
+                        request.parameters.ufv_cache = ufv_cache
+                        print(f"   [AoT-Backup] Trajectories built: {len(trajectories)} accounts, {sum(len(v) for v in trajectories.values())} total movements")
+                    else:
+                        print(f"   [AoT-Backup] ledger-details returned status {detail_response.status_code}, trajectory mode will fallback to PoT")
+
+                except Exception as traj_err:
+                    print(f"   [AoT-Backup] Trajectory backup fetch failed: {traj_err}. Falling back to PoT.")
+            elif request.parameters.use_trajectory_mode and has_trajectories:
+                print(f"✅ [generate-from-ledger] Trajectory data already present from Node middleware: {len(request.parameters.ledger_trajectories)} accounts")
+
             # V6.0 FIX: Usar motor dinámico con perfil inyectado para respetar reglas aprendidas
             if request.profile_schema:
                 print(f"🔄 [generate-from-ledger] Usando perfil dinámico con {len(request.profile_schema.get('monetary_rules', []))} reglas M, {len(request.profile_schema.get('non_monetary_rules', []))} reglas NM")
