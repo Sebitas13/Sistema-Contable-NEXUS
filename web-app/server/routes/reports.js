@@ -1200,13 +1200,55 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             );
         };
 
-        const hasMonetarySignal = (account, profile) => {
+        const hasMonetarySignal = (account, profile, includeResultado = true) => {
             const searchable = normalizeText(`${account?.code || ''} ${account?.name || ''}`);
             const tokens = new Set(searchable.split(/[^a-z0-9]+/).filter(Boolean));
             const monetaryConcepts = profile?.semantic_concepts?.monetary || [];
-            return monetaryConcepts.some(concept =>
-                (concept.keywords || []).some(keyword => keywordMatchesSearchable(keyword, searchable, tokens))
+            return monetaryConcepts.some(concept => {
+                const conceptName = normalizeText(concept?.concept || '');
+                const conceptTags = (concept?.tags || []).map(tag => normalizeText(tag));
+                const isResultadoConcept =
+                    conceptName.includes('resultado') ||
+                    conceptTags.some(tag => tag.includes('resultado'));
+                if (!includeResultado && isResultadoConcept) {
+                    return false;
+                }
+                return (concept.keywords || []).some(keyword => keywordMatchesSearchable(keyword, searchable, tokens));
+            });
+        };
+
+        const isResultAccountForAitb = (account) => {
+            const code = String(account?.code || '');
+            const name = normalizeText(account?.name || '');
+            const type = normalizeText(account?.type || '');
+            const tokens = new Set(name.split(/[^a-z0-9]+/).filter(Boolean));
+
+            if (/^[4-6]/.test(code)) return true;
+            if (['ingreso', 'egreso', 'gasto', 'costo', 'resultado'].some(k => type.includes(k))) {
+                return true;
+            }
+
+            const resultKeywords = [
+                'ingreso', 'ingresos', 'egreso', 'egresos', 'gasto', 'gastos',
+                'costo', 'costos', 'venta', 'ventas', 'compra', 'compras',
+                'honorario', 'honorarios', 'sueldo', 'sueldos', 'salario', 'salarios',
+                'resultado'
+            ];
+            return resultKeywords.some(keyword =>
+                tokens.has(keyword) || Array.from(tokens).some(token => token.startsWith(keyword))
             );
+        };
+
+        const isNc3ExcludedFromAitb = (account) => {
+            const name = normalizeText(account?.name || '');
+            const exclusions = [
+                'ajuste por inflacion',
+                'diferencia de cambio',
+                'mantenimiento de valor',
+                'exposicion a la inflacion',
+                'perdidas y ganancias'
+            ];
+            return exclusions.some(exc => name.includes(exc));
         };
 
         const ensureRegExp = (pattern) => {
@@ -1548,9 +1590,15 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
         accountsWithBalance.forEach(acc => {
             const classification = classifyAccountV2(acc.code, acc.name, params);
             const depMatchForAitb = getDepreciationMatch(acc, params, classification);
-            const hasStrongMonetarySignal = hasMonetarySignal(acc, params);
+            const isResultAccount = isResultAccountForAitb(acc);
+            const isNc3Excluded = isNc3ExcludedFromAitb(acc);
+            const hasStrongMonetarySignal = hasMonetarySignal(acc, params, false);
             const isNonMonetaryForAitb =
-                classification.type === 'non_monetary' || depMatchForAitb.likelyFixedAsset === true;
+                !isNc3Excluded && (
+                    classification.type === 'non_monetary' ||
+                    depMatchForAitb.likelyFixedAsset === true ||
+                    isResultAccount
+                );
             diagnostics.accountsAnalyzed += 1;
             if (isNonMonetaryForAitb && !hasStrongMonetarySignal) {
                 diagnostics.aitbEligible += 1;
@@ -1563,6 +1611,8 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                     tags: classification.tags || [],
                     aitbEligible: isNonMonetaryForAitb && !hasStrongMonetarySignal,
                     hasMonetarySignal: hasStrongMonetarySignal,
+                    resultAccount: isResultAccount,
+                    nc3Excluded: isNc3Excluded,
                     depCandidate: depMatchForAitb.eligible,
                     depReason: depMatchForAitb.reason || null,
                     depScore: depMatchForAitb.score || 0

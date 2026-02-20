@@ -584,7 +584,7 @@ class ARSDSPyEngine:
             for tok in searchable_tokens
         )
 
-    def _has_monetary_name_signal(self, account: Account) -> bool:
+    def _has_monetary_name_signal(self, account: Account, include_resultado: bool = True) -> bool:
         """Monetary guardrail to prevent AITB over monetary-looking accounts."""
         profile_data = getattr(self.profile, "profile_data", {}) or {}
         semantic_concepts = profile_data.get("semantic_concepts", {}) or {}
@@ -596,9 +596,42 @@ class ARSDSPyEngine:
             return False
 
         for concept in monetary_concepts:
+            concept_name_norm = self._normalize_string(str(concept.get("concept", "")))
+            concept_tags_norm = [self._normalize_string(str(t)) for t in (concept.get("tags", []) or [])]
+            is_result_concept = (
+                "resultado" in concept_name_norm
+                or any("resultado" in tag for tag in concept_tags_norm)
+            )
+            if not include_resultado and is_result_concept:
+                continue
             for keyword in (concept.get("keywords", []) or []):
                 if self._keyword_matches_searchable(str(keyword), searchable, searchable_tokens):
                     return True
+        return False
+
+    def _is_result_account_for_aitb(self, account: Account) -> bool:
+        """Detecta cuentas de resultado (ingresos/gastos/costos) candidatas a AITB."""
+        code = str(account.code or "")
+        name_norm = self._normalize_string(account.name or "")
+        type_norm = self._normalize_string(account.type or "")
+        tokens = set(re.findall(r"[a-z0-9]+", name_norm))
+
+        if code.startswith(("4", "5", "6")):
+            return True
+
+        if any(x in type_norm for x in ["ingreso", "egreso", "gasto", "costo", "resultado"]):
+            return True
+
+        result_keywords = [
+            "ingreso", "ingresos", "egreso", "egresos", "gasto", "gastos",
+            "costo", "costos", "venta", "ventas", "compra", "compras",
+            "honorario", "honorarios", "sueldo", "sueldos", "salario", "salarios",
+            "resultado"
+        ]
+        for keyword in result_keywords:
+            if keyword in tokens or any(tok.startswith(keyword) for tok in tokens):
+                return True
+
         return False
 
     def _has_fixed_asset_name_signal(self, account_name: str) -> bool:
@@ -1013,9 +1046,12 @@ class ARSDSPyEngine:
     def calculate_aitb_pot(self, account: Account, params: AdjustmentParameters) -> Tuple[float, float, str, Dict]:
         """Cálculo AITB estricto NC 3 con Coeficiente Corrector"""
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
+        aitb_rule = dict(rule or {})
 
         name_norm = self._normalize_string(account.name or "")
         type_norm = self._normalize_string(account.type or "")
+        is_nc3_excluded = self._is_nc3_excluded(account.name or "")
+        is_result_account = self._is_result_account_for_aitb(account)
         is_office_supply = (
             ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
             and any(token in name_norm for token in ["material", "suministro", "insumo", "consumible"])
@@ -1037,11 +1073,19 @@ class ARSDSPyEngine:
             and not any(token in name_norm for token in ["intangible", "diferido", "amortiz", "acumulad"])
         )
 
-        # Solo cuentas no monetarias aplican AITB (NC 3), con fallback para activo fijo ambiguo.
-        if classification != "non_monetary" and not tentative_fixed_asset:
+        if is_nc3_excluded:
+            return 0.0, 0.0, "[SKIP-AITB] nc3_excluded", {"skip_reason": "nc3_excluded"}
+
+        # Solo cuentas no monetarias aplican AITB (NC 3), con fallback para activo fijo ambiguo
+        # y excepción controlada para cuentas de resultado (ingresos/gastos/costos).
+        if classification != "non_monetary" and not tentative_fixed_asset and not is_result_account:
             return 0.0, 0.0, "[SKIP-AITB] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
-        if self._has_monetary_name_signal(account):
+        if is_result_account and classification != "non_monetary":
+            aitb_rule["aitb_override"] = "result_account"
+            aitb_rule["result_account_detected"] = True
+
+        if self._has_monetary_name_signal(account, include_resultado=False):
             print(f"DEBUG AITB: SKIPPING {account.name} - strong monetary semantic signal", flush=True)
             return 0.0, 0.0, "[SKIP-AITB] strong_monetary_semantic_signal", {"skip_reason": "strong_monetary_semantic_signal"}
         
@@ -1064,13 +1108,15 @@ class ARSDSPyEngine:
         adjustment_amount = account.balance * (cc - 1)
         adaptive_confidence, adaptive_rule = self.calculate_adaptive_confidence(account, "aitb", 0.95)
         
-        provenance_str = f"Regla: {rule.get('source_nc', 'AI')}"
-        if rule.get('source_nc') == "Mahoraga-SCL-Adaptation":
-             provenance_str = f"⚡ MAHORAGA ADAPTADO: {rule.get('provenance', {}).get('reason', 'Corrección Manual')} (Evento: {rule.get('provenance', {}).get('event_id', '?')})"
+        provenance_str = f"Regla: {aitb_rule.get('source_nc', 'AI')}"
+        if aitb_rule.get('source_nc') == "Mahoraga-SCL-Adaptation":
+             provenance_str = f"⚡ MAHORAGA ADAPTADO: {aitb_rule.get('provenance', {}).get('reason', 'Corrección Manual')} (Evento: {aitb_rule.get('provenance', {}).get('event_id', '?')})"
+        if aitb_rule.get("aitb_override") == "result_account":
+            provenance_str += " | Override Resultado-AITB"
              
-        audit_trail = f"[AITB] {account.code}: {provenance_str}. CC={cc:.6f}. NC-3 Art.4. Base: {rule.get('pattern', 'Gral')}."
+        audit_trail = f"[AITB] {account.code}: {provenance_str}. CC={cc:.6f}. NC-3 Art.4. Base: {aitb_rule.get('pattern', 'Gral')}."
         
-        return adjustment_amount, adaptive_confidence, audit_trail, rule
+        return adjustment_amount, adaptive_confidence, audit_trail, aitb_rule
     
     def calculate_aitb_trajectory(self, account: Account, params: AdjustmentParameters) -> Tuple[float, float, str, Dict]:
         """
@@ -1080,9 +1126,12 @@ class ARSDSPyEngine:
         Sello de Contención 1: Activos Fijos NUNCA pueden clasificarse como monetarios.
         """
         classification, base_confidence, tags, rule = self.classify_account_semantic(account)
+        aitb_rule = dict(rule or {})
 
         name_norm = self._normalize_string(account.name or "")
         type_norm = self._normalize_string(account.type or "")
+        is_nc3_excluded = self._is_nc3_excluded(account.name or "")
+        is_result_account = self._is_result_account_for_aitb(account)
         is_office_supply = (
             ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
             and any(token in name_norm for token in ["material", "suministro", "insumo", "consumible"])
@@ -1104,11 +1153,19 @@ class ARSDSPyEngine:
             and not any(token in name_norm for token in ["intangible", "diferido", "amortiz", "acumulad"])
         )
 
+        if is_nc3_excluded:
+            return 0.0, 0.0, "[SKIP-AITB-AOT] nc3_excluded", {"skip_reason": "nc3_excluded"}
+
         # INVARIANTE: Cuentas no monetarias solamente (con fallback fijo ambiguo)
-        if classification != "non_monetary" and not tentative_fixed_asset:
+        # y excepción controlada para cuentas de resultado.
+        if classification != "non_monetary" and not tentative_fixed_asset and not is_result_account:
             return 0.0, 0.0, "[SKIP-AITB-AOT] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
-        if self._has_monetary_name_signal(account):
+        if is_result_account and classification != "non_monetary":
+            aitb_rule["aitb_override"] = "result_account"
+            aitb_rule["result_account_detected"] = True
+
+        if self._has_monetary_name_signal(account, include_resultado=False):
             print(f"DEBUG AoT: SKIPPING {account.name} - strong monetary semantic signal")
             return 0.0, 0.0, "[SKIP-AITB-AOT] strong_monetary_semantic_signal", {"skip_reason": "strong_monetary_semantic_signal"}
         
@@ -1188,16 +1245,18 @@ class ARSDSPyEngine:
         print(f"DEBUG AoT [{account.code}]: Raw total = {total_adjustment}. Final Magnitude = {final_adjustment} from {atom_count} atoms")
         
         # Determinar proveniencia (Shorter CoT)
-        provenance_str = f"Regla: {rule.get('source_nc', 'AI-AoT')}"
-        if rule.get('source_nc') == "Mahoraga-SCL-Adaptation":
-            provenance_str = f"⚡ MAHORAGA TRAYECTORIA: {rule.get('provenance', {}).get('reason', 'Aprendido')}"
+        provenance_str = f"Regla: {aitb_rule.get('source_nc', 'AI-AoT')}"
+        if aitb_rule.get('source_nc') == "Mahoraga-SCL-Adaptation":
+            provenance_str = f"⚡ MAHORAGA TRAYECTORIA: {aitb_rule.get('provenance', {}).get('reason', 'Aprendido')}"
+        if aitb_rule.get("aitb_override") == "result_account":
+            provenance_str += " | Override Resultado-AITB"
         
         # Audit trail conciso (Shorter CoT)
         # Audit trail conciso (Shorter CoT)
         audit_trail = f"[AITB-AoT] {account.code}: {atom_count} átomos. {provenance_str}. Total Magnitud: {final_adjustment:.2f} Bs ({total_adjustment:.2f} neto)"
         
         # Enriched rule with trajectory metadata
-        enriched_rule = {**rule, "aot_atoms": atom_count, "aot_mode": True}
+        enriched_rule = {**aitb_rule, "aot_atoms": atom_count, "aot_mode": True}
         
         return final_adjustment, avg_confidence, audit_trail, enriched_rule
     
