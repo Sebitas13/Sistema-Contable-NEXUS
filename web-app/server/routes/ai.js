@@ -58,13 +58,29 @@ const buildApiBaseUrlCandidates = (req, runtimeBaseUrl, explicitBaseUrl = '') =>
   const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
   const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
 
-  const rawCandidates = [
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  const rawCandidates = isDev ? [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
     explicitBaseUrl,
     runtimeBaseUrl,
     process.env.API_BASE_URL || '',
     host ? `${protocol}://${host}` : '',
+    'http://host.docker.internal:3000',
+    'http://host.docker.internal:3001'
+  ] : [
+    explicitBaseUrl,
+    runtimeBaseUrl,
+    process.env.API_BASE_URL || '',
+    host ? `${protocol}://${host}` : '',
+    'http://localhost:3000',
     'http://localhost:3001',
+    'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
+    'http://host.docker.internal:3000',
     'http://host.docker.internal:3001'
   ];
 
@@ -535,7 +551,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
   console.log("\n" + "=".repeat(80));
   console.log(`ðŸš€ [LOG] Endpoint /api/ai/adjustments/generate-from-ledger HIT`);
   console.log(`â° [LOG] Timestamp: ${new Date().toISOString()}`);
-  
+
   let companyId = req.body.company_id || req.body.parameters?.companyId || req.body.companyId;
   const runtimeBaseUrl = resolveRuntimeBaseUrl(req);
 

@@ -1876,12 +1876,16 @@ async def generate_from_ledger(request: AdjustmentRequest):
         
         # Permitir que el middleware Node.js inyecte su URL en runtime (útil en serverless/proxy).
         requested_api_url = (request.parameters.api_base_url or "").strip()
+        # V8.2 FIX: Prioritize localhost ports for local development overriding production .env
         raw_candidate_urls = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
             requested_api_url,
             *(request.parameters.api_base_url_candidates or []),
             os.getenv("API_BASE_URL", ""),
-            "http://localhost:3001",
-            "http://127.0.0.1:3001",
+            "http://host.docker.internal:3000",
             "http://host.docker.internal:3001"
         ]
         api_url_candidates: List[str] = []
