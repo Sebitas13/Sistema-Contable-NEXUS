@@ -529,6 +529,93 @@ class ARSDSPyEngine:
                 return True
         return False
 
+    def _classify_by_semantic_concepts(self, account: Account) -> Optional[Tuple[str, float, List[str], Dict[str, Any]]]:
+        """
+        Clasificación semántica basada en `semantic_concepts` del perfil.
+        Reduce dependencia de heurísticas rígidas por código.
+        """
+        profile_data = getattr(self.profile, "profile_data", {}) or {}
+        semantic_concepts = profile_data.get("semantic_concepts", {}) or {}
+        monetary_concepts = semantic_concepts.get("monetary", []) or []
+        non_monetary_concepts = semantic_concepts.get("non_monetary", []) or []
+
+        searchable = self._normalize_string(f"{account.name or ''} {account.type or ''}")
+        searchable_tokens = set(re.findall(r"[a-z0-9]+", searchable))
+        if not searchable:
+            return None
+
+        def score_concepts(concepts: List[Dict[str, Any]]):
+            best_score = 0.0
+            best_tags: List[str] = []
+            best_concept = "Unknown"
+            best_matches: List[str] = []
+
+            for concept in concepts:
+                keywords = concept.get("keywords", []) or []
+                concept_score = 0.0
+                matches: List[str] = []
+                for keyword in keywords:
+                    kw_norm = self._normalize_string(str(keyword))
+                    if not kw_norm:
+                        continue
+                    if " " in kw_norm:
+                        phrase_regex = r"\b" + re.escape(kw_norm).replace(r"\ ", r"\s+") + r"\b"
+                        matched = re.search(phrase_regex, searchable) is not None
+                    else:
+                        matched = kw_norm in searchable_tokens or any(
+                            (tok.startswith(kw_norm) or kw_norm.startswith(tok)) and min(len(tok), len(kw_norm)) >= 4
+                            for tok in searchable_tokens
+                        )
+
+                    if matched:
+                        matches.append(kw_norm)
+                        # Favorecer keywords más específicas sin sobreponderar términos largos.
+                        concept_score += 1.0 + min(len(kw_norm), 12) / 20.0
+
+                if concept_score > best_score:
+                    best_score = concept_score
+                    best_tags = concept.get("tags", []) or []
+                    best_concept = concept.get("concept", "Unknown")
+                    best_matches = matches
+
+            return best_score, best_tags, best_concept, best_matches
+
+        m_score, m_tags, m_concept, m_matches = score_concepts(monetary_concepts)
+        nm_score, nm_tags, nm_concept, nm_matches = score_concepts(non_monetary_concepts)
+
+        # Sin evidencia semántica suficiente.
+        if m_score <= 0 and nm_score <= 0:
+            return None
+
+        # Empate técnico: dejar que otros fallbacks decidan.
+        if abs(m_score - nm_score) < 0.25:
+            return None
+
+        if m_score > nm_score:
+            confidence = min(0.92, 0.65 + m_score * 0.08)
+            return (
+                "monetary",
+                confidence,
+                m_tags or ["Monetario-Semantic"],
+                {
+                    "source": "SemanticConcepts",
+                    "concept": m_concept,
+                    "matches": m_matches
+                }
+            )
+
+        confidence = min(0.92, 0.65 + nm_score * 0.08)
+        return (
+            "non_monetary",
+            confidence,
+            nm_tags or ["NoMonetario-Semantic"],
+            {
+                "source": "SemanticConcepts",
+                "concept": nm_concept,
+                "matches": nm_matches
+            }
+        )
+
     def classify_account_semantic(self, account: Account) -> Tuple[str, float, List[str], Any]:
         """
         Clasificación semántica V7.0: Prioriza reglas Regex del perfil.
@@ -568,18 +655,24 @@ class ARSDSPyEngine:
                 print(f"⚠️ WARNING: Invalid regex in monetary_rules: {rule.pattern}")
                 continue
 
-        # 3. Fallback to account type from database if no regex matched
+        # 3. Clasificación semántica por conceptos del perfil
+        semantic_result = self._classify_by_semantic_concepts(account)
+        if semantic_result:
+            return semantic_result
+
+        # 4. Fallback to account type from database if no regex matched
         fallback_rule = {"source": "UniversalTypeLogic", "concept": "TypeBased"}
         if account.type:
             t_norm = self._normalize_string(account.type)
             if "pasivo" in t_norm: return "monetary", 0.60, ["Pasivo"], fallback_rule
             if "patrimonio" in t_norm: return "non_monetary", 0.70, ["Patrimonio"], fallback_rule
+            if "activo" in t_norm: return "unknown", 0.55, ["Activo"], fallback_rule
             if any(x in t_norm for x in ["ingreso", "egreso", "gasto", "costo", "resultado"]):
                  return "non_monetary", 0.70, ["Resultado"], fallback_rule
 
-        # 4. Last resort: fallback to code heuristic
+        # 5. Last resort: fallback to code heuristic (conservador para clase 1)
         fallback_rule = {"source": "PlanCuentas-Heuristic", "concept": "CodeBased"}
-        if account.code.startswith('1'): return "non_monetary", 0.60, ["Activo"], fallback_rule
+        if account.code.startswith('1'): return "unknown", 0.55, ["Activo"], fallback_rule
         if account.code.startswith('2'): return "monetary", 0.60, ["Pasivo"], fallback_rule
         if account.code.startswith('3'): return "non_monetary", 0.70, ["Patrimonio"], fallback_rule
         if account.code.startswith('4'): return "non_monetary", 0.60, ["Ingreso"], fallback_rule
@@ -616,6 +709,10 @@ class ARSDSPyEngine:
         name_norm = self._normalize_string(account_name)
         best_config = None
         best_score = 0
+        stop_words = {
+            "de", "del", "la", "las", "el", "los", "y", "o", "por", "para", "con",
+            "en", "a", "al", "un", "una", "unos", "unas"
+        }
         
         for config in configs:
             asset_norm = self._normalize_string(config.asset_type_keyword)
@@ -630,8 +727,14 @@ class ARSDSPyEngine:
                 current_score = 50 + len(asset_norm)
             # 3. Coincidencia de palabras clave (Jaccard-ish)
             else:
-                asset_words = set(asset_norm.split())
-                name_words = set(name_norm.split())
+                asset_words = {
+                    w for w in re.split(r"\W+", asset_norm)
+                    if len(w) >= 4 and w not in stop_words
+                }
+                name_words = {
+                    w for w in re.split(r"\W+", name_norm)
+                    if len(w) >= 4 and w not in stop_words
+                }
                 common_words = asset_words.intersection(name_words)
                 if common_words:
                     # Score basado en cuántas palabras coinciden y qué tan únicas son

@@ -1124,6 +1124,11 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             const code = accountCode || '';
             const name = accountName || '';
             const combined = `${code} ${name}`.toLowerCase();
+            const normalizeText = (value = '') =>
+                String(value)
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase();
 
             // 1. Evitar recursión infinita
             if (depth > 5) return { type: 'unknown', tags: [] };
@@ -1131,15 +1136,95 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             // 2. Helper function para asegurar que pattern sea RegExp
             const ensureRegExp = (pattern) => {
                 if (pattern instanceof RegExp) return pattern;
-                if (typeof pattern === 'string') return new RegExp(pattern, 'i');
-                if (pattern && typeof pattern === 'object' && pattern.source) return new RegExp(pattern.source, 'i');
-                return new RegExp('', 'i');
+                if (pattern && typeof pattern === 'object' && pattern.source) {
+                    return new RegExp(pattern.source, pattern.flags || 'i');
+                }
+                if (typeof pattern === 'string') {
+                    const raw = pattern.trim();
+                    const jsMatch = raw.match(/^\/(.*)\/([a-zA-Z]*)$/);
+                    if (jsMatch) {
+                        const body = jsMatch[1];
+                        const flags = jsMatch[2] || 'i';
+                        return new RegExp(body, flags);
+                    }
+                    if (raw.startsWith('/') && raw.endsWith('/') && raw.length > 2) {
+                        return new RegExp(raw.slice(1, -1), 'i');
+                    }
+                    return new RegExp(raw, 'i');
+                }
+                return null;
+            };
+
+            const classifyBySemanticConcepts = () => {
+                const concepts = profile.semantic_concepts || {};
+                const monetary = concepts.monetary || [];
+                const nonMonetary = concepts.non_monetary || [];
+                const searchable = normalizeText(`${code} ${name}`);
+                const tokens = new Set(searchable.split(/[^a-z0-9]+/).filter(Boolean));
+
+                const scoreConceptList = (list) => {
+                    let bestScore = 0;
+                    let bestConcept = null;
+                    for (const item of list) {
+                        const keywords = item.keywords || [];
+                        let score = 0;
+                        const matches = [];
+                        for (const keyword of keywords) {
+                            const kw = normalizeText(keyword);
+                            if (!kw) continue;
+                            let matched = false;
+                            if (kw.includes(' ')) {
+                                const phraseRegex = new RegExp(`\\b${kw.replace(/\s+/g, '\\s+')}\\b`, 'i');
+                                matched = phraseRegex.test(searchable);
+                            } else {
+                                matched = tokens.has(kw) || Array.from(tokens).some(t =>
+                                    (t.startsWith(kw) || kw.startsWith(t)) &&
+                                    Math.min(t.length, kw.length) >= 4
+                                );
+                            }
+
+                            if (matched) {
+                                matches.push(kw);
+                                score += 1 + Math.min(kw.length, 12) / 20;
+                            }
+                        }
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestConcept = { item, matches };
+                        }
+                    }
+                    return { bestScore, bestConcept };
+                };
+
+                const m = scoreConceptList(monetary);
+                const nm = scoreConceptList(nonMonetary);
+                if (m.bestScore <= 0 && nm.bestScore <= 0) return null;
+                if (Math.abs(m.bestScore - nm.bestScore) < 0.25) return null;
+
+                if (m.bestScore > nm.bestScore) {
+                    return {
+                        type: 'monetary',
+                        tags: m.bestConcept?.item?.tags || ['Monetario-Semantic'],
+                        source_nc: 'SemanticConcepts',
+                        matched_pattern: (m.bestConcept?.matches || []).join(','),
+                        confidence: Math.min(0.92, 0.65 + m.bestScore * 0.08)
+                    };
+                }
+
+                return {
+                    type: 'non_monetary',
+                    tags: nm.bestConcept?.item?.tags || ['NoMonetario-Semantic'],
+                    source_nc: 'SemanticConcepts',
+                    matched_pattern: (nm.bestConcept?.matches || []).join(','),
+                    confidence: Math.min(0.92, 0.65 + nm.bestScore * 0.08)
+                };
             };
 
             // 3. Evaluar reglas no monetarias PRIMERO
             for (const rule of profile.non_monetary_rules) {
                 try {
                     const regex = ensureRegExp(rule.pattern);
+                    if (!regex) continue;
                     if (regex.test(combined)) {
                         return {
                             type: 'non_monetary',
@@ -1156,6 +1241,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             for (const rule of profile.monetary_rules) {
                 try {
                     const regex = ensureRegExp(rule.pattern);
+                    if (!regex) continue;
                     if (regex.test(combined)) {
                         return {
                             type: 'monetary',
@@ -1168,7 +1254,13 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 } catch (error) { continue; }
             }
 
-            // 5. INTELIGENCIA JERÁRQUICA: Si no hay match semántico directo, preguntar al padre
+            // 5. Clasificación por semantic_concepts del perfil (si no hubo match regex)
+            const semanticClassification = classifyBySemanticConcepts();
+            if (semanticClassification) {
+                return semanticClassification;
+            }
+
+            // 6. INTELIGENCIA JERÁRQUICA: Si no hay match semántico directo, preguntar al padre
             const parentCode = AccountPlanIntelligence.getParent(code, planAnalysis);
             if (parentCode) {
                 const parentAccount = planAnalysis.accountMap.get(parentCode);
@@ -1184,7 +1276,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 }
             }
 
-            // 6. Evaluar reglas basadas en CÓDIGO (Fallback secundario antes del defecto)
+            // 7. Evaluar reglas basadas en CÓDIGO (Fallback secundario antes del defecto)
             const allCodeRules = [
                 ...(profile.code_fallback_rules || []),
             ];
@@ -1192,6 +1284,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             for (const rule of allCodeRules) {
                 try {
                     const regex = ensureRegExp(rule.pattern);
+                    if (!regex) continue;
                     if (regex.test(code)) {
                         return {
                             type: rule.type || (rule.tags?.includes('NoMonetario') ? 'non_monetary' : 'monetary'),
@@ -1204,7 +1297,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 } catch (error) { continue; }
             }
 
-            // 7. Clasificación por defecto básica (Último recurso)
+            // 8. Clasificación por defecto básica (Último recurso)
             if (code.startsWith('1')) return { type: 'monetary', tags: ['Activo'], source_nc: 'PlanCuentas-PorDefecto' };
             if (code.startsWith('2')) return { type: 'monetary', tags: ['Pasivo'], source_nc: 'PlanCuentas-PorDefecto' };
             if (code.startsWith('3')) return { type: 'non_monetary', tags: ['Patrimonio'], source_nc: 'PlanCuentas-PorDefecto' };
