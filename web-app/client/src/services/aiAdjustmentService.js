@@ -17,7 +17,7 @@ class AIAdjustmentService {
                 'Content-Type': 'application/json'
             }
         });
-        this.healthCache = { value: null, expiresAt: 0 };
+        this.healthCache = { value: null, expiresAt: 0, lastSuccessAt: 0 };
     }
 
     /**
@@ -82,7 +82,7 @@ class AIAdjustmentService {
                     params.companyId,
                     normalizedParams,
                     profileSchema,
-                    'Motor AI no disponible (health check)'
+                    'Modo AI desactivado por usuario'
                 );
             }
 
@@ -106,15 +106,48 @@ class AIAdjustmentService {
             return this.healthCache.value;
         }
 
-        try {
-            const response = await this.client.get('/api/ai/health');
-            const isHealthy = response.data.status === 'healthy';
-            this.healthCache = { value: isHealthy, expiresAt: now + 60000 };
-            return isHealthy;
-        } catch (error) {
-            this.healthCache = { value: false, expiresAt: now + 30000 };
-            return false;
+        let lastError = null;
+        const maxAttempts = 2;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            try {
+                const response = await this.client.get('/api/ai/health', { timeout: 8000 });
+                const status = String(response.data?.status || '').toLowerCase();
+                const isHealthy =
+                    status === 'healthy' ||
+                    response.data?.healthy === true ||
+                    response.data?.ai_engine_available === true;
+                this.healthCache = {
+                    value: isHealthy,
+                    expiresAt: now + (isHealthy ? 60000 : 15000),
+                    lastSuccessAt: isHealthy ? now : this.healthCache.lastSuccessAt
+                };
+                return isHealthy;
+            } catch (error) {
+                lastError = error;
+                if (attempt < maxAttempts - 1) {
+                    await this.sleep((attempt + 1) * 400);
+                }
+            }
         }
+
+        // Falla transitoria: mantener estado saludable reciente para no bloquear AI.
+        const recentlyHealthy =
+            this.healthCache.lastSuccessAt > 0 &&
+            (now - this.healthCache.lastSuccessAt) < (5 * 60 * 1000);
+        if (recentlyHealthy) {
+            this.healthCache = {
+                value: true,
+                expiresAt: now + 15000,
+                lastSuccessAt: this.healthCache.lastSuccessAt
+            };
+            return true;
+        }
+
+        this.healthCache = { value: false, expiresAt: now + 15000, lastSuccessAt: this.healthCache.lastSuccessAt };
+        if (lastError) {
+            console.warn('Health check AI no disponible temporalmente:', lastError.message);
+        }
+        return false;
     }
 
     /**
@@ -194,7 +227,8 @@ class AIAdjustmentService {
                 warnings: [warning],
                 processing_stats: {
                     fallback_mode: true,
-                    source: 'reports.adjustment-entries-proposal'
+                    source: 'reports.adjustment-entries-proposal',
+                    diagnostics_available: Boolean(payload.diagnostics)
                 },
                 adjustmentDate: payload.adjustmentDate,
                 batchId: payload.batchId,
@@ -258,7 +292,6 @@ class AIAdjustmentService {
             }
         }
 
-        console.error('Error generando ajustes desde ledger:', lastError);
         const status = lastError?.response?.status;
         const backendError =
             lastError?.response?.data?.error ||
@@ -266,6 +299,7 @@ class AIAdjustmentService {
             lastError?.message;
 
         if ([429, 502, 503, 504].includes(status) || lastError?.code === 'ECONNABORTED') {
+            console.warn(`AI temporalmente no disponible (${status || lastError?.code || 'timeout'}). Activando contingencia.`);
             return this.generateAdjustmentsFallback(
                 companyId,
                 parameters,
@@ -273,6 +307,8 @@ class AIAdjustmentService {
                 backendError || `Motor AI no disponible (${status || 'timeout'})`
             );
         }
+
+        console.error('Error generando ajustes desde ledger:', lastError);
 
         return {
             success: false,

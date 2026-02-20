@@ -175,7 +175,8 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                 exchangeRate_final: exchangeRates.ufv_final || 0,
                 tc_initial: exchangeRates.tc_initial || 0,
                 tc_final: exchangeRates.tc_final || 0,
-                useAI: useAI && aiEngineStatus === 'available'
+                // El health-check es informativo; no bloquear intento AI por falla transitoria.
+                useAI
             };
 
             const result = await aiAdjustmentService.proposeAdjustments(params, adjustmentProfile);
@@ -263,7 +264,8 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                 exchangeRate_final: exchangeRates.ufv_final || 0,
                 tc_initial: exchangeRates.tc_initial || 0,
                 tc_final: exchangeRates.tc_final || 0,
-                useAI: useAI && aiEngineStatus === 'available',
+                // El health-check es informativo; no bloquear intento AI por falla transitoria.
+                useAI,
                 // V7.0: Enviar fechas para prorrateo
                 acquisition_dates: acquisitionDates,
                 fiscal_end_date: format(endDate, 'yyyy-MM-dd'),

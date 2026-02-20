@@ -26,6 +26,21 @@ const dbAll = (sql, params = []) => {
 };
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const aiHealthCache = {
+  payload: null,
+  expiresAt: 0
+};
+
+const normalizeBaseUrl = (rawValue) => {
+  if (!rawValue || typeof rawValue !== 'string') return '';
+  let normalized = rawValue.trim();
+  if (!normalized) return '';
+  normalized = normalized.replace(/\/+$/, '');
+  if (normalized.endsWith('/api')) {
+    normalized = normalized.slice(0, -4);
+  }
+  return normalized;
+};
 
 const resolveRuntimeBaseUrl = (req) => {
   const forwardedProto = req.headers['x-forwarded-proto'];
@@ -33,7 +48,34 @@ const resolveRuntimeBaseUrl = (req) => {
   const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
   const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
   const runtimeBaseUrl = process.env.API_BASE_URL || (host ? `${protocol}://${host}` : '');
-  return runtimeBaseUrl ? runtimeBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '') : '';
+  return normalizeBaseUrl(runtimeBaseUrl);
+};
+
+const buildApiBaseUrlCandidates = (req, runtimeBaseUrl, explicitBaseUrl = '') => {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
+  const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
+
+  const rawCandidates = [
+    explicitBaseUrl,
+    runtimeBaseUrl,
+    process.env.API_BASE_URL || '',
+    host ? `${protocol}://${host}` : '',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://host.docker.internal:3001'
+  ];
+
+  const unique = [];
+  const seen = new Set();
+  for (const candidate of rawCandidates) {
+    const normalized = normalizeBaseUrl(candidate);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    unique.push(normalized);
+  }
+  return unique;
 };
 
 const buildReportsFallbackPayload = (requestBody, companyId) => {
@@ -357,17 +399,52 @@ router.post('/adjustments/generate', async (req, res) => {
 
 // GET /api/ai/health - Health check for AI Engine
 router.get('/health', async (req, res) => {
+  const now = Date.now();
+  if (aiHealthCache.payload && aiHealthCache.expiresAt > now) {
+    return res.json(aiHealthCache.payload);
+  }
+
+  let lastError = null;
+  const maxAttempts = 2;
   try {
-    const response = await axios.get(`${AI_ENGINE_URL}/api/ai/health`, { timeout: 5000 });
-    res.json(response.data);
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const response = await axios.get(`${AI_ENGINE_URL}/api/ai/health`, {
+          timeout: attempt === 0 ? 5000 : 10000
+        });
+        const payload = {
+          ...response.data,
+          healthy: response.data?.status === 'healthy' || response.data?.healthy === true,
+          ai_engine_available: true
+        };
+        aiHealthCache.payload = payload;
+        aiHealthCache.expiresAt = now + 10000;
+        return res.json(payload);
+      } catch (error) {
+        lastError = error;
+        const upstreamStatus = error.response?.status;
+        const retryable = [429, 502, 503, 504].includes(upstreamStatus) || error.code === 'ECONNABORTED';
+        if (!retryable || attempt >= maxAttempts - 1) {
+          break;
+        }
+        await sleep((attempt + 1) * 400);
+      }
+    }
+
+    throw lastError || new Error('Unknown health check failure');
   } catch (error) {
-    res.json({
+    const degradedPayload = {
       status: 'degraded',
       healthy: false,
       ai_engine_available: false,
       error: 'AI Engine unavailable',
-      upstream_status: error.response?.status || null
-    });
+      upstream_status: error.response?.status || null,
+      code: error.code || null,
+      checked_at: new Date().toISOString()
+    };
+    aiHealthCache.payload = degradedPayload;
+    aiHealthCache.expiresAt = now + 5000;
+    res.json(degradedPayload);
   }
 });
 
@@ -436,10 +513,17 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     req.body.parameters = req.body.parameters || {};
     req.body.parameters.company_id = String(companyId);
 
-    // Inyectar base URL real del middleware para que el motor Python no dependa de localhost.
-    if (runtimeBaseUrl) {
-      req.body.parameters.api_base_url = runtimeBaseUrl;
+    // Resolver URL del middleware con prioridad a la explícita del request.
+    const explicitApiBaseUrl = normalizeBaseUrl(req.body.parameters.api_base_url || '');
+    const apiBaseUrlCandidates = buildApiBaseUrlCandidates(req, runtimeBaseUrl, explicitApiBaseUrl);
+
+    if (!explicitApiBaseUrl && apiBaseUrlCandidates.length > 0) {
+      req.body.parameters.api_base_url = apiBaseUrlCandidates[0];
+    } else if (explicitApiBaseUrl) {
+      req.body.parameters.api_base_url = explicitApiBaseUrl;
     }
+    req.body.parameters.api_base_url_candidates = apiBaseUrlCandidates;
+    console.log(`   🌐 [LOG] Middleware base URL candidates: ${JSON.stringify(apiBaseUrlCandidates)}`);
 
     // V6.0: Inyectar perfil persistente fusionando correctamente arrays de reglas
     console.log(`   👤 [LOG] Fetching profile for company ${companyId}...`);

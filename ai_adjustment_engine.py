@@ -115,6 +115,7 @@ class AdjustmentParameters(BaseModel):
     ufv_cache: Optional[Dict[str, float]] = Field(default_factory=dict, description="{date: ufv_value}")
     use_trajectory_mode: bool = Field(False, description="Habilitar cálculo por trayectoria AoT")
     api_base_url: Optional[str] = Field(None, description="Base URL del middleware Node.js")
+    api_base_url_candidates: Optional[List[str]] = Field(default_factory=list, description="Lista de base URLs candidatas del middleware Node.js")
     debug_trace: bool = Field(False, description="Incluir traza diagnóstica por cuenta")
     debug_trace_limit: int = Field(80, description="Máximo de cuentas en traza diagnóstica")
 
@@ -1866,31 +1867,64 @@ async def generate_from_ledger(request: AdjustmentRequest):
         
         # Permitir que el middleware Node.js inyecte su URL en runtime (útil en serverless/proxy).
         requested_api_url = (request.parameters.api_base_url or "").strip()
-        api_url = requested_api_url or os.getenv("API_BASE_URL", "http://localhost:3001")
-        api_url = api_url.rstrip("/")
-        if api_url.endswith("/api"):
-            api_url = api_url[:-4]
+        raw_candidate_urls = [
+            requested_api_url,
+            *(request.parameters.api_base_url_candidates or []),
+            os.getenv("API_BASE_URL", ""),
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+            "http://host.docker.internal:3001"
+        ]
+        api_url_candidates: List[str] = []
+        seen_candidates = set()
+        for candidate in raw_candidate_urls:
+            normalized = (candidate or "").strip().rstrip("/")
+            if normalized.endswith("/api"):
+                normalized = normalized[:-4]
+            if not normalized or normalized in seen_candidates:
+                continue
+            seen_candidates.add(normalized)
+            api_url_candidates.append(normalized)
+        print(f"DEBUG: Middleware base URL candidates: {api_url_candidates}")
         
         # Obtener saldos pre-ajuste desde middleware Node.js
-        async with httpx.AsyncClient() as client:
-            ledger_response = await client.get(
-                f"{api_url}/api/reports/ledger", # Corrected f-string
-                params={
-                    "companyId": request.company_id,
-                    "excludeAdjustments": True,
-                    "excludeClosing": True
-                },
-                timeout=30.0
-            )
+        middleware_attempts = []
+        ledger_response = None
+        api_url = ""
+        async with httpx.AsyncClient(trust_env=False, follow_redirects=True) as client:
+            for candidate_url in api_url_candidates:
+                try:
+                    candidate_response = await client.get(
+                        f"{candidate_url}/api/reports/ledger",
+                        params={
+                            "companyId": request.company_id,
+                            "excludeAdjustments": True,
+                            "excludeClosing": True
+                        },
+                        timeout=30.0
+                    )
+                    middleware_attempts.append({
+                        "base_url": candidate_url,
+                        "status": candidate_response.status_code
+                    })
+                    if candidate_response.status_code == 200:
+                        ledger_response = candidate_response
+                        api_url = candidate_url
+                        break
+                except Exception as candidate_error:
+                    middleware_attempts.append({
+                        "base_url": candidate_url,
+                        "error": str(candidate_error)
+                    })
+                    continue
             
-            if ledger_response.status_code != 200:
-                # V3.1 FIX: Log the actual error from middleware
-                error_detail = f"No se pudieron obtener los saldos del middleware. Status: {ledger_response.status_code}. Response: {ledger_response.text}"
-                print(f"ERROR: {error_detail}")
-                raise HTTPException(
-                    status_code=503, 
-                    detail=error_detail
+            if ledger_response is None:
+                error_detail = (
+                    "No se pudo conectar al middleware para obtener libro mayor. "
+                    f"Intentos: {json.dumps(middleware_attempts, ensure_ascii=False)[:800]}"
                 )
+                print(f"ERROR: {error_detail}")
+                raise HTTPException(status_code=503, detail=error_detail)
             
             ledger_data = ledger_response.json()
             accounts_from_ledger = ledger_data.get("data", [])
@@ -1967,7 +2001,9 @@ async def generate_from_ledger(request: AdjustmentRequest):
             result.processing_stats["ledger_integration"] = {
                 "accounts_from_ledger": len(accounts_from_ledger),
                 "accounts_with_balance": len(mapped_accounts),
-                "middleware_source": "Node.js API"
+                "middleware_source": "Node.js API",
+                "middleware_base_url": api_url,
+                "middleware_attempts": middleware_attempts
             }
             
             return result

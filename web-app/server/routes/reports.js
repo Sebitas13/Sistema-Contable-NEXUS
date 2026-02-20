@@ -964,6 +964,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 { pattern: /^[4-6][0-9]/, tags: ["Monetario", "Resultado"], source_nc: "PlanCuentas-Resultado" },
             ],
             non_monetary_rules: [
+                { pattern: /Inventari(o|os)|Mercader(i|í)a|Existenc(ia|ias)|Almacen(es)?/i, tags: ["NoMonetario", "ActivoCorriente"], source_nc: "NC3-Rubro-F" },
                 { pattern: /Inventario|Mercadería/i, tags: ["NoMonetario", "ActivoCorriente"], source_nc: "NC3-Rubro-F" },
                 { pattern: /Activo(s)? Fijo(s)?|Inmueble(s)?|Edific(i|í)o(s)?|Mueble(s)? y Enseres|Veh(i|í)culo(s)?|Maquinar(i|í)a|Equipo(s)? de Computac(i|ió)n|Herramienta(s)?/i, tags: ["NoMonetario", "Depreciable", "ActivoFijo"], source_nc: "NC3-Rubro-F" },
                 { pattern: /Intangible(s)?|Cargos Diferidos|Software|Derecho(s)?/i, tags: ["NoMonetario", "Amortizable"], source_nc: "NC3-Rubro-F" },
@@ -971,6 +972,47 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 { pattern: /Préstamos Bancarios M(oneda)? E(xtranjera)?/i, tags: ["NoMonetario", "Pasivo"], source_nc: "NC6" },
                 { pattern: /Provisión(es)?|Indemnizac(i|ió)n(es)?/i, tags: ["NoMonetario", "PasivoNoCorriente"], source_nc: "NC6-Provisión" },
             ],
+            semantic_concepts: {
+                monetary: [
+                    {
+                        concept: "Liquidez",
+                        keywords: ["caja", "banco", "efectivo", "disponibilidad"],
+                        tags: ["Monetario", "Liquidez"]
+                    },
+                    {
+                        concept: "Exigible",
+                        keywords: ["cobrar", "cliente", "deudor", "prestamo"],
+                        tags: ["Monetario", "Exigible"]
+                    },
+                    {
+                        concept: "PasivoCorriente",
+                        keywords: ["pagar", "proveedor", "acreedor", "impuesto", "fiscal"],
+                        tags: ["Monetario", "Pasivo"]
+                    },
+                    {
+                        concept: "Resultado",
+                        keywords: ["ingreso", "gasto", "costo", "venta", "compra", "sueldo", "honorario"],
+                        tags: ["Monetario", "Resultado"]
+                    }
+                ],
+                non_monetary: [
+                    {
+                        concept: "Inventario",
+                        keywords: ["inventario", "mercaderia", "almacen", "existencia", "stock"],
+                        tags: ["NoMonetario", "ActivoCorriente"]
+                    },
+                    {
+                        concept: "ActivoFijo",
+                        keywords: ["edificio", "terreno", "mueble", "mobiliario", "vehiculo", "equipo", "maquinaria", "herramienta", "computacion"],
+                        tags: ["NoMonetario", "Depreciable"]
+                    },
+                    {
+                        concept: "Patrimonio",
+                        keywords: ["capital", "reserva", "patrimonio", "resultado acumulado"],
+                        tags: ["NoMonetario", "Patrimonio"]
+                    }
+                ]
+            },
             code_fallback_rules: [
                 { pattern: /^1[6-9]/, tags: ["NoMonetario", "ActivoNoCorriente"], source_nc: "PlanCuentas-Activo" },
                 { pattern: /^1[2-3]/, tags: ["NoMonetario", "ActivoCorriente"], source_nc: "PlanCuentas-Activo" },
