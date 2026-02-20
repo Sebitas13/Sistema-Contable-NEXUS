@@ -17,6 +17,7 @@ class AIAdjustmentService {
                 'Content-Type': 'application/json'
             }
         });
+        this.healthCache = { value: null, expiresAt: 0 };
     }
 
     /**
@@ -64,23 +65,31 @@ class AIAdjustmentService {
             // asumiremos que el endpoint /adjustments/generate-proposal del servidor 
             // (que deberíamos crear o usar uno existente) maneja la obtención de cuentas.
 
-            // O, reutilizamos generateAdjustmentsFromLedger que ya parece hacer eso (toma companyId)
+            const normalizedParams = {
+                ufv_initial: params.exchangeRate_initial,
+                ufv_final: params.exchangeRate_final,
+                tc_initial: params.tc_initial,
+                tc_final: params.tc_final,
+                method: 'UFV',
+                gestion: params.gestion,
+                acquisition_dates: params.acquisition_dates,
+                fiscal_end_date: params.fiscal_end_date,
+                use_trajectory_mode: params.use_trajectory_mode || false
+            };
+
+            if (params.useAI === false) {
+                return this.generateAdjustmentsFallback(
+                    params.companyId,
+                    normalizedParams,
+                    profileSchema,
+                    'Motor AI no disponible (health check)'
+                );
+            }
 
             return this.generateAdjustmentsFromLedger(
                 params.companyId,
-                {
-                    ufv_initial: params.exchangeRate_initial,
-                    ufv_final: params.exchangeRate_final,
-                    tc_initial: params.tc_initial,
-                    tc_final: params.tc_final,
-                    method: 'UFV',
-                    // V7.0: Pass through new parameters
-                    acquisition_dates: params.acquisition_dates,
-                    fiscal_end_date: params.fiscal_end_date,
-                    // V8.0 AoT: Enable trajectory-based calculation
-                    use_trajectory_mode: params.use_trajectory_mode || false
-                },
-                profileSchema // V6.0 - Pass the updated profile schema
+                normalizedParams,
+                profileSchema
             );
         } catch (error) {
             console.error('Error proponiendo ajustes:', error);
@@ -92,10 +101,18 @@ class AIAdjustmentService {
      * Health check del motor AI
      */
     async healthCheck() {
+        const now = Date.now();
+        if (this.healthCache.value !== null && this.healthCache.expiresAt > now) {
+            return this.healthCache.value;
+        }
+
         try {
             const response = await this.client.get('/api/ai/health');
-            return response.data.status === 'healthy';
+            const isHealthy = response.data.status === 'healthy';
+            this.healthCache = { value: isHealthy, expiresAt: now + 60000 };
+            return isHealthy;
         } catch (error) {
+            this.healthCache = { value: false, expiresAt: now + 30000 };
             return false;
         }
     }
@@ -150,45 +167,119 @@ class AIAdjustmentService {
     /**
      * Generar ajustes automáticamente desde ledger del middleware
      */
-    async generateAdjustmentsFromLedger(companyId, parameters, profileSchema = null) {
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async generateAdjustmentsFallback(companyId, parameters, profileSchema = null, reason = 'Contingencia') {
         try {
-            const response = await this.client.post('/api/ai/adjustments/generate-from-ledger', {
-                company_id: String(companyId), // Ensure string as per error
-                accounts: [], // Required field even if empty for this endpoint
-                parameters: {
-                    ufv_initial: parameters.ufv_initial,
-                    ufv_final: parameters.ufv_final,
-                    method: parameters.method || 'UFV',
-                    confidence_threshold: parameters.confidence_threshold || 0.95,
-                    // V7.0: Include new prorated depreciation parameters
-                    acquisition_dates: parameters.acquisition_dates,
-                    fiscal_end_date: parameters.fiscal_end_date,
-                    // V8.0 AoT: Enable trajectory-based calculation
-                    use_trajectory_mode: parameters.use_trajectory_mode || false
+            const fallbackPayload = {
+                companyId: String(companyId),
+                gestion: String(parameters.gestion || new Date().getFullYear()),
+                adjParams: profileSchema || {},
+                exchangeRate_initial: Number(parameters.ufv_initial || 0),
+                exchangeRate_final: Number(parameters.ufv_final || 0)
+            };
+
+            const response = await this.client.post('/api/reports/adjustment-entries-proposal', fallbackPayload);
+            const payload = response.data?.data || {};
+            const warning = payload.warning || `Modo contingencia activado: ${reason}`;
+
+            return {
+                success: true,
+                proposedTransactions: payload.proposedTransactions || [],
+                aggregate_confidence: 0.7,
+                confidence: 0.7,
+                reasoning: warning,
+                warnings: [warning],
+                processing_stats: {
+                    fallback_mode: true,
+                    source: 'reports.adjustment-entries-proposal'
                 },
-                profile_schema: profileSchema
-            });
-
-            return response.data;
-        } catch (error) {
-            console.error('Error generando ajustes desde ledger:', error);
-            const backendError =
-                error.response?.data?.error ||
-                error.response?.data?.detail ||
-                error.message;
-
-            // Fallback a método tradicional
+                adjustmentDate: payload.adjustmentDate,
+                batchId: payload.batchId,
+                ccFactor: payload.ccFactor,
+                summary: payload.summary,
+                cycleStatus: payload.cycleStatus || 'OPEN'
+            };
+        } catch (fallbackError) {
+            console.error('Error en fallback de ajustes:', fallbackError);
             return {
                 success: false,
-                error: backendError || 'No se pudo conectar con el motor AI para obtener datos del ledger',
+                error: fallbackError.response?.data?.error || fallbackError.message || 'Fallback de ajustes fallo',
                 proposedTransactions: [],
                 confidence: 0,
-                reasoning: 'Fallback: motor AI no disponible',
-                warnings: backendError
-                    ? [backendError]
-                    : ['Servicio AI no disponible para integración con ledger']
+                warnings: ['No se pudo generar propuesta ni con AI ni con contingencia.']
             };
         }
+    }
+
+    async generateAdjustmentsFromLedger(companyId, parameters, profileSchema = null) {
+        const payload = {
+            company_id: String(companyId),
+            accounts: [],
+            parameters: {
+                ufv_initial: parameters.ufv_initial,
+                ufv_final: parameters.ufv_final,
+                method: parameters.method || 'UFV',
+                confidence_threshold: parameters.confidence_threshold || 0.95,
+                gestion: parameters.gestion,
+                acquisition_dates: parameters.acquisition_dates,
+                fiscal_end_date: parameters.fiscal_end_date,
+                use_trajectory_mode: parameters.use_trajectory_mode || false
+            },
+            profile_schema: profileSchema
+        };
+
+        let lastError = null;
+        const maxRetries = 2;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+            try {
+                const response = await this.client.post('/api/ai/adjustments/generate-from-ledger', payload);
+                return response.data;
+            } catch (error) {
+                lastError = error;
+                const status = error.response?.status;
+                const retryable = [429, 502, 503, 504].includes(status);
+                if (!retryable || attempt >= maxRetries) {
+                    break;
+                }
+
+                const retryAfter = Number(error.response?.headers?.['retry-after']);
+                const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+                    ? retryAfter * 1000
+                    : (attempt + 1) * 1200;
+                await this.sleep(waitMs);
+            }
+        }
+
+        console.error('Error generando ajustes desde ledger:', lastError);
+        const status = lastError?.response?.status;
+        const backendError =
+            lastError?.response?.data?.error ||
+            lastError?.response?.data?.detail ||
+            lastError?.message;
+
+        if ([429, 502, 503, 504].includes(status) || lastError?.code === 'ECONNABORTED') {
+            return this.generateAdjustmentsFallback(
+                companyId,
+                parameters,
+                profileSchema,
+                backendError || `Motor AI no disponible (${status || 'timeout'})`
+            );
+        }
+
+        return {
+            success: false,
+            error: backendError || 'No se pudo conectar con el motor AI para obtener datos del ledger',
+            proposedTransactions: [],
+            confidence: 0,
+            reasoning: 'Fallback: motor AI no disponible',
+            warnings: backendError
+                ? [backendError]
+                : ['Servicio AI no disponible para integracion con ledger']
+        };
     }
 
     /**

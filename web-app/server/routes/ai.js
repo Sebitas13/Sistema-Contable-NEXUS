@@ -25,6 +25,52 @@ const dbAll = (sql, params = []) => {
   });
 };
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const resolveRuntimeBaseUrl = (req) => {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
+  const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
+  const runtimeBaseUrl = process.env.API_BASE_URL || (host ? `${protocol}://${host}` : '');
+  return runtimeBaseUrl ? runtimeBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '') : '';
+};
+
+const buildReportsFallbackPayload = (requestBody, companyId) => {
+  const parameters = requestBody?.parameters || {};
+  const defaultGestion = String(new Date().getFullYear());
+
+  return {
+    companyId: String(companyId),
+    gestion: String(parameters.gestion || requestBody?.gestion || defaultGestion),
+    adjParams: requestBody?.profile_schema || {},
+    exchangeRate_initial: Number(parameters.ufv_initial || 0),
+    exchangeRate_final: Number(parameters.ufv_final || 0)
+  };
+};
+
+const normalizeReportsFallbackResponse = (fallbackData, reasonLabel) => {
+  const payload = fallbackData?.data || {};
+  const warning = payload.warning || `Modo contingencia activado: ${reasonLabel}`;
+  return {
+    success: true,
+    proposedTransactions: payload.proposedTransactions || [],
+    aggregate_confidence: 0.7,
+    confidence: 0.7,
+    reasoning: warning,
+    warnings: [warning],
+    processing_stats: {
+      fallback_mode: true,
+      source: 'reports.adjustment-entries-proposal'
+    },
+    adjustmentDate: payload.adjustmentDate,
+    batchId: payload.batchId,
+    ccFactor: payload.ccFactor,
+    summary: payload.summary,
+    cycleStatus: payload.cycleStatus || 'OPEN'
+  };
+};
+
 // Diagnostic Route
 router.get('/test-route', (req, res) => {
   res.json({ success: true, message: "AI router is working correctly." });
@@ -313,7 +359,13 @@ router.get('/health', async (req, res) => {
     const response = await axios.get(`${AI_ENGINE_URL}/api/ai/health`, { timeout: 5000 });
     res.json(response.data);
   } catch (error) {
-    res.status(503).json({ status: 'unhealthy', error: 'AI Engine unavailable' });
+    res.json({
+      status: 'degraded',
+      healthy: false,
+      ai_engine_available: false,
+      error: 'AI Engine unavailable',
+      upstream_status: error.response?.status || null
+    });
   }
 });
 
@@ -366,8 +418,10 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
   console.log(`🚀 [LOG] Endpoint /api/ai/adjustments/generate-from-ledger HIT`);
   console.log(`⏰ [LOG] Timestamp: ${new Date().toISOString()}`);
   
+  let companyId = req.body.company_id || req.body.parameters?.companyId || req.body.companyId;
+  const runtimeBaseUrl = resolveRuntimeBaseUrl(req);
+
   try {
-    const companyId = req.body.company_id || req.body.parameters?.companyId || req.body.companyId;
     console.log(`📄 [LOG] Received Body:`, JSON.stringify(req.body, null, 2));
     console.log(`🏢 [LOG] Company ID extracted: ${companyId}`);
 
@@ -381,13 +435,8 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     req.body.parameters.company_id = String(companyId);
 
     // Inyectar base URL real del middleware para que el motor Python no dependa de localhost.
-    const forwardedProto = req.headers['x-forwarded-proto'];
-    const forwardedHost = req.headers['x-forwarded-host'];
-    const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
-    const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
-    const runtimeBaseUrl = process.env.API_BASE_URL || (host ? `${protocol}://${host}` : '');
     if (runtimeBaseUrl) {
-      req.body.parameters.api_base_url = runtimeBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+      req.body.parameters.api_base_url = runtimeBaseUrl;
     }
 
     // V6.0: Inyectar perfil persistente fusionando correctamente arrays de reglas
@@ -413,10 +462,31 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     console.log(`   📡 [LOG] Preparing to send request to AI Engine at: ${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`);
     console.log(`   📦 [LOG] Final payload to be sent:`, JSON.stringify(req.body, null, 2));
 
-    const response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`, req.body, {
-      timeout: 60000, // Increased timeout to 60s for potentially long AI processing
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const maxRetries = 2;
+    let response;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`, req.body, {
+          timeout: 60000,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        break;
+      } catch (retryError) {
+        const retryStatus = retryError.response?.status;
+        const shouldRetry = [429, 502, 503, 504].includes(retryStatus);
+        if (!shouldRetry || attempt >= maxRetries) {
+          throw retryError;
+        }
+
+        const retryAfterHeader = Number(retryError.response?.headers?.['retry-after']);
+        const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+          ? retryAfterHeader * 1000
+          : (attempt + 1) * 1200;
+        console.warn(`âš ï¸ [LOG] Retry ${attempt + 1}/${maxRetries} after ${waitMs}ms (status ${retryStatus})`);
+        await sleep(waitMs);
+      }
+    }
 
     console.log(`   ✅ [LOG] AI Engine responded with HTTP Status: ${response.status}`);
     console.log(`   📄 [LOG] AI Engine Response Body:`, JSON.stringify(response.data, null, 2));
@@ -445,6 +515,34 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     }
     console.error('   Stack Trace:', error.stack);
     console.error("=".repeat(80) + "\n");
+
+    const upstreamStatus = error.response?.status || null;
+    const isTransientOutage =
+      error.code === 'ECONNREFUSED' || [429, 502, 503, 504].includes(upstreamStatus);
+
+    if (isTransientOutage && runtimeBaseUrl && companyId) {
+      try {
+        const fallbackPayload = buildReportsFallbackPayload(req.body, companyId);
+        console.warn(`⚠️ [LOG] AI unavailable/rate-limited. Activating fallback to /api/reports/adjustment-entries-proposal for company ${companyId}.`);
+        const fallbackResponse = await axios.post(
+          `${runtimeBaseUrl}/api/reports/adjustment-entries-proposal`,
+          fallbackPayload,
+          {
+            timeout: 45000,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+
+        return res.json(
+          normalizeReportsFallbackResponse(
+            fallbackResponse.data,
+            `AI no disponible o con límite de tasa (${upstreamStatus || error.code})`
+          )
+        );
+      } catch (fallbackError) {
+        console.error('❌ [ERROR] Fallback /adjustment-entries-proposal failed:', fallbackError.message);
+      }
+    }
 
     if (error.code === 'ECONNREFUSED') {
       res.status(503).json({
