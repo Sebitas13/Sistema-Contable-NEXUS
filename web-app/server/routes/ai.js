@@ -61,12 +61,14 @@ const normalizeReportsFallbackResponse = (fallbackData, reasonLabel) => {
     warnings: [warning],
     processing_stats: {
       fallback_mode: true,
-      source: 'reports.adjustment-entries-proposal'
+      source: 'reports.adjustment-entries-proposal',
+      diagnostics_available: Boolean(payload.diagnostics)
     },
     adjustmentDate: payload.adjustmentDate,
     batchId: payload.batchId,
     ccFactor: payload.ccFactor,
     summary: payload.summary,
+    diagnostics: payload.diagnostics,
     cycleStatus: payload.cycleStatus || 'OPEN'
   };
 };

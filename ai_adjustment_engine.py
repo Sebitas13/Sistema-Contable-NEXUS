@@ -18,6 +18,7 @@ import json
 import re
 import unicodedata
 import asyncio
+import copy
 from dataclasses import dataclass
 from enum import Enum
 import httpx
@@ -114,6 +115,8 @@ class AdjustmentParameters(BaseModel):
     ufv_cache: Optional[Dict[str, float]] = Field(default_factory=dict, description="{date: ufv_value}")
     use_trajectory_mode: bool = Field(False, description="Habilitar cálculo por trayectoria AoT")
     api_base_url: Optional[str] = Field(None, description="Base URL del middleware Node.js")
+    debug_trace: bool = Field(False, description="Incluir traza diagnóstica por cuenta")
+    debug_trace_limit: int = Field(80, description="Máximo de cuentas en traza diagnóstica")
 
 
 class TransactionEntry(BaseModel):
@@ -263,8 +266,11 @@ class AdjustmentProfileSchema:
     """Esquema de Contexto de Dominio Gobernable (ARS Context Model V3.0)"""
     
     def __init__(self, profile_data: Optional[Dict] = None):
-        # Usar perfil ARS-DSPy si se proporciona, si no usar perfil por defecto
-        self.profile_data = profile_data or self._get_default_ars_profile()
+        # Siempre partir del perfil por defecto y aplicar overrides del perfil recibido.
+        # Evita perder semantic_concepts/reglas cuando el perfil persistido es parcial.
+        default_profile = self._get_default_ars_profile()
+        incoming_profile = profile_data or {}
+        self.profile_data = self._merge_profile_with_defaults(default_profile, incoming_profile)
         
         # Cargar configuraciones del nuevo esquema
         self.data_retrieval_config = self._load_data_retrieval_config()
@@ -279,6 +285,35 @@ class AdjustmentProfileSchema:
         self.non_monetary_rules = self._load_semantic_rules("non_monetary_rules")
         self.depreciation_configs = self._load_depreciation_configs()
         self.ars_config = self._load_ars_config()
+
+    def _merge_profile_with_defaults(self, defaults: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Deep merge: mantiene defaults para claves ausentes y aplica override del perfil recibido.
+        Regla para listas: si incoming trae lista vacía y default trae elementos, conserva default.
+        """
+        if not isinstance(defaults, dict):
+            return copy.deepcopy(incoming) if incoming is not None else copy.deepcopy(defaults)
+
+        merged = copy.deepcopy(defaults)
+        if not isinstance(incoming, dict):
+            return merged
+
+        for key, value in incoming.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = self._merge_profile_with_defaults(merged[key], value)
+                continue
+
+            if isinstance(value, list) and isinstance(merged.get(key), list):
+                if len(value) == 0 and len(merged.get(key) or []) > 0:
+                    # Lista vacía accidental no debe borrar el baseline regulatorio.
+                    continue
+                merged[key] = copy.deepcopy(value)
+                continue
+
+            if value is not None:
+                merged[key] = copy.deepcopy(value)
+
+        return merged
     
     
     def _get_default_ars_profile(self) -> Dict:
@@ -852,7 +887,7 @@ class ARSDSPyEngine:
         is_contra_account = any(signal in name_norm for signal in contra_signals) or "regul" in type_norm
         if is_contra_account:
             print(f"DEBUG DEP: [3.05] SKIPPING - contra/reguladora account", flush=True)
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-DEP] contra_or_reguladora", {"skip_reason": "contra_or_reguladora"}
 
         is_office_supply = (
             ("escritorio" in name_norm or "papeleria" in name_norm or "utiles" in name_norm)
@@ -868,7 +903,7 @@ class ARSDSPyEngine:
 
         if classification != "non_monetary" and not tentative_fixed_asset:
             print(f"DEBUG DEP: [3] SKIPPING - classification is not non_monetary", flush=True)
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-DEP] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
         if tentative_fixed_asset:
             print(f"DEBUG DEP: [3] OVERRIDE - unknown class accepted by fixed-asset code heuristic", flush=True)
@@ -877,7 +912,7 @@ class ARSDSPyEngine:
         is_amortizable = any("amortizable" in t for t in normalized_tags)
         if is_amortizable:
             print(f"DEBUG DEP: [3.1] SKIPPING - amortizable asset (not depreciable)", flush=True)
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-DEP] amortizable", {"skip_reason": "amortizable"}
 
         has_depreciable_tag = any("depreciable" in t for t in normalized_tags)
         matched_field = self._normalize_string(str((rule or {}).get("matched_field", "")))
@@ -909,11 +944,11 @@ class ARSDSPyEngine:
                 f"(tag={has_depreciable_tag}, match={match_score}, fixed_name={has_fixed_asset_name_signal}, fixed_code={likely_fixed_asset})",
                 flush=True
             )
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-DEP] insufficient_fixed_asset_evidence", {"skip_reason": "insufficient_fixed_asset_evidence"}
 
         if is_office_supply and not strong_match:
             print(f"DEBUG DEP: [3.25] SKIPPING - office supply/consumable signal", flush=True)
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-DEP] office_supply_consumable", {"skip_reason": "office_supply_consumable"}
 
         print(f"DEBUG DEP: [4] Passed classification check", flush=True)
         
@@ -927,7 +962,7 @@ class ARSDSPyEngine:
         
         if not best_config:
             print(f"DEBUG DEP: [6] NO CONFIG FOUND - returning 0", flush=True)
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-DEP] no_depreciation_config", {"skip_reason": "no_depreciation_config"}
         
         # [POLYGLOT] Delegating formula execution to Rust Worker (Simon/Julia)
         # Executing: annual_rate_formula via IPC
@@ -1003,17 +1038,17 @@ class ARSDSPyEngine:
 
         # Solo cuentas no monetarias aplican AITB (NC 3), con fallback para activo fijo ambiguo.
         if classification != "non_monetary" and not tentative_fixed_asset:
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-AITB] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
         if self._has_monetary_name_signal(account):
             print(f"DEBUG AITB: SKIPPING {account.name} - strong monetary semantic signal", flush=True)
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-AITB] strong_monetary_semantic_signal", {"skip_reason": "strong_monetary_semantic_signal"}
         
         # Cálculo con Coeficiente Corrector (CC)
         if params.method == "UFV":
             if params.ufv_initial == 0:
                  print(f"DEBUG: AITB skipped for {account.name} because UFV initial is 0")
-                 return 0.0, 0.0, "", {}
+                 return 0.0, 0.0, "[SKIP-AITB] ufv_initial_zero", {"skip_reason": "ufv_initial_zero"}
             cc = params.ufv_final / params.ufv_initial
         else:
             cc = 1.0  # Placeholder para TC
@@ -1021,7 +1056,7 @@ class ARSDSPyEngine:
         # Aplicar solo si hay inflación significativa
         if cc <= 1.000001: # Relaxed threshold for testing
              # print(f"DEBUG: AITB skipped for {account.name}, CC too low: {cc}")
-             return 0.0, 0.0, "", {}
+             return 0.0, 0.0, "[SKIP-AITB] no_significant_inflation", {"skip_reason": "no_significant_inflation", "cc": cc}
         
         # [POLYGLOT] Delegating formula execution to Rust Worker (High Performance Compute)
         # Executing: inflation_adjustment_formula via IPC
@@ -1070,11 +1105,11 @@ class ARSDSPyEngine:
 
         # INVARIANTE: Cuentas no monetarias solamente (con fallback fijo ambiguo)
         if classification != "non_monetary" and not tentative_fixed_asset:
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-AITB-AOT] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
         if self._has_monetary_name_signal(account):
             print(f"DEBUG AoT: SKIPPING {account.name} - strong monetary semantic signal")
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-AITB-AOT] strong_monetary_semantic_signal", {"skip_reason": "strong_monetary_semantic_signal"}
         
         # Obtener trayectoria de movimientos para esta cuenta
         raw_trajectory = params.ledger_trajectories.get(account.code, [])
@@ -1172,7 +1207,7 @@ class ARSDSPyEngine:
         # Buscar cuentas de provisiones específicas
         provision_keywords = ["cuentas por cobrar", "deudores", "incobrable", "dudoso"]
         if not any(keyword in account.name.lower() for keyword in provision_keywords):
-            return 0.0, 0.0, "", {}
+            return 0.0, 0.0, "[SKIP-PROV] not_provision_candidate", {"skip_reason": "not_provision_candidate"}
         
         # Lógica de provisión basada en experiencia histórica (2% estándar)
         provision_rate = 0.02
@@ -1196,12 +1231,24 @@ class ARSDSPyEngine:
         proposed_transactions = []
         audit_trails = []
         confidence_scores = []
+        debug_trace_enabled = bool(getattr(request.parameters, "debug_trace", False))
+        debug_trace_limit = max(1, int(getattr(request.parameters, "debug_trace_limit", 80) or 80))
+        debug_trace_rows = []
         processing_stats = {
             "accounts_processed": 0,
             "depreciation_generated": 0,
             "aitb_generated": 0,
             "provision_generated": 0,
-            "suppressed_adjustments": 0
+            "suppressed_adjustments": 0,
+            "classification_counts": {"monetary": 0, "non_monetary": 0, "unknown": 0}
+        }
+        semantic_concepts = self.profile.profile_data.get("semantic_concepts", {}) or {}
+        processing_stats["profile_integrity"] = {
+            "semantic_monetary_concepts": len(semantic_concepts.get("monetary", []) or []),
+            "semantic_non_monetary_concepts": len(semantic_concepts.get("non_monetary", []) or []),
+            "monetary_rules": len(self.profile.monetary_rules),
+            "non_monetary_rules": len(self.profile.non_monetary_rules),
+            "depreciation_configs": len(self.profile.depreciation_configs)
         }
         
         for account in request.accounts:
@@ -1210,6 +1257,28 @@ class ARSDSPyEngine:
             
             processing_stats["accounts_processed"] += 1
             account_adjustments = []
+            base_classification, _, base_tags, base_rule = self.classify_account_semantic(account)
+            if base_classification not in processing_stats["classification_counts"]:
+                processing_stats["classification_counts"][base_classification] = 0
+            processing_stats["classification_counts"][base_classification] += 1
+
+            account_debug = None
+            if debug_trace_enabled and len(debug_trace_rows) < debug_trace_limit:
+                account_debug = {
+                    "code": account.code,
+                    "name": account.name,
+                    "type": account.type,
+                    "balance": account.balance,
+                    "classification": base_classification,
+                    "tags": base_tags,
+                    "rule_source": base_rule.get("source") or base_rule.get("source_nc"),
+                    "rule_pattern": base_rule.get("pattern"),
+                    "rule_matched_field": base_rule.get("matched_field"),
+                    "use_trajectory_mode": bool(request.parameters.use_trajectory_mode),
+                    "aitb": {},
+                    "depreciation": {},
+                    "provision": {}
+                }
             
             # DEBUG: Print account being processed
             print(f"DEBUG: Processing account {account.code} - {account.name} (Balance: {account.balance})")
@@ -1226,6 +1295,14 @@ class ARSDSPyEngine:
             else:
                 aitb_result = self.calculate_aitb_pot(account, request.parameters)
             aitb_amount, aitb_conf, aitb_audit, aitb_rule = aitb_result
+            if account_debug is not None:
+                account_debug["aitb"] = {
+                    "amount": aitb_amount,
+                    "confidence": aitb_conf,
+                    "audit": aitb_audit,
+                    "rule_source": (aitb_rule or {}).get("source") or (aitb_rule or {}).get("source_nc"),
+                    "skip_reason": (aitb_rule or {}).get("skip_reason")
+                }
             
             if aitb_amount > 0.01:
                 transaction = self._create_aitb_transaction(account, aitb_amount, aitb_conf, aitb_audit, request.accounts)
@@ -1247,6 +1324,15 @@ class ARSDSPyEngine:
             # 2. DEPRECIACIÓN (PoT) - Executed on adjusted technical balance
             dep_result = self.calculate_depreciation_pot(account_for_dep, request.parameters)
             dep_amount, dep_conf, dep_audit, dep_rule = dep_result
+            if account_debug is not None:
+                account_debug["depreciation"] = {
+                    "amount": dep_amount,
+                    "confidence": dep_conf,
+                    "audit": dep_audit,
+                    "rule_source": (dep_rule or {}).get("source") or (dep_rule or {}).get("source_nc"),
+                    "skip_reason": (dep_rule or {}).get("skip_reason"),
+                    "depreciation_base": depreciation_base
+                }
             
             if dep_amount > 0.01:
                 transaction = self._create_depreciation_transaction(account, dep_amount, dep_conf, dep_audit, request.accounts)
@@ -1257,7 +1343,15 @@ class ARSDSPyEngine:
 
             # 3. PROVISIÓN (PoT)
             provision_result = self.calculate_provision_pot(account, request.parameters)
-            provision_amount, provision_confidence, provision_audit, _ = provision_result
+            provision_amount, provision_confidence, provision_audit, provision_rule = provision_result
+            if account_debug is not None:
+                account_debug["provision"] = {
+                    "amount": provision_amount,
+                    "confidence": provision_confidence,
+                    "audit": provision_audit,
+                    "rule_source": (provision_rule or {}).get("source") or (provision_rule or {}).get("source_nc"),
+                    "skip_reason": (provision_rule or {}).get("skip_reason")
+                }
             if provision_amount > 0.01:
                 transaction = self._create_provision_transaction(account, provision_amount, provision_confidence, provision_audit)
                 account_adjustments.append((transaction, provision_confidence))
@@ -1286,6 +1380,17 @@ class ARSDSPyEngine:
                 for transaction, confidence in account_adjustments:
                     proposed_transactions.append(transaction)
                     confidence_scores.append(confidence)
+
+            if account_debug is not None:
+                account_debug["generated_adjustments"] = [
+                    {
+                        "type": tx.adjustment_type.value,
+                        "confidence": conf,
+                        "gloss": tx.gloss
+                    }
+                    for tx, conf in account_adjustments
+                ]
+                debug_trace_rows.append(account_debug)
         
         # Cálculo de confianza agregada y decisión ARS
         aggregate_confidence = float(np.mean(confidence_scores)) if confidence_scores else 0.0
@@ -1300,6 +1405,9 @@ class ARSDSPyEngine:
         processing_stats["aggregate_confidence"] = aggregate_confidence
         processing_stats["review_needed"] = review_needed
         processing_stats["ars_enabled"] = self.ars_enabled
+        processing_stats["debug_trace_enabled"] = debug_trace_enabled
+        if debug_trace_enabled:
+            processing_stats["debug_trace_rows"] = debug_trace_rows
         
         return AdjustmentResponse(
             success=len(proposed_transactions) > 0,
@@ -1844,6 +1952,13 @@ async def generate_from_ledger(request: AdjustmentRequest):
             if request.profile_schema:
                 print(f"🔄 [generate-from-ledger] Usando perfil dinámico con {len(request.profile_schema.get('monetary_rules', []))} reglas M, {len(request.profile_schema.get('non_monetary_rules', []))} reglas NM")
                 dynamic_engine = ARSDSPyEngine(request.profile_schema)
+                semantic_concepts = dynamic_engine.profile.profile_data.get("semantic_concepts", {}) or {}
+                print(
+                    "🔎 [generate-from-ledger] Perfil efectivo -> "
+                    f"semantic M:{len(semantic_concepts.get('monetary', []) or [])}, "
+                    f"semantic NM:{len(semantic_concepts.get('non_monetary', []) or [])}, "
+                    f"dep_configs:{len(dynamic_engine.profile.depreciation_configs)}"
+                )
                 result = dynamic_engine.generate_adjustments(request)
             else:
                 result = engine.generate_adjustments(request)

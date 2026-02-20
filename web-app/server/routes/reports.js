@@ -1104,7 +1104,27 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             }
         };
 
-        const params = adjParams || defaultParams;
+        const deepMergeWithDefaults = (base, override) => {
+            if (override === null || override === undefined) return base;
+            if (Array.isArray(base) && Array.isArray(override)) {
+                if (override.length === 0 && base.length > 0) return base;
+                return override;
+            }
+            if (typeof base !== 'object' || base === null) return override;
+            if (typeof override !== 'object' || override === null) return override;
+
+            const result = { ...base };
+            for (const key of Object.keys(override)) {
+                if (!(key in base)) {
+                    result[key] = override[key];
+                    continue;
+                }
+                result[key] = deepMergeWithDefaults(base[key], override[key]);
+            }
+            return result;
+        };
+
+        const params = deepMergeWithDefaults(defaultParams, adjParams || {});
 
         // 4. Helper functions
         const findAccount = (pattern, options = {}) => {
@@ -1471,6 +1491,13 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
         const proposedTransactions = [];
         let totalAITB = 0;
         let totalDepreciation = 0;
+        const diagnostics = {
+            engine: 'reports.adjustment-entries-proposal',
+            accountsAnalyzed: 0,
+            aitbEligible: 0,
+            depreciationEligible: 0,
+            samples: []
+        };
 
         const aitbAccount = findAITBAccount(accountsWithBalances, params.aitb_settings?.aitb_account_patterns || []);
 
@@ -1482,6 +1509,23 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
             const hasStrongMonetarySignal = hasMonetarySignal(acc, params);
             const isNonMonetaryForAitb =
                 classification.type === 'non_monetary' || depMatchForAitb.likelyFixedAsset === true;
+            diagnostics.accountsAnalyzed += 1;
+            if (isNonMonetaryForAitb && !hasStrongMonetarySignal) {
+                diagnostics.aitbEligible += 1;
+            }
+            if (diagnostics.samples.length < 80) {
+                diagnostics.samples.push({
+                    code: acc.code,
+                    name: acc.name,
+                    classification: classification.type,
+                    tags: classification.tags || [],
+                    aitbEligible: isNonMonetaryForAitb && !hasStrongMonetarySignal,
+                    hasMonetarySignal: hasStrongMonetarySignal,
+                    depCandidate: depMatchForAitb.eligible,
+                    depReason: depMatchForAitb.reason || null,
+                    depScore: depMatchForAitb.score || 0
+                });
+            }
             if (isNonMonetaryForAitb && !hasStrongMonetarySignal) {
                 const balance = acc.balance !== undefined ? acc.balance : (acc.total_debit - acc.total_credit);
                 const adjustment = bankersRound(balance * (ccFactor - 1), 2);
@@ -1532,6 +1576,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                 };
             })
             .filter(Boolean);
+        diagnostics.depreciationEligible = fixedAssets.length;
 
         console.log(`Activos Fijos detectados: ${fixedAssets.length}`);
 
@@ -1591,6 +1636,7 @@ router.post('/adjustment-entries-proposal', async (req, res) => {
                     totalDepreciation: bankersRound(totalDepreciation, 2),
                     totalProvision: 0
                 },
+                diagnostics,
                 cycleStatus: 'OPEN'
             }
         });

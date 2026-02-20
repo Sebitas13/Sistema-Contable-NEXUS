@@ -200,6 +200,7 @@ class AIAdjustmentService {
                 batchId: payload.batchId,
                 ccFactor: payload.ccFactor,
                 summary: payload.summary,
+                diagnostics: payload.diagnostics,
                 cycleStatus: payload.cycleStatus || 'OPEN'
             };
         } catch (fallbackError) {
@@ -226,7 +227,10 @@ class AIAdjustmentService {
                 gestion: parameters.gestion,
                 acquisition_dates: parameters.acquisition_dates,
                 fiscal_end_date: parameters.fiscal_end_date,
-                use_trajectory_mode: parameters.use_trajectory_mode || false
+                use_trajectory_mode: parameters.use_trajectory_mode || false,
+                // Activado por defecto durante depuración para exponer trazas por cuenta.
+                debug_trace: parameters.debug_trace !== false,
+                debug_trace_limit: parameters.debug_trace_limit || 120
             },
             profile_schema: profileSchema
         };
