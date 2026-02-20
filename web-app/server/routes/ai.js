@@ -9,7 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const { getFiscalYearDetails } = require('../utils/serverFiscalYearUtils');
 
-const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.AI_ENGINE_URL_ALT || 'http://localhost:8000';
+const isDev = process.env.NODE_ENV !== 'production';
+const envEngineUrl = process.env.AI_ENGINE_URL || process.env.AI_ENGINE_URL_ALT;
+const AI_ENGINE_URL = isDev ? 'http://localhost:8003' : (envEngineUrl || 'http://localhost:8000');
 const db = require('../db');
 
 // Helper function to promisify db.all - PROPER CALLBACK WRAPPER
@@ -57,8 +59,6 @@ const buildApiBaseUrlCandidates = (req, runtimeBaseUrl, explicitBaseUrl = '') =>
   const forwardedHost = req.headers['x-forwarded-host'];
   const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
   const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
-
-  const isDev = process.env.NODE_ENV !== 'production';
 
   const rawCandidates = isDev ? [
     'http://localhost:3000',
