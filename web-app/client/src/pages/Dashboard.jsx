@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { FinancialStatementEngine } from '../utils/FinancialStatementEngine';
 import { generarEstadoResultadosDesdeWorksheet } from '../utils/IncomeStatementEngine';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
   const { selectedCompany } = useCompany();
@@ -129,284 +130,198 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="fade-in">
-      <div className="mb-4">
-        <h2 className="mb-2"><i className="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Dashboard</h2>
-        <p className="text-muted">Bienvenido al Sistema Contable - Resumen Ejecutivo</p>
+    <div className="fade-in pb-5">
+      <div className="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+          <h2 className="mb-2 text-white" style={{ fontWeight: 800, letterSpacing: '-1px' }}>
+            <i className="bi bi-grid-fill me-2" style={{ color: 'var(--accent-primary)' }}></i>
+            Centro de Mando
+          </h2>
+          <p className="text-white-50">Visión panorámica e inteligencia financiera</p>
+        </div>
+        <button className="btn glass-panel btn-sm px-4" style={{ borderRadius: '12px' }} onClick={fetchDashboardData} disabled={loading}>
+          <i className="bi bi-arrow-clockwise me-2"></i>Actualizar
+        </button>
       </div>
 
-      <div className="row g-4 mb-4">
-        <div className="col-md-3">
-          <div className="card shadow-sm h-100 border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-            <div className="card-body text-white">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <h6 className="mb-1 opacity-75">Total Activos</h6>
-                  <h2 className="mb-0 fw-bold">{loading ? '...' : formatCurrency(stats.totalAssets)}</h2>
-                  <small className="opacity-75"><i className="bi bi-plus me-1"></i>Bienes y derechos</small>
-                </div>
-                <div className="bg-white bg-opacity-25 p-3 rounded-3">
-                  <i className="bi bi-wallet2" style={{ fontSize: '2rem' }}></i>
-                </div>
+      <AnimatePresence>
+        <motion.div 
+          className="dashboard-bento-grid"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, staggerChildren: 0.1 }}
+        >
+          {/* Total Activos */}
+          <motion.div layoutId="assets" className="bento-card bento-assets border border-primary border-opacity-25" whileHover={{ scale: 1.02, zIndex: 10 }}>
+            <div className="d-flex justify-content-between align-items-start mb-3">
+              <div className="p-2 rounded-3" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)' }}>
+                <i className="bi bi-wallet2 fs-4"></i>
               </div>
+              <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill">Activos</span>
             </div>
-          </div>
-        </div>
+            <div className="mt-auto">
+              <small className="text-white-50 fw-semibold">Total Bienes y Derechos</small>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : formatCurrency(stats.totalAssets)}</h3>
+            </div>
+          </motion.div>
 
-        <div className="col-md-3">
-          <div className="card shadow-sm h-100 border-0" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-            <div className="card-body text-white">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <h6 className="mb-1 opacity-75">Total Pasivos</h6>
-                  <h2 className="mb-0 fw-bold">{loading ? '...' : formatCurrency(stats.totalLiabilities)}</h2>
-                  <small className="opacity-75"><i className="bi bi-dash me-1"></i>Obligaciones</small>
-                </div>
-                <div className="bg-white bg-opacity-25 p-3 rounded-3">
-                  <i className="bi bi-credit-card" style={{ fontSize: '2rem' }}></i>
-                </div>
+          {/* Total Pasivos */}
+          <motion.div layoutId="liabilities" className="bento-card bento-liabilities border border-danger border-opacity-25" whileHover={{ scale: 1.02, zIndex: 10 }}>
+            <div className="d-flex justify-content-between align-items-start mb-3">
+              <div className="p-2 rounded-3" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>
+                <i className="bi bi-credit-card fs-4"></i>
               </div>
+              <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill">Pasivos</span>
             </div>
-          </div>
-        </div>
+            <div className="mt-auto">
+              <small className="text-white-50 fw-semibold">Total Obligaciones</small>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : formatCurrency(stats.totalLiabilities)}</h3>
+            </div>
+          </motion.div>
 
-        <div className="col-md-3">
-          <div className="card shadow-sm h-100 border-0" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-            <div className="card-body text-white">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <h6 className="mb-1 opacity-75">Patrimonio</h6>
-                  <h2 className="mb-0 fw-bold">{loading ? '...' : formatCurrency(stats.totalEquity)}</h2>
-                  <small className="opacity-75"><i className="bi bi-graph-up me-1"></i>Capital + Resultados</small>
-                </div>
-                <div className="bg-white bg-opacity-25 p-3 rounded-3">
-                  <i className="bi bi-piggy-bank" style={{ fontSize: '2rem' }}></i>
-                </div>
+          {/* Patrimonio */}
+          <motion.div layoutId="equity" className="bento-card bento-equity border border-success border-opacity-25" whileHover={{ scale: 1.02, zIndex: 10 }}>
+            <div className="d-flex justify-content-between align-items-start mb-3">
+              <div className="p-2 rounded-3" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }}>
+                <i className="bi bi-piggy-bank fs-4"></i>
               </div>
+              <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill">Capital</span>
             </div>
-          </div>
-        </div>
+            <div className="mt-auto">
+              <small className="text-white-50 fw-semibold">Total Patrimonio</small>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : formatCurrency(stats.totalEquity)}</h3>
+            </div>
+          </motion.div>
 
-        <div className="col-md-3">
-          <div className="card shadow-sm h-100 border-0" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
-            <div className="card-body text-white">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <h6 className="mb-1 opacity-75">Transacciones</h6>
-                  <h2 className="mb-0 fw-bold">{loading ? '...' : stats.totalTransactions}</h2>
-                  <small className="opacity-75"><i className="bi bi-calendar-check me-1"></i>Registros totales</small>
-                </div>
-                <div className="bg-white bg-opacity-25 p-3 rounded-3">
-                  <i className="bi bi-receipt" style={{ fontSize: '2rem' }}></i>
-                </div>
+          {/* Transacciones */}
+          <motion.div layoutId="transactions" className="bento-card bento-transactions border border-warning border-opacity-25" whileHover={{ scale: 1.02, zIndex: 10 }}>
+            <div className="d-flex justify-content-between align-items-start mb-3">
+              <div className="p-2 rounded-3" style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-warning)' }}>
+                <i className="bi bi-receipt fs-4"></i>
               </div>
+              <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill">Flujo</span>
             </div>
-          </div>
-        </div>
-      </div>
+            <div className="mt-auto">
+              <small className="text-white-50 fw-semibold">Asientos Registrados</small>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : stats.totalTransactions}</h3>
+            </div>
+          </motion.div>
 
-      <div className="row g-4">
-        <div className="col-md-8">
-          <div className="card shadow-sm border-0 rounded-4">
-            <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-              <h5 className="mb-0 fw-bold"><i className="bi bi-clock-history me-2 text-primary"></i>Actividad Reciente</h5>
-              <button className="btn btn-sm btn-outline-primary rounded-pill px-3" onClick={fetchDashboardData} disabled={loading}>
-                <i className="bi bi-arrow-clockwise me-1"></i>Actualizar
-              </button>
+          {/* Actividad Reciente */}
+          <motion.div layoutId="activity" className="bento-card bento-activity pe-0" style={{ paddingRight: 0 }}>
+            <div className="d-flex justify-content-between align-items-center mb-4 pe-4">
+              <h5 className="mb-0 fw-bold text-white"><i className="bi bi-clock-history me-2" style={{ color: 'var(--accent-primary)' }}></i>Actividad Reciente</h5>
             </div>
-            <div className="card-body">
+            <div className="flex-grow-1 pe-4" style={{ overflowY: 'auto' }}>
               {loading ? (
-                <div className="text-center py-5"><div className="spinner-border text-primary"></div></div>
+                <div className="d-flex justify-content-center align-items-center h-100">
+                  <div className="spinner-border text-primary"></div>
+                </div>
               ) : recentTransactions.length > 0 ? (
-                <ul className="list-group list-group-flush">
-                  {recentTransactions.map(tx => (
-                    <li key={tx.id} className="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
+                <div className="d-flex flex-column gap-3 pb-3">
+                  {recentTransactions.map((tx, idx) => (
+                    <motion.div 
+                      key={tx.id} 
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="d-flex justify-content-between align-items-center p-3 rounded-4"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}
+                      whileHover={{ scale: 1.01, background: 'rgba(255,255,255,0.06)' }}
+                    >
                       <div>
-                        <small className="d-block text-muted fw-semibold">{format(new Date(tx.date + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}</small>
-                        <strong className="text-dark d-block mt-1">{tx.gloss}</strong>
+                        <small className="d-block text-white-50 mb-1">{format(new Date(tx.date + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}</small>
+                        <strong className="text-white d-block">{tx.gloss}</strong>
                       </div>
-                      <span className={`badge rounded-pill bg-${tx.type === 'Ingreso' ? 'success' : tx.type === 'Egreso' ? 'danger' : 'info'} px-3`}>{tx.type}</span>
-                    </li>
+                      <span className="badge rounded-pill px-3 py-2" style={{ 
+                        background: tx.type === 'Ingreso' ? 'rgba(16, 185, 129, 0.2)' : tx.type === 'Egreso' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                        color: tx.type === 'Ingreso' ? 'var(--accent-success)' : tx.type === 'Egreso' ? 'var(--accent-danger)' : 'var(--accent-primary)'
+                      }}>
+                        {tx.type}
+                      </span>
+                    </motion.div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <div className="text-center py-5 text-muted">
-                  <i className="bi bi-inbox" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
-                  <p className="mt-3 mb-0">No hay transacciones recientes.</p>
+                <div className="d-flex flex-column justify-content-center align-items-center h-100 text-white-50">
+                  <i className="bi bi-inbox mb-3" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
+                  <p className="mb-0">No hay transacciones recientes.</p>
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
 
-        <div className="col-md-4">
-          <div className="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden">
-            <div className="card-header bg-white border-bottom py-3">
-              <h5 className="mb-0 fw-bold d-flex align-items-center">
-                <i className="bi bi-pie-chart-fill me-2 text-primary"></i>
-                Salud Financiera
-              </h5>
-            </div>
-            <div className="card-body">
-              <div className="mb-4">
-                {(() => {
-                  const ratioValue = stats.totalAssets > 0 ? (stats.totalEquity / stats.totalAssets) : 0;
-                  let status = { label: 'Indefinido', color: '#6B7280' };
+          {/* Salud Financiera (Ratios y Cuentas) */}
+          <motion.div layoutId="health" className="bento-card bento-health">
+             <h6 className="fw-bold mb-4 text-white"><i className="bi bi-heart-pulse-fill me-2" style={{ color: 'var(--accent-danger)' }}></i>Ratios</h6>
+             
+             {/* Autonomía */}
+             <div className="mb-4">
+               {(() => {
+                 const ratioValue = stats.totalAssets > 0 ? (stats.totalEquity / stats.totalAssets) : 0;
+                 let status = { label: 'Indefinido', color: 'var(--text-secondary)' };
+                 let isPulse = false;
+                 if (ratioValue < 0.4) { status = { label: 'Riesgo', color: 'var(--accent-danger)' }; isPulse = true; }
+                 else if (ratioValue <= 0.6) status = { label: 'Óptimo', color: 'var(--accent-success)' };
+                 else if (ratioValue <= 0.8) status = { label: 'Sólido', color: 'var(--accent-primary)' };
+                 else status = { label: 'Exceso', color: 'var(--text-secondary)' };
 
-                  if (ratioValue < 0.4) status = { label: 'Riesgo Bajo', color: '#EF4444' };
-                  else if (ratioValue <= 0.6) status = { label: 'Óptimo', color: '#10B981' };
-                  else if (ratioValue <= 0.8) status = { label: 'Sólido', color: '#3B82F6' };
-                  else status = { label: 'Exceso', color: '#6B7280' };
+                 return (
+                   <>
+                     <div className="d-flex justify-content-between mb-1">
+                       <small className="text-white-50">Autonomía ({status.label})</small>
+                       <span className="fw-bold" style={{ color: status.color }}>{loading ? '...' : `${(ratioValue * 100).toFixed(1)}%`}</span>
+                     </div>
+                     <div className="progress rounded-pill" style={{ height: '6px', overflow: 'visible', background: 'rgba(255,255,255,0.1)' }}>
+                       <div className={`progress-bar rounded-pill ${isPulse ? 'progress-pulse' : ''}`} style={{ width: `${Math.min(100, ratioValue * 100)}%`, backgroundColor: status.color, boxShadow: `0 0 10px ${status.color}` }}></div>
+                     </div>
+                   </>
+                 );
+               })()}
+             </div>
 
-                  return (
-                    <>
-                      <div className="d-flex justify-content-between align-items-end mb-1">
-                        <span className="small fw-semibold text-muted">Ratio de autonomía financiera</span>
-                        <span className="fw-bold fs-5" style={{ color: status.color, lineHeight: 1 }}>
-                          {loading ? '...' : `${(ratioValue * 100).toFixed(1)}%`}
-                        </span>
-                      </div>
-                      <div className="progress mb-1" style={{ height: '6px' }}>
-                        <div className="progress-bar" role="progressbar"
-                          style={{ width: `${Math.min(100, ratioValue * 100)}%`, backgroundColor: status.color }}></div>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="badge rounded-pill px-2 py-1" style={{ backgroundColor: status.color, fontSize: '0.6rem' }}>
-                          {status.label}
-                        </span>
-                        <small className="text-muted" style={{ fontSize: '0.65rem' }}>Activos fin. con Patrimonio</small>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+             {/* Endeudamiento */}
+             <div className="mb-4">
+               {(() => {
+                 const ratioValue = stats.totalAssets > 0 ? (stats.totalLiabilities / stats.totalAssets) : 0;
+                 let status = { label: 'Indefinido', color: 'var(--text-secondary)' };
+                 let isPulse = false;
+                 if (ratioValue < 0.4) status = { label: 'Sólido', color: 'var(--accent-success)' };
+                 else if (ratioValue <= 0.6) status = { label: 'Equilibrado', color: 'var(--accent-warning)' };
+                 else { status = { label: 'Crítico', color: 'var(--accent-danger)' }; isPulse = true; }
 
-              <div className="mb-4">
-                {(() => {
-                  const ratioValue = stats.totalAssets > 0 ? (stats.totalLiabilities / stats.totalAssets) : 0;
-                  let status = { label: 'Indefinido', color: '#6B7280' };
+                 return (
+                   <>
+                     <div className="d-flex justify-content-between mb-1">
+                       <small className="text-white-50">Deuda ({status.label})</small>
+                       <span className="fw-bold" style={{ color: status.color }}>{loading ? '...' : `${(ratioValue * 100).toFixed(1)}%`}</span>
+                     </div>
+                     <div className="progress rounded-pill" style={{ height: '6px', overflow: 'visible', background: 'rgba(255,255,255,0.1)' }}>
+                       <div className={`progress-bar rounded-pill ${isPulse ? 'progress-pulse' : ''}`} style={{ width: `${Math.min(100, ratioValue * 100)}%`, backgroundColor: status.color, boxShadow: `0 0 10px ${status.color}` }}></div>
+                     </div>
+                   </>
+                 );
+               })()}
+             </div>
+             
+             <div className="mt-auto p-3 rounded-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
+                <span className="d-block small text-white-50 mb-1">Periodo Activo</span>
+                <strong className="d-block text-white mb-1">{selectedCompany?.name || 'Empresa'}</strong>
+                <span className="badge bg-primary bg-opacity-20 text-white border border-primary border-opacity-50 rounded-pill mt-2">Gestión {selectedCompany?.current_year || new Date().getFullYear()}</span>
+             </div>
+          </motion.div>
 
-                  if (ratioValue < 0.4) status = { label: 'Conservador', color: '#6366F1' };
-                  else if (ratioValue <= 0.6) status = { label: 'Equilibrado', color: '#10B981' };
-                  else if (ratioValue <= 0.8) status = { label: 'Apalancado', color: '#F59E0B' };
-                  else status = { label: 'Crítico', color: '#B91C1C' };
+          {/* Sistema */}
+          <motion.div layoutId="system" className="bento-card bento-system align-items-center justify-content-center text-center">
+             <i className="bi bi-hdd-network mb-3" style={{ fontSize: '2.5rem', color: 'var(--accent-success)' }}></i>
+             <h6 className="fw-bold mb-3 text-white">Sistema En Línea</h6>
+             <span className={`badge rounded-pill px-3 py-2 ${stats.isClosed ? 'bg-danger text-white border border-danger' : 'bg-success text-white border border-success'}`}>
+               {stats.isClosed ? 'Gestión Cerrada' : 'Totalmente Operativo'}
+             </span>
+          </motion.div>
 
-                  return (
-                    <>
-                      <div className="d-flex justify-content-between align-items-end mb-1">
-                        <span className="small fw-semibold text-muted">Ratio de Endeudamiento</span>
-                        <span className="fw-bold fs-5" style={{ color: status.color, lineHeight: 1 }}>
-                          {loading ? '...' : `${(ratioValue * 100).toFixed(1)}%`}
-                        </span>
-                      </div>
-                      <div className="progress mb-1" style={{ height: '6px' }}>
-                        <div className="progress-bar" role="progressbar"
-                          style={{ width: `${Math.min(100, ratioValue * 100)}%`, backgroundColor: status.color }}></div>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="badge rounded-pill px-2 py-1" style={{ backgroundColor: status.color, fontSize: '0.6rem' }}>
-                          {status.label}
-                        </span>
-                        <small className="text-muted" style={{ fontSize: '0.65rem' }}>Activos fin. con Deuda</small>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-
-              <div className="p-3 bg-light rounded-3">
-                <div className="d-flex align-items-center mb-2">
-                  <i className="bi bi-calendar-event text-primary me-2"></i>
-                  <span className="small fw-bold">Periodo Contable</span>
-                </div>
-                <p className="small text-dark mb-1 fw-semibold">{selectedCompany?.name || 'Empresa'}</p>
-                <div className="d-flex flex-column mb-2">
-                  <span className="small text-primary fw-bold">Gestión {selectedCompany?.current_year || new Date().getFullYear()}</span>
-                  <small className="text-muted" style={{ fontSize: '0.7em' }}>
-                    {(() => {
-                      if (!selectedCompany) return '';
-                      const activeYear = parseInt(selectedCompany.current_year) || new Date().getFullYear();
-                      const type = selectedCompany.activity_type || 'Comercial';
-                      let startStr, endStr;
-
-                      if (type === 'Comercial') {
-                        startStr = `01 Ene ${activeYear}`;
-                        endStr = `31 Dic ${activeYear}`;
-                      } else if (type === 'Industrial') {
-                        startStr = `01 Abr ${activeYear - 1}`;
-                        endStr = `31 Mar ${activeYear}`;
-                      } else if (type === 'Agroindustrial') {
-                        startStr = `01 Jul ${activeYear - 1}`;
-                        endStr = `30 Jun ${activeYear}`;
-                      } else if (type === 'Minera') {
-                        startStr = `01 Oct ${activeYear - 1}`;
-                        endStr = `30 Sep ${activeYear}`;
-                      } else {
-                        startStr = `01 Ene ${activeYear}`;
-                        endStr = `31 Dic ${activeYear}`;
-                      }
-
-                      // Check for specific operation start date
-                      if (selectedCompany.operation_start_date) {
-                        try {
-                          const [opY, opM, opD] = selectedCompany.operation_start_date.split('-').map(Number);
-                          const opDate = new Date(opY, opM - 1, opD); // Month is 0-indexed
-
-                          const monthsMap = { 'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5, 'Jul': 6, 'Ago': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dic': 11 };
-
-                          const [sd, sm, sy] = startStr.split(' ');
-                          const stdStartDate = new Date(parseInt(sy), monthsMap[sm], parseInt(sd));
-
-                          const [ed, em, ey] = endStr.split(' ');
-                          const stdEndDate = new Date(parseInt(ey), monthsMap[em], parseInt(ed));
-
-                          if (opDate > stdStartDate && opDate <= stdEndDate) {
-                            const dayStr = opD.toString().padStart(2, '0');
-                            const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-                            startStr = `${dayStr} ${monthNames[opDate.getMonth()]} ${opY}`;
-                          }
-                        } catch (e) { console.warn("Date parsing error", e); }
-                      }
-
-                      return `${startStr} - ${endStr}`;
-                    })()}
-                  </small>
-                </div>
-                <div className="d-flex gap-2">
-                  <span className={`badge border ${stats.isClosed ? 'text-danger border-danger' : 'text-success border-success'}`}>
-                    {stats.isClosed ? 'Cerrado' : 'Abierto'}
-                  </span>
-                  <span className="badge border text-secondary border-secondary">Auditado: No</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
-            <div className="card-header bg-white border-bottom py-3">
-              <h5 className="mb-0 fw-bold"><i className="bi bi-info-circle-fill me-2 text-info"></i>Estado del Sistema</h5>
-            </div>
-            <div className="card-body p-0">
-              <div className="list-group list-group-flush">
-                <div className="list-group-item d-flex justify-content-between align-items-center border-0 py-3">
-                  <small className="text-muted fw-semibold uppercase">Base de Datos</small>
-                  <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3">
-                    <i className="bi bi-check-circle-fill me-1"></i>Conectado
-                  </span>
-                </div>
-                <div className="list-group-item d-flex justify-content-between align-items-center border-0 py-3 pt-0">
-                  <small className="text-muted fw-semibold">Último Cierre</small>
-                  <span className="text-dark small fw-bold">{stats.isClosed ? 'Aplicado' : 'Pendiente'}</span>
-                </div>
-                <div className="list-group-item d-flex justify-content-between align-items-center border-0 py-3 pt-0">
-                  <small className="text-muted fw-semibold">Versión</small>
-                  <span className="text-primary small fw-bold">v1.2.0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

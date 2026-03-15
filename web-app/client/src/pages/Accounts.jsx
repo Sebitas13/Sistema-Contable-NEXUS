@@ -323,8 +323,8 @@ export default function Accounts() {
         <div>
             <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-1"><i className="bi bi-journal-text me-2"></i>Plan de Cuentas</h2>
-                    <small className="text-muted">{accounts.length} cuentas totales | {filteredAccounts.length} mostradas</small>
+                    <h2 className="mb-1 text-white"><i className="bi bi-journal-text me-2" style={{ color: 'var(--accent-primary)' }}></i>Plan de Cuentas</h2>
+                    <small className="text-white-50">{accounts.length} cuentas totales | {filteredAccounts.length} mostradas</small>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
@@ -341,7 +341,7 @@ export default function Accounts() {
                     <button className="btn btn-info btn-sm" onClick={() => setShowImportWizard(true)}>
                         <i className="bi bi-magic me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
-                    <button className="btn btn-warning btn-sm text-dark" onClick={() => navigate('/data-forge')}>
+                    <button className="btn btn-warning btn-sm" style={{ color: '#000' }} onClick={() => navigate('/data-forge')}>
                         <i className="bi bi-lightning-charge-fill me-1"></i> DataForge
                     </button>
                     <button className="btn btn-primary btn-sm" onClick={openNewAccountModal}>
@@ -360,15 +360,15 @@ export default function Accounts() {
             )}
 
             {/* Search and Filters */}
-            <div className="card shadow-sm border-0 mb-3">
+            <div className="card glass-panel border-0 mb-3">
                 <div className="card-body">
                     <div className="row g-3">
                         <div className="col-md-5">
                             <div className="input-group">
-                                <span className="input-group-text"><i className="bi bi-search"></i></span>
+                                <span className="input-group-text bg-dark text-white-50 border-secondary"><i className="bi bi-search"></i></span>
                                 <input
                                     type="text"
-                                    className="form-control"
+                                    className="form-control bg-dark text-white border-secondary"
                                     placeholder="Buscar por código o nombre..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -376,7 +376,7 @@ export default function Accounts() {
                             </div>
                         </div>
                         <div className="col-md-3">
-                            <select className="form-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                            <select className="form-select bg-dark text-white border-secondary" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                                 <option value="all">Todos los tipos ({availableTypes.length})</option>
                                 {availableTypes.map(type => {
                                     const typeInfo = ACCOUNT_TYPES.find(t => t.value === type);
@@ -389,7 +389,7 @@ export default function Accounts() {
                             </select>
                         </div>
                         <div className="col-md-2">
-                            <select className="form-select" value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
+                            <select className="form-select bg-dark text-white border-secondary" value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
                                 <option value="all">Todos los niveles</option>
                                 {availableLevels.map(level => (
                                     <option key={level} value={level}>Nivel {level}</option>
@@ -397,7 +397,7 @@ export default function Accounts() {
                             </select>
                         </div>
                         <div className="col-md-2">
-                            <button className="btn btn-outline-secondary w-100" onClick={clearFilters}>
+                            <button className="btn btn-outline-light w-100" onClick={clearFilters}>
                                 <i className="bi bi-x-circle me-1"></i> Limpiar Filtros
                             </button>
                         </div>
@@ -531,30 +531,30 @@ export default function Accounts() {
             )}
 
             {/* Accounts Table */}
-            <div className="card shadow-sm border-0">
+            <div className="card glass-panel border-0">
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-hover mb-0">
-                            <thead className="table-light sticky-top">
+                        <table className="table table-dark table-hover mb-0" style={{ backgroundColor: 'transparent' }}>
+                            <thead className="sticky-top" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                 <tr>
-                                    <th style={{ width: '120px' }}>Código</th>
-                                    <th>Nombre</th>
-                                    <th style={{ width: '100px' }}>Tipo</th>
-                                    <th style={{ width: '80px' }}>Nivel</th>
-                                    <th style={{ width: '120px' }}>Cuenta Padre</th>
-                                    <th style={{ width: '150px' }}>Acciones</th>
+                                    <th style={{ width: '120px' }} className="border-secondary text-white-50">Código</th>
+                                    <th className="border-secondary text-white-50">Nombre</th>
+                                    <th style={{ width: '100px' }} className="border-secondary text-white-50">Tipo</th>
+                                    <th style={{ width: '80px' }} className="border-secondary text-white-50">Nivel</th>
+                                    <th style={{ width: '120px' }} className="border-secondary text-white-50">Cuenta Padre</th>
+                                    <th style={{ width: '150px' }} className="border-secondary text-white-50">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-4">
+                                        <td colSpan="6" className="text-center py-4 border-secondary">
                                             <div className="spinner-border text-primary" role="status"></div>
                                         </td>
                                     </tr>
                                 ) : filteredAccounts.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-4 text-muted">
+                                        <td colSpan="6" className="text-center py-4 text-white-50 border-secondary">
                                             <i className="bi bi-inbox me-2"></i>
                                             {searchTerm || filterType !== 'all' || filterLevel !== 'all'
                                                 ? 'No se encontraron cuentas con los filtros aplicados'
@@ -565,10 +565,10 @@ export default function Accounts() {
                                     filteredAccounts.map((account) => {
                                         const typeInfo = ACCOUNT_TYPES.find(t => t.value === account.type);
                                         return (
-                                            <tr key={account.id}>
-                                                <td><code className="text-primary">{account.code}</code></td>
-                                                <td>{account.name}</td>
-                                                <td>
+                                            <tr key={account.id} className="border-secondary">
+                                                <td className="border-secondary"><code className="text-primary">{account.code}</code></td>
+                                                <td className="border-secondary text-white">{account.name}</td>
+                                                <td className="border-secondary">
                                                     <span className={`badge bg-${account.type === 'Activo' || account.type === 'Ingreso' ? 'success' :
                                                         account.type === 'Pasivo' || account.type === 'Gasto' ? 'danger' :
                                                             account.type === 'Patrimonio' ? 'primary' : 'secondary'
@@ -577,11 +577,11 @@ export default function Accounts() {
                                                         {account.type}
                                                     </span>
                                                 </td>
-                                                <td className="text-center">
-                                                    <span className="badge bg-light text-dark border">{account.level}</span>
+                                                <td className="text-center border-secondary">
+                                                    <span className="badge bg-dark text-white border border-secondary">{account.level}</span>
                                                 </td>
-                                                <td><small className="text-muted">{account.parent_code || '-'}</small></td>
-                                                <td>
+                                                <td className="border-secondary"><small className="text-white-50">{account.parent_code || '-'}</small></td>
+                                                <td className="border-secondary">
                                                     <button className="btn btn-sm btn-outline-primary me-1" onClick={() => handleEdit(account)} title="Editar">
                                                         <i className="bi bi-pencil"></i>
                                                     </button>

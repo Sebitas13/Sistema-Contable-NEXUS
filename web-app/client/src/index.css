@@ -1,12 +1,52 @@
-/* Main styles - Bootstrap will handle most styling */
+:root {
+  /* Midnight Blue Dark Mode & UI/UX Revolution Colors */
+  --bg-dark: #0B0E14;
+  --bg-dark-surface: rgba(18, 24, 38, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  
+  --accent-primary: #3b82f6; /* Blue */
+  --accent-success: #10b981; /* Green */
+  --accent-warning: #f59e0b; /* Orange */
+  --accent-danger: #ef4444;  /* Red */
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+}
+
+/* Base override for Fintech 3.0 Look */
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
         sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    background-color: var(--bg-dark) !important;
+    color: var(--text-primary) !important;
+    background-image: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, rgba(11, 14, 20, 1) 70%) !important;
+    background-attachment: fixed !important;
+}
+
+/* Glassmorphism Core Utility */
+.glass-panel {
+    background: var(--bg-dark-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--glass-shadow);
+    color: var(--text-primary);
+}
+
+.glass-panel-sm {
+    background: var(--bg-dark-surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
 }
 
 /* Smooth transitions for all interactive elements */
@@ -890,6 +930,84 @@ body {
 .company-modal .form-select:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+}
+
+/* ===================================
+   Next-Gen UI/UX: Bento Grid Dashboard
+   =================================== */
+
+.dashboard-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(140px, auto);
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.bento-card {
+    background: var(--bg-dark-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--glass-shadow);
+    padding: 1.5rem;
+    overflow: hidden;
+    position: relative;
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Specific Grid Placements */
+.bento-assets, .bento-liabilities, .bento-equity, .bento-transactions { 
+    grid-column: span 1; 
+    grid-row: span 1; 
+}
+
+.bento-activity { 
+    grid-column: span 3; 
+    grid-row: span 3; 
+}
+
+.bento-health { 
+    grid-column: span 1; 
+    grid-row: span 2; 
+}
+
+.bento-system { 
+    grid-column: span 1; 
+    grid-row: span 1; 
+}
+
+.bento-card.alert-state {
+    border-color: rgba(245, 158, 11, 0.5); /* Neon orange */
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+@media (max-width: 1200px) {
+    .dashboard-bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .bento-activity { grid-column: span 2; grid-row: auto; min-height: 400px; }
+    .bento-health, .bento-system { grid-column: span 1; }
+}
+
+@media (max-width: 768px) {
+    .dashboard-bento-grid {
+        grid-template-columns: 1fr;
+    }
+    .bento-assets, .bento-liabilities, .bento-equity, .bento-transactions, .bento-activity, .bento-health, .bento-system { 
+        grid-column: span 1; 
+        grid-row: auto;
+    }
 }
 
 /* Responsive Design */

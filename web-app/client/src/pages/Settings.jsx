@@ -497,16 +497,16 @@ export default function Settings() {
                     </div>
 
                     <div className="col-md-8 mx-auto">
-                        <div className="card shadow-sm border-warning">
-                            <div className="card-header bg-warning text-dark">
+                        <div className="card shadow-sm border-warning glass-panel">
+                            <div className="card-header border-warning" style={{ backgroundColor: 'rgba(255, 193, 7, 0.1)', color: '#ffc107' }}>
                                 <h5 className="mb-0"><i className="bi bi-tools me-2"></i>Mantenimiento de Datos</h5>
                             </div>
                             <div className="card-body">
-                                <h6>Regenerar Jerarquía de Cuentas</h6>
-                                <p className="text-muted small">
+                                <h6 className="text-white">Regenerar Jerarquía de Cuentas</h6>
+                                <p className="text-white-50 small">
                                     Esta herramienta analiza los códigos de tus cuentas y reconstruye las relaciones
-                                    padre-hijo (campo <code>parent_code</code>). <br />
-                                    <strong>Uso recomendado:</strong> Si tus Estados Financieros aparecen vacíos o desordenados.
+                                    padre-hijo (campo <code className="text-info">parent_code</code>). <br />
+                                    <strong className="text-white">Uso recomendado:</strong> Si tus Estados Financieros aparecen vacíos o desordenados.
                                 </p>
 
                                 <div className="d-grid gap-2 mb-3">
@@ -554,56 +554,56 @@ export default function Settings() {
                     </div>
 
                     <div className="col-md-12 mt-4 mx-auto">
-                        <div className="card shadow-sm border-primary">
-                            <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                                <h5 className="mb-0"><i className="bi bi-table me-2"></i>Tabla de Depreciación Configurable</h5>
-                                <button className="btn btn-sm btn-light text-primary fw-bold" onClick={saveDepreciationConfig} disabled={savingConfig}>
+                        <div className="card shadow-sm border-primary glass-panel">
+                            <div className="card-header border-primary d-flex justify-content-between align-items-center" style={{ backgroundColor: 'rgba(13, 110, 253, 0.1)' }}>
+                                <h5 className="mb-0 text-primary"><i className="bi bi-table me-2"></i>Tabla de Depreciación Configurable</h5>
+                                <button className="btn btn-sm btn-outline-primary fw-bold text-white" onClick={saveDepreciationConfig} disabled={savingConfig}>
                                     {savingConfig ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-save me-2"></i>}
                                     Guardar Cambios
                                 </button>
                             </div>
                             <div className="card-body p-0">
                                 <div className="table-responsive" style={{ maxHeight: '500px' }}>
-                                    <table className="table table-striped table-hover mb-0 align-middle">
-                                        <thead className="table-light sticky-top">
+                                    <table className="table table-sm table-dark table-hover mb-0 align-middle" style={{ backgroundColor: 'transparent' }}>
+                                        <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="sticky-top">
                                             <tr>
-                                                <th style={{ width: '40%' }}>Bien / Activo (Palabra Clave)</th>
-                                                <th style={{ width: '20%' }}>Vida Útil (Años)</th>
-                                                <th style={{ width: '20%' }}>Coeficiente %</th>
-                                                <th style={{ width: '20%' }} className="text-end">Acciones</th>
+                                                <th style={{ width: '40%' }} className="text-white-50 border-secondary">Bien / Activo (Palabra Clave)</th>
+                                                <th style={{ width: '20%' }} className="text-white-50 border-secondary">Vida Útil (Años)</th>
+                                                <th style={{ width: '20%' }} className="text-white-50 border-secondary">Coeficiente %</th>
+                                                <th style={{ width: '20%' }} className="text-end text-white-50 border-secondary">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {depreciationRules.map((rule, idx) => (
                                                 <tr key={idx}>
-                                                    <td>
+                                                    <td className="border-secondary">
                                                         <input
                                                             type="text"
-                                                            className="form-control form-control-sm border-0 bg-transparent fw-bold"
+                                                            className="form-control form-control-sm border-secondary bg-dark text-white fw-bold"
                                                             value={rule.asset_type_keyword}
                                                             onChange={(e) => handleDepreciationChange(idx, 'asset_type_keyword', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td>
+                                                    <td className="border-secondary">
                                                         <input
                                                             type="number"
-                                                            className="form-control form-control-sm border-0 bg-transparent"
+                                                            className="form-control form-control-sm border-secondary bg-dark text-white"
                                                             value={rule.useful_life_years}
                                                             onChange={(e) => handleDepreciationChange(idx, 'useful_life_years', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td>
+                                                    <td className="border-secondary">
                                                         <div className="input-group input-group-sm">
                                                             <input
                                                                 type="text"
-                                                                className="form-control border-0 bg-transparent text-end"
+                                                                className="form-control border-secondary bg-dark text-white text-end"
                                                                 value={(rule.annual_rate * 100).toFixed(2)}
                                                                 readOnly
                                                             />
-                                                            <span className="input-group-text border-0 bg-transparent">%</span>
+                                                            <span className="input-group-text border-secondary bg-dark text-white-50">%</span>
                                                         </div>
                                                     </td>
-                                                    <td className="text-end">
+                                                    <td className="text-end border-secondary">
                                                         <button className="btn btn-outline-danger btn-sm border-0" onClick={() => handleRemoveDepreciationRule(idx)}>
                                                             <i className="bi bi-trash"></i>
                                                         </button>
@@ -614,11 +614,11 @@ export default function Settings() {
                                     </table>
                                 </div>
                             </div>
-                            <div className="card-footer bg-light">
+                            <div className="card-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
                                 <button className="btn btn-outline-success btn-sm" onClick={handleAddDepreciationRule}>
                                     <i className="bi bi-plus-circle me-2"></i>Agregar Nuevo Activo
                                 </button>
-                                <small className="text-muted ms-3">
+                                <small className="text-white-50 ms-3">
                                     <i className="bi bi-info-circle me-1"></i>
                                     El sistema buscará coincidencias inteligentes con estos nombres en tu Plan de Cuentas.
                                 </small>
@@ -631,46 +631,46 @@ export default function Settings() {
             {activeTab === 'profiles' && (
                 <div className="row fade-in">
                     <div className="col-md-10 mx-auto">
-                        <div className="card shadow-sm border-info h-100">
-                            <div className="card-header bg-info text-white">
+                        <div className="card shadow-sm border-info h-100 glass-panel">
+                            <div className="card-header border-info" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
                                 <h5 className="mb-0"><i className="bi bi-journal-bookmark-fill me-2"></i>Biblioteca de Perfiles de Estructura</h5>
                             </div>
                             <div className="card-body">
-                                <p className="text-muted small">
+                                <p className="text-white-50 small">
                                     Gestiona las configuraciones de niveles y longitudes de cuenta guardadas por empresa.
                                     Estos perfiles se usan en el Asistente de Importación Inteligente.
                                 </p>
 
                                 <div className="table-responsive" style={{ maxHeight: '450px' }}>
-                                    <table className="table table-sm table-hover align-middle">
-                                        <thead className="table-light">
+                                    <table className="table table-sm table-dark table-hover align-middle" style={{ backgroundColor: 'transparent' }}>
+                                        <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                             <tr>
-                                                <th>Empresa</th>
-                                                <th>Configuración</th>
-                                                <th className="text-end">Acciones</th>
+                                                <th className="text-white-50 border-secondary">Empresa</th>
+                                                <th className="text-white-50 border-secondary">Configuración</th>
+                                                <th className="text-end text-white-50 border-secondary">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {getProfiles().length === 0 ? (
-                                                <tr><td colSpan="3" className="text-center py-3 text-muted">No hay perfiles guardados.</td></tr>
+                                                <tr><td colSpan="3" className="text-center py-3 text-white-50 border-secondary">No hay perfiles guardados.</td></tr>
                                             ) : (
                                                 getProfiles().map(p => (
                                                     <tr key={p.key}>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <div className="d-flex align-items-center gap-2">
                                                                 <span className="badge bg-dark border border-info text-info">#{p.id}</span>
                                                                 <div>
-                                                                    <div className="fw-bold small">{p.name}</div>
-                                                                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>{p.companyName}</div>
+                                                                    <div className="fw-bold small text-white">{p.name}</div>
+                                                                    <div className="text-white-50" style={{ fontSize: '0.65rem' }}>{p.companyName}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <div className="badge bg-light text-dark border p-1" style={{ fontSize: '0.65rem' }}>
+                                                        <td className="border-secondary">
+                                                            <div className="badge bg-dark text-white border border-secondary p-1" style={{ fontSize: '0.65rem' }}>
                                                                 {p.config.levelCount} Niv. | {p.config.hasSeparator ? `Sep: ${p.config.separator}` : 'Fijo'}
                                                             </div>
                                                         </td>
-                                                        <td className="text-end">
+                                                        <td className="text-end border-secondary">
                                                             <div className="btn-group btn-group-sm">
                                                                 <button className="btn btn-outline-primary" title="Editar con Entrenador" onClick={() => setEditingProfile(p)}>
                                                                     <i className="bi bi-pencil-square"></i>
@@ -751,10 +751,10 @@ export default function Settings() {
 
                     {/* Controles de Activación por Página */}
                     <div className="col-12">
-                        <div className="card shadow-sm border-0 border-top border-4 border-primary">
+                        <div className="card shadow-sm border-0 border-top border-4 border-primary glass-panel">
                             <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 className="mb-0 fw-bold"><i className="bi bi-toggle-on me-2"></i>Central de Activación</h5>
+                                    <h5 className="mb-0 fw-bold text-white"><i className="bi bi-toggle-on me-2"></i>Central de Activación</h5>
                                     {savingConfig && <span className="spinner-border spinner-border-sm text-primary"></span>}
                                 </div>
                                 <div className="row g-2">
@@ -770,13 +770,13 @@ export default function Settings() {
                                     ].map(page => (
                                         <div key={page.id} className="col-md-3 col-6">
                                             <div
-                                                className={`p-2 rounded border d-flex align-items-center justify-content-between cursor-pointer transition-all ${activePages.includes(page.id) ? 'bg-primary bg-opacity-10 border-primary' : 'bg-light hover-bg-secondary'}`}
+                                                className={`p-2 rounded border border-secondary d-flex align-items-center justify-content-between cursor-pointer transition-all ${activePages.includes(page.id) ? 'bg-primary bg-opacity-25 border-primary mt-1' : 'bg-dark hover-bg-secondary text-white-50'}`}
                                                 onClick={() => togglePage(page.id)}
                                                 style={{ cursor: 'pointer' }}
                                             >
                                                 <div className="d-flex align-items-center gap-2">
-                                                    <i className={`bi ${page.icon} ${activePages.includes(page.id) ? 'text-primary' : 'text-muted'}`}></i>
-                                                    <span className="small fw-semibold">{page.name}</span>
+                                                    <i className={`bi ${page.icon} ${activePages.includes(page.id) ? 'text-primary' : 'text-white-50'}`}></i>
+                                                    <span className={`small fw-semibold ${activePages.includes(page.id) ? 'text-white' : 'text-white-50'}`}>{page.name}</span>
                                                 </div>
                                                 <div className={`form-check form-switch mb-0`}>
                                                     <input
@@ -791,7 +791,7 @@ export default function Settings() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-3 small text-muted">
+                                <div className="mt-3 small text-white-50">
                                     <i className="bi bi-info-circle me-1"></i> Mahoraga solo mostrará su rueda y controles en las páginas seleccionadas.
                                 </div>
                             </div>
@@ -820,13 +820,13 @@ export default function Settings() {
                     </div>
 
                     <div className="col-md-4">
-                        <div className="card shadow-sm h-100 border-0" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
+                        <div className="card shadow-sm h-100 border-secondary glass-panel" style={{ background: 'linear-gradient(135deg, rgba(240, 249, 255, 0.05) 0%, rgba(224, 242, 254, 0.05) 100%)' }}>
                             <div className="card-body">
                                 <h6 className="text-primary text-uppercase small fw-bold mb-3">Cognición (Reglas)</h6>
-                                <h3 className="fw-bold mb-2 text-dark">
+                                <h3 className="fw-bold mb-2 text-white">
                                     {(companyProfile?.monetary_rules?.length || 0) + (companyProfile?.non_monetary_rules?.length || 0)}
                                 </h3>
-                                <p className="small text-muted mb-4">Patrones específicos aprendidos de tus correcciones diarias.</p>
+                                <p className="small text-white-50 mb-4">Patrones específicos aprendidos de tus correcciones diarias.</p>
                                 <div className="d-flex gap-2">
                                     <span className="badge bg-primary bg-opacity-75">{companyProfile?.monetary_rules?.length || 0} Monetarias</span>
                                     <span className="badge bg-info text-dark bg-opacity-75">{companyProfile?.non_monetary_rules?.length || 0} No Monetarias</span>
@@ -836,24 +836,24 @@ export default function Settings() {
                     </div>
 
                     <div className="col-md-4">
-                        <div className="card shadow-sm h-100 border-0">
+                        <div className="card shadow-sm h-100 border-secondary glass-panel">
                             <div className="card-body">
-                                <h6 className="text-slate-500 text-uppercase small fw-bold mb-3">Monitor de API</h6>
+                                <h6 className="text-secondary text-uppercase small fw-bold mb-3">Monitor de API</h6>
                                 <div className="d-flex justify-content-between mb-2">
-                                    <span className="small text-muted">Modelo:</span>
-                                    <span className="small fw-bold">{monitorStats?.current_model || 'Buscando...'}</span>
+                                    <span className="small text-white-50">Modelo:</span>
+                                    <span className="small fw-bold text-white">{monitorStats?.current_model || 'Buscando...'}</span>
                                 </div>
                                 <div className="d-flex justify-content-between mb-2">
-                                    <span className="small text-muted">Uso Diario:</span>
-                                    <div className="progress w-50" style={{ height: '6px', marginTop: '6px' }}>
+                                    <span className="small text-white-50">Uso Diario:</span>
+                                    <div className="progress w-50 bg-dark border border-secondary" style={{ height: '6px', marginTop: '6px' }}>
                                         <div className="progress-bar bg-primary" style={{ width: `${monitorStats?.daily_usage_percent || 0}%` }}></div>
                                     </div>
                                 </div>
                                 <div className="d-flex justify-content-between">
-                                    <span className="small text-muted">Costo:</span>
+                                    <span className="small text-white-50">Costo:</span>
                                     <span className="small fw-bold text-success">${monitorStats?.daily_cost || '0.00'}</span>
                                 </div>
-                                <hr />
+                                <hr className="border-secondary" />
                                 <button className="btn btn-sm btn-outline-primary w-100" onClick={refreshMahoragaData}>
                                     <i className="bi bi-arrow-repeat me-1"></i> Sincronizar Ahora
                                 </button>
@@ -863,14 +863,14 @@ export default function Settings() {
 
                     {/* Habilidades Abstraídas (Paginado y Filtrado en Backend) */}
                     <div className="col-12">
-                        <div className="card shadow-sm border-0">
-                            <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                                <h5 className="mb-0 fw-bold"><i className="bi bi-cpu me-2 text-primary"></i>Habilidades Absorbidas</h5>
+                        <div className="card shadow-sm border-secondary glass-panel">
+                            <div className="card-header border-secondary d-flex justify-content-between align-items-center" style={{ backgroundColor: 'transparent' }}>
+                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-cpu me-2 text-primary"></i>Habilidades Absorbidas</h5>
                                 <div className="input-group input-group-sm w-50">
-                                    <span className="input-group-text bg-light border-0"><i className="bi bi-search"></i></span>
+                                    <span className="input-group-text bg-dark border-secondary text-white-50"><i className="bi bi-search"></i></span>
                                     <input
                                         type="text"
-                                        className="form-control border-0 bg-light"
+                                        className="form-control border-secondary bg-dark text-white"
                                         placeholder="Buscar entre 400+ habilidades..."
                                         value={searchQuery}
                                         onChange={handleSearch}
@@ -878,36 +878,36 @@ export default function Settings() {
                                 </div>
                             </div>
                             <div className="table-responsive" style={{ maxHeight: '400px' }}>
-                                <table className="table table-hover align-middle mb-0">
-                                    <thead className="table-light sticky-top">
+                                <table className="table table-dark table-hover align-middle mb-0" style={{ backgroundColor: 'transparent' }}>
+                                    <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="sticky-top">
                                         <tr>
-                                            <th>Habilidad</th>
-                                            <th>Extensión</th>
-                                            <th>Confianza</th>
-                                            <th>Estado</th>
+                                            <th className="text-white-50 border-secondary">Habilidad</th>
+                                            <th className="text-white-50 border-secondary">Extensión</th>
+                                            <th className="text-white-50 border-secondary">Confianza</th>
+                                            <th className="text-white-50 border-secondary">Estado</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {searchResults.length > 0 ? (
                                             searchResults.map((res, i) => (
                                                 <tr key={i}>
-                                                    <td><code className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>{res.skill.name}</code></td>
-                                                    <td><span className="badge border text-dark" style={{ background: '#f1f5f9' }}>{res.skill.type || 'Cognitive'}</span></td>
-                                                    <td style={{ width: '150px' }}>
+                                                    <td className="border-secondary"><code className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>{res.skill.name}</code></td>
+                                                    <td className="border-secondary"><span className="badge border border-secondary text-white-50" style={{ background: '#1e293b' }}>{res.skill.type || 'Cognitive'}</span></td>
+                                                    <td className="border-secondary" style={{ width: '150px' }}>
                                                         <div className="d-flex align-items-center gap-2">
-                                                            <div className="progress flex-grow-1" style={{ height: '4px' }}>
+                                                            <div className="progress flex-grow-1 bg-dark border border-secondary" style={{ height: '4px' }}>
                                                                 <div className="progress-bar bg-success" style={{ width: `${(res.skill.confidence || 0.95) * 100}%` }}></div>
                                                             </div>
-                                                            <span className="small text-muted">{(res.skill.confidence || 0.95) * 100}%</span>
+                                                            <span className="small text-white-50">{(res.skill.confidence || 0.95) * 100}%</span>
                                                         </div>
                                                     </td>
-                                                    <td><span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Activo</span></td>
+                                                    <td className="border-secondary"><span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Activo</span></td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="4" className="text-center py-5">
-                                                    <span className="text-muted">
+                                                <td colSpan="4" className="text-center py-5 border-secondary">
+                                                    <span className="text-white-50">
                                                         {searchQuery.length > 2 ? 'No se encontraron habilidades que coincidan.' : 'Explora el catálogo de habilidades de Mahoraga.'}
                                                     </span>
                                                 </td>
@@ -916,8 +916,8 @@ export default function Settings() {
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="card-footer bg-light py-2">
-                                <small className="text-muted"><i className="bi bi-database-check me-1"></i> Fuente: <code>skills_output_combined.json</code> (Sincronizado)</small>
+                            <div className="card-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                                <small className="text-white-50"><i className="bi bi-database-check me-1"></i> Fuente: <code className="text-info">skills_output_combined.json</code> (Sincronizado)</small>
                             </div>
                         </div>
                     </div>
@@ -928,21 +928,21 @@ export default function Settings() {
             {editingProfile && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content border-primary shadow-lg">
-                            <div className="modal-header bg-primary text-white">
-                                <h5 className="modal-title"><i className="bi bi-cpu-fill me-2"></i>Entrenador de Perfil: {editingProfile.name}</h5>
+                        <div className="modal-content glass-panel border-primary shadow-lg">
+                            <div className="modal-header border-primary" style={{ backgroundColor: 'rgba(13, 110, 253, 0.1)', color: '#0d6efd' }}>
+                                <h5 className="modal-title text-primary"><i className="bi bi-cpu-fill me-2"></i>Entrenador de Perfil: <span className="text-white">{editingProfile.name}</span></h5>
                                 <button type="button" className="btn-close btn-close-white" onClick={() => setEditingProfile(null)}></button>
                             </div>
-                            <div className="modal-body bg-light">
+                            <div className="modal-body">
                                 <div className="row g-3 mb-4">
                                     <div className="col-md-6">
-                                        <label className="form-label small fw-bold">Nombre del Perfil</label>
-                                        <input type="text" className="form-control" value={editingProfile.name}
+                                        <label className="form-label small fw-bold text-white-50">Nombre del Perfil</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" value={editingProfile.name}
                                             onChange={e => setEditingProfile({ ...editingProfile, name: e.target.value })} />
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label small fw-bold">Empresa Asignada</label>
-                                        <select className="form-select" value={editingProfile.companyId}
+                                        <label className="form-label small fw-bold text-white-50">Empresa Asignada</label>
+                                        <select className="form-select bg-dark text-white border-secondary" value={editingProfile.companyId}
                                             onChange={e => setEditingProfile({ ...editingProfile, companyId: e.target.value })}>
                                             <option value="global">🌍 Plantilla Global (Para todos)</option>
                                             {companies.map(c => (
@@ -951,27 +951,27 @@ export default function Settings() {
                                         </select>
                                     </div>
                                 </div>
-                                <div className="p-3 bg-white rounded border shadow-sm">
-                                    <h6 className="border-bottom pb-2 mb-3"><i className="bi bi-sliders me-2"></i>Configuración de Estructura</h6>
+                                <div className="p-3 rounded border border-secondary shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                                    <h6 className="border-bottom border-secondary pt-1 pb-2 mb-3 text-white"><i className="bi bi-sliders me-2"></i>Configuración de Estructura</h6>
                                     <div className="row g-3 align-items-end">
                                         <div className="col-md-3">
-                                            <label className="form-label small fw-bold">Detección</label>
+                                            <label className="form-label small fw-bold text-white-50">Detección</label>
                                             <div className="btn-group btn-group-sm w-100">
-                                                <button className={`btn ${editingProfile.config.hasSeparator ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                <button className={`btn ${editingProfile.config.hasSeparator ? 'btn-primary' : 'btn-outline-primary text-white'}`}
                                                     onClick={() => setEditingProfile({ ...editingProfile, config: { ...editingProfile.config, hasSeparator: true } })}>Separador</button>
-                                                <button className={`btn ${!editingProfile.config.hasSeparator ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                <button className={`btn ${!editingProfile.config.hasSeparator ? 'btn-primary' : 'btn-outline-primary text-white'}`}
                                                     onClick={() => setEditingProfile({ ...editingProfile, config: { ...editingProfile.config, hasSeparator: false } })}>Longitud</button>
                                             </div>
                                         </div>
                                         <div className="col-md-3">
-                                            <label className="form-label small fw-bold">Niveles ({editingProfile.config.levelCount})</label>
+                                            <label className="form-label small fw-bold text-white-50">Niveles ({editingProfile.config.levelCount})</label>
                                             <div className="input-group input-group-sm">
-                                                <button className="btn btn-outline-secondary" type="button"
+                                                <button className="btn btn-outline-secondary text-white" type="button"
                                                     onClick={() => setEditingProfile(p => ({ ...p, config: { ...p.config, levelCount: Math.max(1, p.config.levelCount - 1) } }))}>
                                                     <i className="bi bi-dash"></i>
                                                 </button>
-                                                <input type="text" className="form-control text-center bg-light" value={editingProfile.config.levelCount} readOnly />
-                                                <button className="btn btn-outline-secondary" type="button"
+                                                <input type="text" className="form-control text-center bg-dark text-white border-secondary" value={editingProfile.config.levelCount} readOnly />
+                                                <button className="btn btn-outline-secondary text-white" type="button"
                                                     onClick={() => {
                                                         const currentCount = editingProfile.config.levelCount;
                                                         if (currentCount >= 10) return;
@@ -991,8 +991,8 @@ export default function Settings() {
                                         </div>
                                         {editingProfile.config.hasSeparator && (
                                             <div className="col-md-2">
-                                                <label className="form-label small fw-bold">Separador</label>
-                                                <input type="text" className="form-control form-control-sm text-center"
+                                                <label className="form-label small fw-bold text-white-50">Separador</label>
+                                                <input type="text" className="form-control form-control-sm text-center bg-dark text-white border-secondary"
                                                     value={editingProfile.config.separator} maxLength="1"
                                                     onChange={e => setEditingProfile({ ...editingProfile, config: { ...editingProfile.config, separator: e.target.value } })} />
                                             </div>
@@ -1002,7 +1002,7 @@ export default function Settings() {
                                                 {editingProfile.config.levelLengths.slice(0, editingProfile.config.levelCount).map((len, idx) => (
                                                     <div key={idx} className="col-2 text-center">
                                                         <span className="badge bg-secondary mb-1" style={{ fontSize: '0.6rem' }}>N{idx + 1}</span>
-                                                        <input type="number" className="form-control form-control-sm text-center"
+                                                        <input type="number" className="form-control form-control-sm text-center bg-dark text-white border-secondary"
                                                             value={len}
                                                             onChange={e => {
                                                                 const newLens = [...editingProfile.config.levelLengths];
@@ -1016,8 +1016,8 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer bg-light">
-                                <button className="btn btn-secondary" onClick={() => setEditingProfile(null)}>Cancelar</button>
+                            <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                                <button className="btn btn-outline-secondary text-white" onClick={() => setEditingProfile(null)}>Cancelar</button>
                                 <button className="btn btn-primary" onClick={saveProfileEdit}><i className="bi bi-save me-1"></i>Guardar</button>
                             </div>
                         </div>
@@ -1028,23 +1028,23 @@ export default function Settings() {
             {showCloneModal && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content border-success">
-                            <div className="modal-header bg-success text-white">
+                        <div className="modal-content glass-panel border-success">
+                            <div className="modal-header border-success" style={{ backgroundColor: 'rgba(25, 135, 84, 0.1)', color: '#198754' }}>
                                 <h5 className="modal-title"><i className="bi bi-copy me-2"></i>Clonar Perfil</h5>
                                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowCloneModal(null)}></button>
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label className="form-label small fw-bold">Empresa Destino</label>
-                                    <select className="form-select" value={targetCompanyId} onChange={e => setTargetCompanyId(e.target.value)}>
+                                    <label className="form-label small fw-bold text-white-50">Empresa Destino</label>
+                                    <select className="form-select bg-dark text-white border-secondary" value={targetCompanyId} onChange={e => setTargetCompanyId(e.target.value)}>
                                         <option value="">-- Misma Empresa --</option>
                                         <option value="global">🌍 Plantilla Global</option>
                                         {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setShowCloneModal(null)}>Cancelar</button>
+                            <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                                <button className="btn btn-outline-secondary text-white" onClick={() => setShowCloneModal(null)}>Cancelar</button>
                                 <button className="btn btn-success" onClick={() => cloneProfile(showCloneModal)}><i className="bi bi-check2-circle me-1"></i>Clonar</button>
                             </div>
                         </div>
@@ -1055,15 +1055,15 @@ export default function Settings() {
             {showModeChange && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content shadow-lg border-0">
-                            <div className="modal-header bg-dark text-white">
-                                <h5 className="modal-title"><i className="bi bi-shield-lock me-2"></i>Seguridad de Mahoraga</h5>
+                        <div className="modal-content glass-panel shadow-lg border-secondary">
+                            <div className="modal-header border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                <h5 className="modal-title text-white"><i className="bi bi-shield-lock me-2"></i>Seguridad de Mahoraga</h5>
                                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowModeChange(false)}></button>
                             </div>
                             <div className="modal-body p-4">
                                 <div className="mb-4">
-                                    <label className="form-label fw-bold">Modo de Operación</label>
-                                    <select className="form-select form-select-lg" value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
+                                    <label className="form-label fw-bold text-white-50">Modo de Operación</label>
+                                    <select className="form-select form-select-lg bg-dark text-white border-secondary" value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
                                         <option value="">Seleccionar...</option>
                                         <option value="disabled">🚫 Desactivado</option>
                                         <option value="manual">👆 Manual (Por defecto)</option>
@@ -1072,14 +1072,14 @@ export default function Settings() {
                                     </select>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label fw-bold">Razón del Cambio</label>
-                                    <textarea className="form-control" rows="3" value={modeChangeReason}
+                                    <label className="form-label fw-bold text-white-50">Razón del Cambio</label>
+                                    <textarea className="form-control bg-dark text-white border-secondary" rows="3" value={modeChangeReason}
                                         onChange={(e) => setModeChangeReason(e.target.value)}
                                         placeholder="Escribe el motivo del cambio..."></textarea>
                                 </div>
                             </div>
-                            <div className="modal-footer bg-light">
-                                <button className="btn btn-secondary" onClick={() => setShowModeChange(false)}>Cancelar</button>
+                            <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                                <button className="btn btn-outline-secondary text-white" onClick={() => setShowModeChange(false)}>Cancelar</button>
                                 <button className="btn btn-primary px-4" onClick={handleModeChange} disabled={!selectedMode || !modeChangeReason.trim()}>
                                     Aplicar Cambio
                                 </button>

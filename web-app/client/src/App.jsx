@@ -55,8 +55,11 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
                 ></div>
             )}
             
-            <div className={`bg-dark text-white sidebar-container ${collapsed ? 'collapsed-sidebar' : 'full-sidebar'} ${mobileOpen ? 'mobile-open' : ''}`}>
-                <div className="p-3 border-bottom border-secondary d-flex flex-column gap-2">
+            <div 
+                className={`glass-panel sidebar-container ${collapsed ? 'collapsed-sidebar' : 'full-sidebar'} ${mobileOpen ? 'mobile-open' : ''}`}
+                style={{ borderRadius: '0', borderLeft: 'none', borderTop: 'none', borderBottom: 'none' }}
+            >
+                <div className="p-3 border-bottom border-light border-opacity-10 d-flex flex-column gap-2">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         {(!collapsed || mobileOpen) && (
                             <h5 className="mb-0 text-truncate">
@@ -155,7 +158,7 @@ function AppLayout() {
             />
             
             <div className={`main-content ${collapsed ? 'content-collapsed' : 'content-expanded'}`}>
-                <header className="bg-white shadow-sm py-3 px-3 px-md-4 sticky-top d-flex justify-content-between align-items-center" style={{ zIndex: 1020 }}>
+                <header className="glass-panel py-3 px-3 px-md-4 sticky-top d-flex justify-content-between align-items-center mx-md-4 mt-md-3 mb-md-4 mx-2 mt-2 mb-3 shadow-lg" style={{ zIndex: 1020 }}>
                     <div className="d-flex align-items-center gap-2 overflow-hidden">
                         <button 
                             className="btn btn-outline-secondary d-lg-none"
@@ -164,12 +167,12 @@ function AppLayout() {
                             <i className="bi bi-list fs-5"></i>
                         </button>
                         <div className="text-truncate">
-                            <h5 className="mb-0 text-primary fw-bold text-truncate" style={{ fontSize: '1.1rem' }}>
+                            <h5 className="mb-0 fw-bold text-truncate" style={{ fontSize: '1.1rem', color: 'var(--accent-primary)' }}>
                                 <i className="bi bi-buildings me-2 d-none d-sm-inline-block"></i>
                                 Sistema Contable
                             </h5>
                             {selectedCompany && (
-                                <small className="text-muted d-none d-md-block text-truncate">
+                                <small className="text-white-50 d-none d-md-block text-truncate">
                                     {selectedCompany.name}
                                     {selectedCompany.nit && <span className="ms-2">• NIT: {selectedCompany.nit}</span>}
                                 </small>
@@ -178,7 +181,7 @@ function AppLayout() {
                     </div>
                     
                     <div className="d-flex align-items-center gap-2 gap-sm-3 flex-shrink-0">
-                        <span className="text-muted d-none d-sm-flex align-items-center">
+                        <span className="text-white-50 d-none d-sm-flex align-items-center">
                             <i className="bi bi-person-circle me-1"></i>
                             <span className="d-none d-md-inline">Usuario:</span> Admin
                         </span>
@@ -235,7 +238,7 @@ function App() {
                         --sidebar-width: 280px;
                         --sidebar-collapsed-width: 80px;
                         --sidebar-bg: #212529; /* bg-dark */
-                        --content-bg: #f8f9fa;
+                        --content-bg: transparent;
                     }
 
                     body, html {

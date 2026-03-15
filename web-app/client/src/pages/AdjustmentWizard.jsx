@@ -513,9 +513,9 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
     return (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-xl modal-dialog-centered">
-                <div className="modal-content shadow-lg border-0">
-                    <div className="modal-header bg-dark text-white">
-                        <h5 className="modal-title d-flex align-items-center">
+                <div className="modal-content glass-panel border-secondary shadow-lg">
+                    <div className="modal-header border-secondary" style={{ backgroundColor: 'transparent' }}>
+                        <h5 className="modal-title d-flex align-items-center text-white">
                             <i className="bi bi-gear-wide-connected me-2"></i>
                             Asistente de Ajustes
                         </h5>
@@ -527,25 +527,25 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                         {step === 1 && (
                             <div className="text-center py-4">
                                 <div className="mb-4">
-                                    <label className="form-label h5 mb-3">Definir Período de Ajuste</label>
+                                    <label className="form-label h5 mb-3 text-white">Definir Período de Ajuste</label>
                                     <div className="d-flex justify-content-center gap-4 mb-4">
                                         <div className="text-start">
-                                            <label className="form-label small text-muted">Fecha Apertura</label>
+                                            <label className="form-label small text-white-50">Fecha Apertura</label>
                                             <DatePicker
                                                 selected={startDate}
                                                 onChange={(date) => handleDateChange(date, 'start')}
-                                                className="form-control form-control-lg text-center"
+                                                className="form-control form-control-lg text-center bg-dark text-white border-secondary"
                                                 dateFormat="dd/MM/yyyy"
                                                 locale={es}
                                                 popperProps={{ strategy: 'fixed' }}
                                             />
                                         </div>
                                         <div className="text-start">
-                                            <label className="form-label small text-muted">Fecha Cierre</label>
+                                            <label className="form-label small text-white-50">Fecha Cierre</label>
                                             <DatePicker
                                                 selected={endDate}
                                                 onChange={(date) => handleDateChange(date, 'end')}
-                                                className="form-control form-control-lg text-center"
+                                                className="form-control form-control-lg text-center bg-dark text-white border-secondary"
                                                 dateFormat="dd/MM/yyyy"
                                                 locale={es}
                                                 popperProps={{ strategy: 'fixed' }}
@@ -554,11 +554,11 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                     </div>
                                 </div>
 
-                                <div className="card border-0 bg-light mb-4 shadow-sm mx-auto" style={{ maxWidth: '600px' }}>
+                                <div className="card border-0 bg-dark mb-4 shadow-sm mx-auto" style={{ maxWidth: '600px' }}>
                                     <div className="card-body">
                                         {/* V8.0 AoT: Trajectory Mode Toggle */}
                                         <div className="d-flex justify-content-between align-items-center mb-3">
-                                            <h6 className="card-title text-muted mb-0">Tasas de Cambio e Indicadores</h6>
+                                            <h6 className="card-title text-white-50 mb-0">Tasas de Cambio e Indicadores</h6>
                                             <div className="form-check form-switch">
                                                 <input
                                                     className="form-check-input"
@@ -575,7 +575,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
 
                                         {/* Info banner for trajectory mode */}
                                         {useTrajectoryMode && (
-                                            <div className="alert alert-success py-2 mb-3 small">
+                                            <div className="alert alert-success border-success bg-dark text-success py-2 mb-3 small" style={{ backgroundColor: 'rgba(25, 135, 84, 0.1) !important' }}>
                                                 <i className="bi bi-lightning-charge-fill me-1"></i>
                                                 <strong>AoT Activo:</strong> Cada movimiento se ajustará con su UFV de fecha correspondiente.
                                             </div>
@@ -583,13 +583,13 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
 
                                         <div className="row g-3">
                                             {/* UFV Indicators */}
-                                            <div className="col-md-6 border-end">
+                                            <div className="col-md-6 border-end border-secondary">
                                                 {/* UFV Inicial - hidden in trajectory mode */}
                                                 {!useTrajectoryMode && (
                                                     <>
                                                         <label className="form-label small fw-bold text-success">UFV Inicial</label>
                                                         <input
-                                                            type="number" step="0.00001" className="form-control text-center"
+                                                            type="number" step="0.00001" className="form-control text-center bg-dark text-white border-secondary"
                                                             value={exchangeRates.ufv_initial}
                                                             onChange={(e) => setExchangeRates({ ...exchangeRates, ufv_initial: e.target.value })}
                                                         />
@@ -597,7 +597,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                 )}
                                                 <label className={`form-label small fw-bold text-success ${useTrajectoryMode ? '' : 'mt-2'}`}>UFV Final (Cierre)</label>
                                                 <input
-                                                    type="number" step="0.00001" className="form-control text-center"
+                                                    type="number" step="0.00001" className="form-control text-center bg-dark text-white border-secondary"
                                                     value={exchangeRates.ufv_final}
                                                     onChange={(e) => setExchangeRates({ ...exchangeRates, ufv_final: e.target.value })}
                                                 />
@@ -609,7 +609,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                     <>
                                                         <label className="form-label small fw-bold text-primary">T/C Inicial (Venta)</label>
                                                         <input
-                                                            type="number" step="0.01" className="form-control text-center"
+                                                            type="number" step="0.01" className="form-control text-center bg-dark text-white border-secondary"
                                                             value={exchangeRates.tc_initial}
                                                             onChange={(e) => setExchangeRates({ ...exchangeRates, tc_initial: e.target.value })}
                                                         />
@@ -617,13 +617,13 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                 )}
                                                 <label className={`form-label small fw-bold text-primary ${useTrajectoryMode ? '' : 'mt-2'}`}>T/C Final (Cierre)</label>
                                                 <input
-                                                    type="number" step="0.01" className="form-control text-center"
+                                                    type="number" step="0.01" className="form-control text-center bg-dark text-white border-secondary"
                                                     value={exchangeRates.tc_final}
                                                     onChange={(e) => setExchangeRates({ ...exchangeRates, tc_final: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-                                        <div className="mt-3 small text-muted border-top pt-2">
+                                        <div className="mt-3 small text-white-50 border-top border-secondary pt-2">
                                             <i className="bi bi-info-circle me-1"></i>
                                             {useTrajectoryMode
                                                 ? 'Modo Trayectoria: Solo necesitas UFV/TC de cierre. Las fechas intermedias se obtienen automáticamente.'
@@ -632,14 +632,14 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                     </div>
                                 </div>
 
-                                <div className="alert alert-info">
-                                    <h6 className="alert-heading">
+                                <div className="alert border-info d-flex align-items-center" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
+                                    <h6 className="alert-heading mb-0 me-3">
                                         <i className="bi bi-robot me-2"></i>Ajustes a Procesar:
                                     </h6>
-                                    <div className="d-flex justify-content-center gap-3 mt-2">
-                                        <span className="badge rounded-pill bg-white text-dark shadow-sm px-3 py-2 border">Depreciación</span>
-                                        <span className="badge rounded-pill bg-white text-dark shadow-sm px-3 py-2 border">Actualización AITB</span>
-                                        <span className="badge rounded-pill bg-white text-dark shadow-sm px-3 py-2 border">Provisiones</span>
+                                    <div className="d-flex justify-content-center gap-3">
+                                        <span className="badge rounded-pill bg-dark text-white shadow-sm px-3 py-2 border border-secondary">Depreciación</span>
+                                        <span className="badge rounded-pill bg-dark text-white shadow-sm px-3 py-2 border border-secondary">Actualización AITB</span>
+                                        <span className="badge rounded-pill bg-dark text-white shadow-sm px-3 py-2 border border-secondary">Provisiones</span>
                                     </div>
                                 </div>
 
@@ -652,7 +652,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                             checked={useAI}
                                             onChange={(e) => setUseAI(e.target.checked)}
                                         />
-                                        <label className="form-check-label h6 ms-2" htmlFor="useAI">
+                                        <label className="form-check-label text-white h6 ms-2" htmlFor="useAI">
                                             Activar Smart Engine
                                         </label>
                                     </div>
@@ -674,30 +674,32 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
 
                         {step === 1.5 && (
                             <div className="fixed-asset-step fade-in">
-                                <div className="alert alert-info border-info bg-light">
-                                    <h6 className="alert-heading text-primary fw-bold">
-                                        <i className="bi bi-calendar-check me-2"></i>
-                                        Fechas de Adquisición de Activos Fijos
-                                    </h6>
-                                    <p className="mb-0 small text-muted">
-                                        Para calcular correctamente la depreciación (prorrateo de meses), verifica la fecha de adquisición de los activos detectados.
-                                    </p>
+                                <div className="alert border-info d-flex align-items-center" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
+                                    <div className="me-3 fs-3"><i className="bi bi-calendar-check"></i></div>
+                                    <div>
+                                        <h6 className="alert-heading text-info fw-bold mb-1">
+                                            Fechas de Adquisición de Activos Fijos
+                                        </h6>
+                                        <p className="mb-0 small text-white-50">
+                                            Para calcular correctamente la depreciación (prorrateo de meses), verifica la fecha de adquisición de los activos detectados.
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div className="table-responsive mb-3 border rounded bg-white" style={{ maxHeight: '400px' }}>
-                                    <table className="table table-sm table-hover align-middle mb-0">
-                                        <thead className="table-light sticky-top">
+                                <div className="table-responsive mb-3 border border-secondary rounded glass-panel" style={{ maxHeight: '400px' }}>
+                                    <table className="table table-sm table-dark table-hover align-middle mb-0" style={{ backgroundColor: 'transparent' }}>
+                                        <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="sticky-top">
                                             <tr>
-                                                <th>Código</th>
-                                                <th>Activo Fijo</th>
-                                                <th style={{ width: '200px' }}>Fecha Adquisición</th>
-                                                <th>Cálculo</th>
+                                                <th className="text-white-50 border-secondary">Código</th>
+                                                <th className="text-white-50 border-secondary">Activo Fijo</th>
+                                                <th className="text-white-50 border-secondary" style={{ width: '200px' }}>Fecha Adquisición</th>
+                                                <th className="text-white-50 border-secondary">Cálculo</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {fixedAssets.length === 0 && (
                                                 <tr>
-                                                    <td colSpan="4" className="text-center py-5 text-muted">
+                                                    <td colSpan="4" className="text-center py-5 text-white-50 border-secondary">
                                                         <i className="bi bi-search fs-4 d-block mb-2"></i>
                                                         No se detectaron activos fijos nuevos probables.
                                                     </td>
@@ -720,13 +722,13 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
 
                                                 return (
                                                     <tr key={asset.code}>
-                                                        <td className="text-muted"><small>{asset.code}</small></td>
-                                                        <td className="fw-bold text-dark">{asset.name}</td>
-                                                        <td>
+                                                        <td className="text-white-50 border-secondary"><small>{asset.code}</small></td>
+                                                        <td className="fw-bold text-white border-secondary">{asset.name}</td>
+                                                        <td className="border-secondary">
                                                             <DatePicker
                                                                 selected={dateVal}
                                                                 onChange={(date) => handleAcquisitionDateChange(asset.code, date)}
-                                                                className="form-control form-control-sm border-secondary"
+                                                                className="form-control form-control-sm border-secondary bg-dark text-white"
                                                                 dateFormat="dd/MM/yyyy"
                                                                 placeholderText="Fecha de compra"
                                                                 maxDate={endDate}
@@ -734,7 +736,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                                 dropdownMode="select"
                                                             />
                                                         </td>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <span className={`badge ${isProrated ? 'bg-warning text-dark border border-warning' : 'bg-success text-white'}`}>
                                                                 {months}
                                                             </span>
@@ -767,52 +769,51 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
 
                         {step === 2 && proposal && (
                             <div>
-                                <div className="alert alert-info shadow-sm border-info mb-4">
+                                <div className="alert border-info shadow-sm mb-4" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
                                     <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center">
-                                        <div className="me-md-4 mb-3 mb-md-0 align-self-center p-2 bg-white rounded-circle shadow-sm" style={{ border: '3px solid #FFD700' }}>
+                                        <div className="me-md-4 mb-3 mb-md-0 align-self-center p-2 rounded-circle shadow-sm" style={{ border: '3px solid #FFD700', backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                             <MahoragaWheel size={80} spinning={loading || wheelSpinning} />
                                         </div>
                                         <div className="flex-grow-1">
-                                            <h6 className="alert-heading fw-bold d-flex align-items-center">
+                                            <h6 className="alert-heading fw-bold d-flex align-items-center text-info">
                                                 <i className="bi bi-robot me-2"></i>
                                                 Ajustes Generados
                                             </h6>
-                                            <div className="row">
+                                            <div className="row text-white">
                                                 <div className="col-md-6 mb-2 mb-md-0">
                                                     <strong>Confianza:</strong> {((proposal.aggregate_confidence || proposal.confidence || 0) * 100).toFixed(1)}%<br />
                                                     <strong>Razonamiento:</strong> {proposal.reasoning || 'Procesamiento automático'}
                                                 </div>
                                                 <div className="col-md-6">
                                                     <strong>Período:</strong> {format(startDate, 'yyyy-MM-dd')} al {format(endDate, 'yyyy-MM-dd')}<br />
-                                                    <small className="text-muted">Generado: {proposal.processing_stats?.accounts_processed || 0} cuentas procesadas</small>
+                                                    <small className="text-white-50">Generado: {proposal.processing_stats?.accounts_processed || 0} cuentas procesadas</small>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="text-md-end d-flex flex-row flex-wrap flex-md-column gap-2 mt-3 mt-md-0 ms-md-3">
-                                            <button className="btn btn-warning btn-sm" onClick={handleShowChronology}>
+                                            <button className="btn btn-warning btn-sm text-dark" onClick={handleShowChronology}>
                                                 <i className="bi bi-clock-history me-1"></i>Cronología
                                             </button>
-                                            <button className="btn btn-outline-dark btn-sm" onClick={() => setShowConfirmRollback(true)}>
+                                            <button className="btn btn-outline-light btn-sm" onClick={() => setShowConfirmRollback(true)}>
                                                 <i className="bi bi-arrow-counterclockwise me-1"></i>Reset
                                             </button>
                                         </div>
                                     </div>
-                                    {adaptationToast && (
-                                        <div className="mt-3 p-2 bg-success text-white rounded shadow-sm animate__animated animate__fadeInUp">
-                                            <i className="bi bi-stars me-2"></i> {adaptationToast.message}
-                                        </div>
-                                    )}
                                 </div>
-
-                                <div className="table-responsive bg-white rounded shadow-sm">
-                                    <table className="table table-hover mb-0 align-middle">
-                                        <thead className="table-dark">
+                                {adaptationToast && (
+                                    <div className="mt-3 p-2 bg-success text-white rounded shadow-sm animate__animated animate__fadeInUp">
+                                        <i className="bi bi-stars me-2"></i> {adaptationToast.message}
+                                    </div>
+                                )}
+                                <div className="table-responsive glass-panel rounded shadow-sm border border-secondary">
+                                    <table className="table table-dark table-hover mb-0 align-middle" style={{ backgroundColor: 'transparent' }}>
+                                        <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                             <tr>
-                                                <th style={{ width: '40%' }}>Descripción / Glosa</th>
-                                                <th style={{ width: '30%' }}>Cuenta Contable</th>
-                                                <th style={{ width: '12%' }} className="text-end">Debe</th>
-                                                <th style={{ width: '12%' }} className="text-end">Haber</th>
-                                                <th style={{ width: '6%' }} className="text-center">Acción</th>
+                                                <th style={{ width: '40%' }} className="text-white-50 border-secondary">Descripción / Glosa</th>
+                                                <th style={{ width: '30%' }} className="text-white-50 border-secondary">Cuenta Contable</th>
+                                                <th style={{ width: '12%' }} className="text-end text-white-50 border-secondary">Debe</th>
+                                                <th style={{ width: '12%' }} className="text-end text-white-50 border-secondary">Haber</th>
+                                                <th style={{ width: '6%' }} className="text-center text-white-50 border-secondary">Acción</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -821,10 +822,10 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                     {trans.entries.map((entry, entryIndex) => (
                                                         <tr key={`${transIndex}-${entryIndex}`}>
                                                             {entryIndex === 0 && (
-                                                                <td rowSpan={trans.entries.length} className="align-top bg-light">
+                                                                <td rowSpan={trans.entries.length} className="align-top border-secondary">
                                                                     <div className="mb-2">
                                                                         <textarea
-                                                                            className="form-control form-control-sm border-0 bg-transparent fw-bold"
+                                                                            className="form-control form-control-sm border-0 bg-transparent fw-bold text-white"
                                                                             rows="2"
                                                                             value={trans.gloss}
                                                                             onChange={(e) => {
@@ -836,26 +837,26 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                                     </div>
                                                                     <div className="d-flex gap-1">
                                                                         <button className="btn btn-outline-info btn-xs py-0 px-1" onClick={() => handleAdaptation('NM', trans)} title="Forzar No Monetario">NM</button>
-                                                                        <button className="btn btn-outline-secondary btn-xs py-0 px-1" onClick={() => handleAdaptation('MN', trans)} title="Forzar Monetario">MN</button>
+                                                                        <button className="btn btn-outline-light btn-xs py-0 px-1" onClick={() => handleAdaptation('MN', trans)} title="Forzar Monetario">MN</button>
                                                                         <button className="btn btn-link btn-xs p-0 text-success ms-auto" onClick={() => handleAddEntry(transIndex)}><i className="bi bi-plus-circle"></i></button>
                                                                     </div>
                                                                     {trans.audit_trail && (
-                                                                        <div className="text-muted mt-2 border-top pt-1" style={{ fontSize: '0.65rem', lineHeight: '1.2' }}>
+                                                                        <div className="text-white-50 mt-2 border-top border-secondary pt-1" style={{ fontSize: '0.65rem', lineHeight: '1.2' }}>
                                                                             <i className="bi bi-diagram-3-fill me-1"></i>
                                                                             {trans.audit_trail}
                                                                         </div>
                                                                     )}
                                                                 </td>
                                                             )}
-                                                            <td>
+                                                            <td className="border-secondary">
                                                                 <div className="d-flex align-items-center flex-grow-1">
                                                                     <div className="me-2">{entryIndex === 0 && renderWheelIcon(trans.applied_rule, trans)}</div>
                                                                     <div className="w-100">
-                                                                        <small className="text-muted d-block">{entry.accountId || entry.accountCode || ''}</small>
+                                                                        <small className="text-white-50 d-block">{entry.accountId || entry.accountCode || ''}</small>
                                                                         <input
                                                                             type="text"
                                                                             list={`accounts-list-${transIndex}-${entryIndex}`}
-                                                                            className="form-control form-control-sm border-0 bg-transparent p-0 fw-bold"
+                                                                            className="form-control form-control-sm border-0 bg-transparent p-0 fw-bold text-white"
                                                                             value={entry.accountName || entry.account_name || ''}
                                                                             placeholder="Buscar cuenta..."
                                                                             onChange={(e) => handleEntryChange(transIndex, entryIndex, 'account_name', e.target.value)}
@@ -869,23 +870,23 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                                     </div>
                                                                 </div>
                                                             </td>
-                                                            <td className="p-0">
+                                                            <td className="p-0 border-secondary">
                                                                 <input
                                                                     type="number" step="0.01"
-                                                                    className="form-control form-control-sm border-0 bg-transparent text-end"
+                                                                    className="form-control form-control-sm border-0 bg-transparent text-end text-white"
                                                                     value={entry.debit ? bankersRound(parseFloat(entry.debit), 2).toFixed(2) : ''}
                                                                     onChange={(e) => handleEntryChange(transIndex, entryIndex, 'debit', e.target.value)}
                                                                 />
                                                             </td>
-                                                            <td className="p-0">
+                                                            <td className="p-0 border-secondary">
                                                                 <input
                                                                     type="number" step="0.01"
-                                                                    className="form-control form-control-sm border-0 bg-transparent text-end"
+                                                                    className="form-control form-control-sm border-0 bg-transparent text-end text-white"
                                                                     value={entry.credit ? bankersRound(parseFloat(entry.credit), 2).toFixed(2) : ''}
                                                                     onChange={(e) => handleEntryChange(transIndex, entryIndex, 'credit', e.target.value)}
                                                                 />
                                                             </td>
-                                                            <td className="text-center">
+                                                            <td className="text-center border-secondary">
                                                                 <button className="btn btn-link btn-sm text-danger p-0" onClick={() => handleRemoveEntry(transIndex, entryIndex)}><i className="bi bi-trash"></i></button>
                                                             </td>
                                                         </tr>
@@ -913,8 +914,8 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
             {showChronology && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 2000 }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                        <div className="modal-content shadow border-0">
-                            <div className="modal-header bg-dark text-white">
+                        <div className="modal-content glass-panel border-secondary shadow">
+                            <div className="modal-header border-secondary text-white" style={{ backgroundColor: 'transparent' }}>
                                 <h6 className="modal-title d-flex align-items-center">
                                     <MahoragaWheel size={28} spinning={false} color="#FFD700" />
                                     <span className="ms-2">⚡ CRONOLOGÍA DE ADAPTACIONES (Mahoraga V6.0)</span>
@@ -923,22 +924,22 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                             </div>
                             <div className="modal-body p-0" style={{ maxHeight: '60vh' }}>
                                 {chronology.length === 0 ? (
-                                    <div className="text-center py-5 text-muted">
+                                    <div className="text-center py-5 text-white-50">
                                         <i className="bi bi-inbox fs-1"></i>
-                                        <p className="mt-2">No hay adaptaciones registradas aún.</p>
+                                        <p className="mt-2 text-white">No hay adaptaciones registradas aún.</p>
                                         <small>Usa los botones NM/MN para entrenar a Mahoraga.</small>
                                     </div>
                                 ) : (
-                                    <div className="list-group list-group-flush">
+                                    <div className="list-group list-group-flush bg-transparent">
                                         {chronology.map((event, idx) => (
-                                            <div key={event.id || idx} className="list-group-item py-3">
+                                            <div key={event.id || idx} className="list-group-item py-3 bg-transparent text-white border-secondary">
                                                 <div className="d-flex justify-content-between align-items-start">
                                                     <div>
-                                                        <h6 className="mb-1 fw-bold">
+                                                        <h6 className="mb-1 fw-bold text-white">
                                                             <i className="bi bi-gear-fill text-warning me-2"></i>
                                                             {event.action || 'Adaptación'}
                                                         </h6>
-                                                        <p className="mb-1 text-muted small">
+                                                        <p className="mb-1 text-white-50 small">
                                                             <strong>Cuenta:</strong> {event.account_name} ({event.account_code})
                                                         </p>
                                                         {event.error_reason_tag && (
@@ -948,16 +949,16 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                             </span>
                                                         )}
                                                         {event.user_comment && (
-                                                            <p className="mb-0 mt-2 small fst-italic border-start border-3 border-warning ps-2">
+                                                            <p className="mb-0 mt-2 small fst-italic border-start border-3 border-warning ps-2 text-white-50">
                                                                 "{event.user_comment}"
                                                             </p>
                                                         )}
                                                     </div>
                                                     <div className="text-end">
-                                                        <small className="text-muted d-block">
+                                                        <small className="text-white-50 d-block">
                                                             {event.timestamp ? new Date(event.timestamp).toLocaleString() : '-'}
                                                         </small>
-                                                        <small className="text-secondary">
+                                                        <small className="text-white-50">
                                                             <i className="bi bi-person me-1"></i>
                                                             {event.user || 'Sistema'}
                                                         </small>
@@ -986,93 +987,88 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
             {showProvenance && provenanceInfo && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 2000 }}>
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content shadow border-0">
-                            <div className="modal-header bg-gradient" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }}>
+                        <div className="modal-content glass-panel border-secondary shadow">
+                            <div className="modal-header border-secondary text-white" style={{ background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.8) 0%, rgba(22, 33, 62, 0.8) 100%)' }}>
                                 <h6 className="modal-title font-monospace d-flex align-items-center text-white">
                                     <MahoragaWheel size={24} spinning={false} color="#FFD700" />
                                     <span className="ms-2">⚡ RAZONAMIENTO V6.0</span>
                                 </h6>
                                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowProvenance(false)}></button>
                             </div>
-                            <div className="modal-body">
-                                <div className="mb-3 p-2 bg-light rounded">
-                                    <strong className="d-block mb-1">📊 Cuenta Analizada:</strong>
-                                    <span className="font-monospace">{provenanceInfo.account_name}</span>
+                            <div className="modal-body text-white">
+                                <div className="mb-3 p-2 bg-dark border border-secondary rounded">
+                                    <strong className="d-block mb-1 text-white">📊 Cuenta Analizada:</strong>
+                                    <span className="font-monospace text-white-50">{provenanceInfo.account_name}</span>
                                 </div>
-
                                 <div className="row g-2 mb-3">
                                     <div className="col-6">
-                                        <div className="p-2 border rounded h-100">
-                                            <small className="text-muted d-block">Origen Transacción</small>
-                                            <strong>{provenanceInfo.provenance?.origin_trans || provenanceInfo.origin_trans || 'Automático'}</strong>
+                                        <div className="p-2 border border-secondary rounded h-100 bg-dark">
+                                            <small className="text-white-50 d-block">Origen Transacción</small>
+                                            <strong className="text-white">{provenanceInfo.provenance?.origin_trans || provenanceInfo.origin_trans || 'Automático'}</strong>
                                         </div>
                                     </div>
                                     <div className="col-6">
-                                        <div className="p-2 border rounded h-100">
-                                            <small className="text-muted d-block">Usuario</small>
-                                            <strong>{provenanceInfo.provenance?.user || provenanceInfo.user || 'Sistema'}</strong>
+                                        <div className="p-2 border border-secondary rounded h-100 bg-dark">
+                                            <small className="text-white-50 d-block">Usuario</small>
+                                            <strong className="text-white">{provenanceInfo.provenance?.user || provenanceInfo.user || 'Sistema'}</strong>
                                         </div>
                                     </div>
                                 </div>
-
                                 {/* V6.0: Información de confianza y peso */}
-                                <div className="mb-3 p-2 bg-success bg-opacity-10 border border-success rounded">
-                                    <strong className="d-block mb-1">
+                                <div className="mb-3 p-2 border border-success rounded" style={{ backgroundColor: 'rgba(25, 135, 84, 0.1)' }}>
+                                    <strong className="d-block mb-1 text-white">
                                         <i className="bi bi-shield-check text-success me-1"></i>
                                         Confianza de la Regla:
                                     </strong>
                                     <div className="d-flex align-items-center">
-                                        <span className="badge bg-success me-2">
+                                        <span className="badge bg-success text-white me-2">
                                             Peso: {provenanceInfo.confidence_weight || 1.0}
                                         </span>
-                                        <small className="text-muted">
+                                        <small className="text-white-50">
                                             {provenanceInfo.confidence_weight >= 2.0 ? 'Alta prioridad' : 'Prioridad normal'}
                                         </small>
                                     </div>
                                 </div>
-
                                 {provenanceInfo.provenance?.error_tag && (
-                                    <div className="mb-3 p-2 bg-warning bg-opacity-10 border border-warning rounded">
-                                        <strong className="d-block mb-1">
+                                    <div className="mb-3 p-2 border border-warning rounded" style={{ backgroundColor: 'rgba(255, 193, 7, 0.1)' }}>
+                                        <strong className="d-block mb-1 text-white">
                                             <i className="bi bi-exclamation-triangle text-warning me-1"></i>
                                             Razón de Corrección:
                                         </strong>
                                         <span className="badge bg-warning text-dark">{provenanceInfo.provenance.error_tag}</span>
                                     </div>
                                 )}
-
                                 {provenanceInfo.provenance?.reason && (
-                                    <div className="mb-3 p-2 bg-info bg-opacity-10 border border-info rounded">
-                                        <strong className="d-block mb-1">
+                                    <div className="mb-3 p-2 border border-info rounded" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)' }}>
+                                        <strong className="d-block mb-1 text-white">
                                             <i className="bi bi-chat-quote text-info me-1"></i>
                                             Justificación:
                                         </strong>
-                                        <em>"{provenanceInfo.provenance.reason}"</em>
+                                        <em className="text-white-50">"{provenanceInfo.provenance.reason}"</em>
                                     </div>
                                 )}
 
                                 <div className="mb-3">
-                                    <small className="text-muted d-block">Fecha de Evento</small>
-                                    <strong>{provenanceInfo.provenance?.timestamp || provenanceInfo.timestamp ? new Date(provenanceInfo.provenance?.timestamp || provenanceInfo.timestamp).toLocaleString() : '-'}</strong>
+                                    <small className="text-white-50 d-block">Fecha de Evento</small>
+                                    <strong className="text-white">{provenanceInfo.provenance?.timestamp || provenanceInfo.timestamp ? new Date(provenanceInfo.provenance?.timestamp || provenanceInfo.timestamp).toLocaleString() : '-'}</strong>
                                 </div>
-
                                 {/* V6.0: Event ID y trazabilidad */}
                                 {provenanceInfo.provenance?.event_id && (
-                                    <div className="mb-3 p-2 bg-dark bg-opacity-10 border border-dark rounded">
-                                        <strong className="d-block mb-1">
-                                            <i className="bi bi-fingerprint text-dark me-1"></i>
+                                    <div className="mb-3 p-2 border border-secondary rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                        <strong className="d-block mb-1 text-white">
+                                            <i className="bi bi-fingerprint text-white-50 me-1"></i>
                                             ID de Evento:
                                         </strong>
-                                        <code className="small">{provenanceInfo.provenance.event_id}</code>
+                                        <code className="small text-info">{provenanceInfo.provenance.event_id}</code>
                                     </div>
                                 )}
 
-                                <hr />
-                                <div className="alert alert-dark small mb-0">
-                                    <i className="bi bi-cpu me-1"></i>
+                                <hr className="border-secondary" />
+                                <div className="alert border-secondary small mb-0 text-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                    <i className="bi bi-cpu me-1 text-white-50"></i>
                                     <strong>Fuente NC:</strong> {provenanceInfo.source_nc || 'Semántica Jerárquica'}
                                     <br />
-                                    <small className="text-muted">
+                                    <small className="text-white-50">
                                         Lógica de clasificación inferida mediante el Motor Cognitivo
                                         (Tekiō: Adaptación en 3 Fases con Gobernanza Activa)
                                     </small>
@@ -1087,24 +1083,24 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
             {showConfirmRollback && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 2000 }}>
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content shadow border-0">
-                            <div className="modal-header bg-danger text-white">
-                                <h6 className="modal-title">
+                        <div className="modal-content glass-panel border-secondary shadow">
+                            <div className="modal-header border-danger text-white" style={{ backgroundColor: 'transparent' }}>
+                                <h6 className="modal-title text-danger">
                                     <i className="bi bi-arrow-counterclockwise me-2"></i>
                                     Revertir Adaptaciones
                                 </h6>
                                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowConfirmRollback(false)}></button>
                             </div>
-                            <div className="modal-body text-center py-4">
+                            <div className="modal-body text-center py-4 text-white">
                                 <MahoragaWheel size={60} spinning={false} color="#dc3545" />
                                 <p className="mt-3">
                                     ¿Estás seguro de querer revertir la última adaptación?
                                     <br />
-                                    <small className="text-muted">La rueda girará hacia atrás y se perderá el aprendizaje más reciente.</small>
+                                    <small className="text-white-50">La rueda girará hacia atrás y se perderá el aprendizaje más reciente.</small>
                                 </p>
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setShowConfirmRollback(false)}>Cancelar</button>
+                            <div className="modal-footer border-secondary">
+                                <button className="btn btn-outline-secondary text-white" onClick={() => setShowConfirmRollback(false)}>Cancelar</button>
                                 <button className="btn btn-danger" onClick={handleRollback} disabled={loading}>
                                     {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-arrow-counterclockwise me-2"></i>}
                                     Confirmar Reset

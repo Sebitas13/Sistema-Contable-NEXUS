@@ -595,8 +595,8 @@ export default function Journal() {
             {/* Encabezado Principal */}
             <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-0">Libro Diario</h2>
-                    <p className="text-muted mb-0">Gestión de asientos contables</p>
+                    <h2 className="mb-0 text-white">Libro Diario</h2>
+                    <p className="text-white-50 mb-0">Gestión de asientos contables</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
@@ -626,12 +626,12 @@ export default function Journal() {
             {/* Tarjetas de Resumen */}
             <div className="row mb-4">
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-start border-primary border-4">
+                    <div className="card glass-panel border-start border-primary border-4">
                         <div className="card-body">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 className="text-muted mb-1">Total Asientos</h6>
-                                    <h3 className="mb-0">{stats.total}</h3>
+                                    <h6 className="text-white-50 mb-1">Total Asientos</h6>
+                                    <h3 className="mb-0 text-white">{stats.total}</h3>
                                 </div>
                                 <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
                                     <i className="bi bi-journal-text text-primary fs-4"></i>
@@ -641,12 +641,12 @@ export default function Journal() {
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-start border-success border-4">
+                    <div className="card glass-panel border-start border-success border-4">
                         <div className="card-body">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 className="text-muted mb-1">Ingresos</h6>
-                                    <h3 className="mb-0">{stats.ingreso}</h3>
+                                    <h6 className="text-white-50 mb-1">Ingresos</h6>
+                                    <h3 className="mb-0 text-white">{stats.ingreso}</h3>
                                 </div>
                                 <div className="bg-success bg-opacity-10 p-3 rounded-circle">
                                     <i className="bi bi-arrow-down-circle text-success fs-4"></i>
@@ -656,12 +656,12 @@ export default function Journal() {
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-start border-danger border-4">
+                    <div className="card glass-panel border-start border-danger border-4">
                         <div className="card-body">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 className="text-muted mb-1">Egresos</h6>
-                                    <h3 className="mb-0">{stats.egreso}</h3>
+                                    <h6 className="text-white-50 mb-1">Egresos</h6>
+                                    <h3 className="mb-0 text-white">{stats.egreso}</h3>
                                 </div>
                                 <div className="bg-danger bg-opacity-10 p-3 rounded-circle">
                                     <i className="bi bi-arrow-up-circle text-danger fs-4"></i>
@@ -671,12 +671,12 @@ export default function Journal() {
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-start border-info border-4">
+                    <div className="card glass-panel border-start border-info border-4">
                         <div className="card-body">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 className="text-muted mb-1">Traspasos</h6>
-                                    <h3 className="mb-0">{stats.traspaso}</h3>
+                                    <h6 className="text-white-50 mb-1">Traspasos</h6>
+                                    <h3 className="mb-0 text-white">{stats.traspaso}</h3>
                                 </div>
                                 <div className="bg-info bg-opacity-10 p-3 rounded-circle">
                                     <i className="bi bi-arrow-left-right text-info fs-4"></i>
@@ -686,12 +686,12 @@ export default function Journal() {
                     </div>
                 </div>
                 <div className="col-md-3 col-lg-2">
-                    <div className="card shadow-sm border-start border-warning border-4">
+                    <div className="card glass-panel border-start border-warning border-4">
                         <div className="card-body">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 className="text-muted mb-1">Ajustes</h6>
-                                    <h3 className="mb-0">{stats.ajuste}</h3>
+                                    <h6 className="text-white-50 mb-1">Ajustes</h6>
+                                    <h3 className="mb-0 text-white">{stats.ajuste}</h3>
                                 </div>
                                 <div className="bg-warning bg-opacity-10 p-3 rounded-circle">
                                     <i className="bi bi-pencil-square text-warning fs-4"></i>
@@ -701,12 +701,12 @@ export default function Journal() {
                     </div>
                 </div>
                 <div className="col">
-                    <div className="card shadow-sm border-start border-dark border-4">
+                    <div className="card glass-panel border-start border-dark border-4">
                         <div className="card-body">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 className="text-muted mb-1">Cierres</h6>
-                                    <h3 className="mb-0">{stats.cierre}</h3>
+                                    <h6 className="text-white-50 mb-1">Cierres</h6>
+                                    <h3 className="mb-0 text-white">{stats.cierre}</h3>
                                 </div>
                                 <div className="bg-dark bg-opacity-10 p-3 rounded-circle">
                                     <i className="bi bi-safe text-dark fs-4"></i>
@@ -718,15 +718,15 @@ export default function Journal() {
             </div>
 
             {/* Barra de Filtros */}
-            <div className="card shadow-sm mb-4">
+            <div className="card glass-panel mb-4">
                 <div className="card-body">
                     <div className="row g-3">
                         <div className="col-md-4">
                             <div className="input-group">
-                                <span className="input-group-text bg-light"><i className="bi bi-search"></i></span>
+                                <span className="input-group-text bg-dark text-white-50 border-secondary"><i className="bi bi-search"></i></span>
                                 <input
                                     type="text"
-                                    className="form-control"
+                                    className="form-control bg-dark text-white border-secondary"
                                     placeholder="Buscar por glosa, cuenta o código..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -735,7 +735,7 @@ export default function Journal() {
                         </div>
                         <div className="col-md-2">
                             <select
-                                className="form-select"
+                                className="form-select bg-dark text-white border-secondary"
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
                             >
@@ -751,7 +751,7 @@ export default function Journal() {
                             <DatePicker
                                 selected={filterDateStart}
                                 onChange={(date) => setFilterDateStart(date)}
-                                className="form-control"
+                                className="form-control bg-dark text-white border-secondary"
                                 placeholderText="Desde fecha"
                                 dateFormat="dd/MM/yyyy"
                                 locale={es}
@@ -763,7 +763,7 @@ export default function Journal() {
                             <DatePicker
                                 selected={filterDateEnd}
                                 onChange={(date) => setFilterDateEnd(date)}
-                                className="form-control"
+                                className="form-control bg-dark text-white border-secondary"
                                 placeholderText="Hasta fecha"
                                 dateFormat="dd/MM/yyyy"
                                 locale={es}
@@ -774,7 +774,7 @@ export default function Journal() {
                         </div>
                         <div className="col-md-2 d-grid">
                             <button
-                                className="btn btn-outline-secondary"
+                                className="btn btn-outline-light"
                                 onClick={() => {
                                     setSearchTerm('');
                                     setFilterType('Todos');
@@ -792,45 +792,45 @@ export default function Journal() {
             {/* Lista de Asientos */}
             <div className="d-flex flex-column gap-3">
                 {loading ? (
-                    <div className="card shadow-sm">
-                        <div className="card-body text-center py-4">Cargando...</div>
+                    <div className="card glass-panel">
+                        <div className="card-body text-center py-4 text-white-50">Cargando...</div>
                     </div>
                 ) : filteredTransactions.length === 0 ? (
-                    <div className="card shadow-sm">
-                        <div className="card-body text-center py-4 text-muted">
+                    <div className="card glass-panel">
+                        <div className="card-body text-center py-4 text-white-50">
                             {transactions.length === 0 ? 'No hay asientos registrados' : 'No se encontraron resultados con los filtros aplicados'}
                         </div>
                     </div>
                 ) : (
                     filteredTransactions.map((t) => (
-                        <div key={t.id} className="card shadow-sm">
+                        <div key={t.id} className="card glass-panel border-secondary">
                             {/* Encabezado del asiento */}
                             <div
-                                className="card-header d-flex justify-content-between align-items-center"
-                                style={{ backgroundColor: '#f8f9fa', cursor: 'pointer' }}
+                                className="card-header d-flex justify-content-between align-items-center border-secondary"
+                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
                                 onClick={() => toggleCollapse(t.id)}
                             >
                                 <div className="d-flex align-items-center gap-3">
-                                    <i className={`bi bi-chevron-${collapsedEntries[t.id] ? 'right' : 'down'} text-muted`}></i>
+                                    <i className={`bi bi-chevron-${collapsedEntries[t.id] ? 'right' : 'down'} text-white-50`}></i>
                                     <div>
-                                        <i className="bi bi-calendar3 me-2 text-primary"></i>
-                                        <strong>{t.date && format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</strong>
+                                        <i className="bi bi-calendar3 me-2" style={{ color: 'var(--accent-primary)' }}></i>
+                                        <strong className="text-white">{t.date && format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</strong>
                                     </div>
                                     <span className={`badge bg-${t.type === 'Ingreso' ? 'success' : t.type === 'Egreso' ? 'danger' : t.type === 'Cierre' ? 'dark' : 'info'}`}>
                                         {t.type} #{transactionNumbers[t.id] || 0}
                                     </span>
-                                    <span className="text-muted" style={{ fontSize: '0.9rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.gloss}>
+                                    <span className="text-white-50" style={{ fontSize: '0.9rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.gloss}>
                                         <i className="bi bi-chat-left-text me-1"></i>
                                         {t.gloss}
                                     </span>
                                     {/* Mostrar totales cuando está colapsado */}
                                     {collapsedEntries[t.id] && (
                                         <div className="d-flex gap-3 ms-3">
-                                            <span className="badge bg-light text-dark border">
+                                            <span className="badge bg-dark text-white border border-secondary">
                                                 <i className="bi bi-arrow-down-circle me-1 text-success"></i>
                                                 Debe: {t.total_debit ? parseFloat(t.total_debit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                             </span>
-                                            <span className="badge bg-light text-dark border">
+                                            <span className="badge bg-dark text-white border border-secondary">
                                                 <i className="bi bi-arrow-up-circle me-1 text-danger"></i>
                                                 Haber: {t.total_credit ? parseFloat(t.total_credit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                             </span>
@@ -864,26 +864,26 @@ export default function Journal() {
                             {/* Tabla de cuentas - solo visible si no está colapsado */}
                             {!collapsedEntries[t.id] && (
                                 <div className="card-body p-0">
-                                    <table className="table table-sm table-bordered mb-0">
+                                    <table className="table table-sm table-dark table-bordered mb-0 border-secondary" style={{ backgroundColor: 'transparent' }}>
                                         <thead>
-                                            <tr style={{ backgroundColor: '#e9ecef' }}>
-                                                <th style={{ width: '15%', padding: '8px 12px' }}>Código</th>
-                                                <th style={{ width: '45%', padding: '8px 12px' }}>Cuenta</th>
-                                                <th style={{ width: '20%', padding: '8px 12px' }} className="text-end">Debe</th>
-                                                <th style={{ width: '20%', padding: '8px 12px' }} className="text-end">Haber</th>
+                                            <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                                <th style={{ width: '15%', padding: '8px 12px' }} className="border-secondary text-white-50">Código</th>
+                                                <th style={{ width: '45%', padding: '8px 12px' }} className="border-secondary text-white-50">Cuenta</th>
+                                                <th style={{ width: '20%', padding: '8px 12px' }} className="text-end border-secondary text-white-50">Debe</th>
+                                                <th style={{ width: '20%', padding: '8px 12px' }} className="text-end border-secondary text-white-50">Haber</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {t.entries && t.entries.map((e, i) => (
                                                 <tr key={i}>
-                                                    <td style={{ padding: '6px 12px' }} className="text-muted">{e.account_code}</td>
-                                                    <td style={{ padding: '6px 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }} title={e.account_name}>{e.account_name}</td>
-                                                    <td style={{ padding: '6px 12px' }} className="text-end">
+                                                    <td style={{ padding: '6px 12px' }} className="text-white-50 border-secondary">{e.account_code}</td>
+                                                    <td style={{ padding: '6px 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }} title={e.account_name} className="border-secondary text-white">{e.account_name}</td>
+                                                    <td style={{ padding: '6px 12px' }} className="text-end border-secondary">
                                                         {e.debit > 0
                                                             ? parseFloat(e.debit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                                             : ''}
                                                     </td>
-                                                    <td style={{ padding: '6px 12px' }} className="text-end">
+                                                    <td style={{ padding: '6px 12px' }} className="text-end border-secondary">
                                                         {e.credit > 0
                                                             ? parseFloat(e.credit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                                             : ''}
@@ -892,12 +892,12 @@ export default function Journal() {
                                             ))}
                                         </tbody>
                                         <tfoot>
-                                            <tr style={{ backgroundColor: '#e9ecef', fontWeight: 'bold' }}>
-                                                <td colSpan="2" style={{ padding: '8px 12px' }} className="text-end">TOTALES:</td>
-                                                <td style={{ padding: '8px 12px' }} className="text-end text-success">
+                                            <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', fontWeight: 'bold' }}>
+                                                <td colSpan="2" style={{ padding: '8px 12px' }} className="text-end border-secondary text-white">TOTALES:</td>
+                                                <td style={{ padding: '8px 12px' }} className="text-end text-success border-secondary">
                                                     {t.total_debit ? parseFloat(t.total_debit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                                 </td>
-                                                <td style={{ padding: '8px 12px' }} className="text-end text-success">
+                                                <td style={{ padding: '8px 12px' }} className="text-end text-success border-secondary">
                                                     {t.total_credit ? parseFloat(t.total_credit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                                 </td>
                                             </tr>
@@ -914,17 +914,17 @@ export default function Journal() {
             {showModal && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog modal-xl">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">{selectedTransaction ? 'Editar Asiento Contable' : 'Nuevo Asiento Contable'}</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                        <div className="modal-content glass-panel border-secondary">
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title text-white">{selectedTransaction ? 'Editar Asiento Contable' : 'Nuevo Asiento Contable'}</h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     {/* Header Info */}
                                     <div className="row mb-3">
                                         <div className="col-md-3">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-calendar-event me-2"></i>Fecha
                                             </label>
                                             <DatePicker
@@ -942,96 +942,96 @@ export default function Journal() {
                                             />
                                         </div>
                                         <div className="col-md-3">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-tag me-2"></i>Tipo
                                             </label>
                                             <div className="d-flex align-items-center gap-2">
-                                                <select className="form-select" name="type" value={formData.type} onChange={handleInputChange} disabled={formData.isAdjustment}>
+                                                <select className="form-select bg-dark text-white border-secondary" name="type" value={formData.type} onChange={handleInputChange} disabled={formData.isAdjustment}>
                                                     <option value="Ingreso">Ingreso</option>
                                                     <option value="Egreso">Egreso</option>
                                                     <option value="Traspaso">Traspaso</option>
                                                 </select>
                                                 <div className="form-check ms-2">
-                                                    <input className="form-check-input" type="checkbox" id="isAdjustment" name="isAdjustment" checked={!!formData.isAdjustment} onChange={handleInputChange} />
-                                                    <label className="form-check-label small" htmlFor="isAdjustment">Ajuste</label>
+                                                    <input className="form-check-input bg-dark border-secondary" type="checkbox" id="isAdjustment" name="isAdjustment" checked={!!formData.isAdjustment} onChange={handleInputChange} />
+                                                    <label className="form-check-label small text-white-50" htmlFor="isAdjustment">Ajuste</label>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-chat-left-text me-2"></i>Glosa General
                                             </label>
-                                            <input type="text" className="form-control" name="gloss" value={formData.gloss} onChange={handleInputChange} required placeholder="Descripción general del asiento" />
+                                            <input type="text" className="form-control bg-dark text-white border-secondary" name="gloss" value={formData.gloss} onChange={handleInputChange} required placeholder="Descripción general del asiento" />
                                         </div>
                                     </div>
 
-                                    <hr />
+                                    <hr className="border-secondary" />
 
                                     {/* Entries Table */}
                                     <div className="table-responsive mb-3">
-                                        <table className="table table-sm table-bordered">
-                                            <thead className="table-light">
+                                        <table className="table table-sm table-dark table-bordered border-secondary" style={{ backgroundColor: 'transparent' }}>
+                                            <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                                 <tr>
-                                                    <th style={{ width: '15%' }}>Código</th>
-                                                    <th style={{ width: '30%' }}>Cuenta</th>
-                                                    <th style={{ width: '25%' }}>Glosa (Opcional)</th>
-                                                    <th style={{ width: '12%' }}>Debe</th>
-                                                    <th style={{ width: '12%' }}>Haber</th>
-                                                    <th style={{ width: '6%' }}></th>
+                                                    <th style={{ width: '15%' }} className="text-white-50 border-secondary">Código</th>
+                                                    <th style={{ width: '30%' }} className="text-white-50 border-secondary">Cuenta</th>
+                                                    <th style={{ width: '25%' }} className="text-white-50 border-secondary">Glosa (Opcional)</th>
+                                                    <th style={{ width: '12%' }} className="text-white-50 border-secondary">Debe</th>
+                                                    <th style={{ width: '12%' }} className="text-white-50 border-secondary">Haber</th>
+                                                    <th style={{ width: '6%' }} className="border-secondary"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {formData.entries.map((entry, index) => (
                                                     <tr key={index}>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <input
                                                                 type="text"
-                                                                className="form-control form-control-sm"
+                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
                                                                 list="accountCodes"
                                                                 value={entry.code}
                                                                 onChange={(e) => handleEntryChange(index, 'code', e.target.value)}
                                                                 placeholder="Buscar código..."
                                                             />
                                                         </td>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <input
                                                                 type="text"
-                                                                className="form-control form-control-sm"
+                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
                                                                 list="accountNames"
                                                                 value={entry.accountName}
                                                                 onChange={(e) => handleEntryChange(index, 'accountName', e.target.value)}
                                                                 placeholder="Buscar cuenta..."
                                                             />
                                                         </td>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <input
                                                                 type="text"
-                                                                className="form-control form-control-sm"
+                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
                                                                 value={entry.gloss}
                                                                 onChange={(e) => handleEntryChange(index, 'gloss', e.target.value)}
                                                             />
                                                         </td>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <input
                                                                 type="number"
                                                                 step="0.01"
-                                                                className="form-control form-control-sm text-end"
+                                                                className="form-control form-control-sm text-end bg-dark text-white border-secondary"
                                                                 value={entry.debit}
                                                                 onChange={(e) => handleEntryChange(index, 'debit', e.target.value)}
                                                                 disabled={entry.credit > 0 && entry.credit !== ''}
                                                             />
                                                         </td>
-                                                        <td>
+                                                        <td className="border-secondary">
                                                             <input
                                                                 type="number"
                                                                 step="0.01"
-                                                                className="form-control form-control-sm text-end"
+                                                                className="form-control form-control-sm text-end bg-dark text-white border-secondary"
                                                                 value={entry.credit}
                                                                 onChange={(e) => handleEntryChange(index, 'credit', e.target.value)}
                                                                 disabled={entry.debit > 0 && entry.debit !== ''}
                                                             />
                                                         </td>
-                                                        <td className="text-center">
+                                                        <td className="text-center border-secondary">
                                                             <button type="button" className="btn btn-outline-danger btn-sm border-0" onClick={() => removeEntry(index)}>
                                                                 <i className="bi bi-trash"></i>
                                                             </button>
@@ -1039,15 +1039,15 @@ export default function Journal() {
                                                     </tr>
                                                 ))}
                                                 {/* Totals Row */}
-                                                <tr className="fw-bold bg-light">
-                                                    <td colSpan="3" className="text-end">TOTALES:</td>
-                                                    <td className={`text-end ${Math.abs(totals.debit - totals.credit) > 0.01 ? 'text-danger' : 'text-success'}`}>
+                                                <tr className="fw-bold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                                    <td colSpan="3" className="text-end border-secondary text-white">TOTALES:</td>
+                                                    <td className={`text-end border-secondary ${Math.abs(totals.debit - totals.credit) > 0.01 ? 'text-danger' : 'text-success'}`}>
                                                         {totals.debit.toFixed(2)}
                                                     </td>
-                                                    <td className={`text-end ${Math.abs(totals.debit - totals.credit) > 0.01 ? 'text-danger' : 'text-success'}`}>
+                                                    <td className={`text-end border-secondary ${Math.abs(totals.debit - totals.credit) > 0.01 ? 'text-danger' : 'text-success'}`}>
                                                         {totals.credit.toFixed(2)}
                                                     </td>
-                                                    <td></td>
+                                                    <td className="border-secondary"></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1092,13 +1092,13 @@ export default function Journal() {
             {showDetailModal && selectedTransaction && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog modal-xl">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
+                        <div className="modal-content glass-panel border-secondary">
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title text-white">
                                     <i className="bi bi-receipt me-2"></i>
                                     Detalles del Asiento Contable
                                 </h5>
-                                <button type="button" className="btn-close" onClick={() => {
+                                <button type="button" className="btn-close btn-close-white" onClick={() => {
                                     setShowDetailModal(false);
                                     setSelectedTransaction(null);
                                 }}></button>
@@ -1106,11 +1106,11 @@ export default function Journal() {
                             <div className="modal-body">
                                 <div className="row mb-3">
                                     <div className="col-md-3">
-                                        <strong>Fecha:</strong>
-                                        <p>{selectedTransaction.date && format(new Date(selectedTransaction.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</p>
+                                        <strong className="text-white-50">Fecha:</strong>
+                                        <p className="text-white">{selectedTransaction.date && format(new Date(selectedTransaction.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</p>
                                     </div>
                                     <div className="col-md-3">
-                                        <strong>Tipo:</strong>
+                                        <strong className="text-white-50">Tipo:</strong>
                                         <p>
                                             <span className={`badge bg-${selectedTransaction.type === 'Ingreso' ? 'success' : selectedTransaction.type === 'Egreso' ? 'danger' : selectedTransaction.type === 'Cierre' ? 'dark' : 'info'}`}>
                                                 {selectedTransaction.type}
@@ -1118,51 +1118,51 @@ export default function Journal() {
                                         </p>
                                     </div>
                                     <div className="col-md-6">
-                                        <strong>Glosa:</strong>
-                                        <p>{selectedTransaction.gloss}</p>
+                                        <strong className="text-white-50">Glosa:</strong>
+                                        <p className="text-white">{selectedTransaction.gloss}</p>
                                     </div>
                                 </div>
 
-                                <hr />
+                                <hr className="border-secondary" />
 
-                                <h6 className="mb-3">Detalle de Cuentas</h6>
+                                <h6 className="mb-3 text-white">Detalle de Cuentas</h6>
                                 <div className="table-responsive">
-                                    <table className="table table-sm table-bordered">
-                                        <thead className="table-light">
+                                    <table className="table table-sm table-dark table-bordered border-secondary" style={{ backgroundColor: 'transparent' }}>
+                                        <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                             <tr>
-                                                <th style={{ width: '15%' }}>Código</th>
-                                                <th style={{ width: '35%' }}>Cuenta</th>
-                                                <th style={{ width: '25%' }}>Glosa</th>
-                                                <th style={{ width: '12%' }} className="text-end">Debe</th>
-                                                <th style={{ width: '12%' }} className="text-end">Haber</th>
+                                                <th style={{ width: '15%' }} className="text-white-50 border-secondary">Código</th>
+                                                <th style={{ width: '35%' }} className="text-white-50 border-secondary">Cuenta</th>
+                                                <th style={{ width: '25%' }} className="text-white-50 border-secondary">Glosa</th>
+                                                <th style={{ width: '12%' }} className="text-end text-white-50 border-secondary">Debe</th>
+                                                <th style={{ width: '12%' }} className="text-end text-white-50 border-secondary">Haber</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {selectedTransaction.entries && selectedTransaction.entries.length > 0 ? (
                                                 selectedTransaction.entries.map((entry, index) => (
                                                     <tr key={index}>
-                                                        <td><code>{entry.account_code || '-'}</code></td>
-                                                        <td>{entry.account_name || '-'}</td>
-                                                        <td>{entry.gloss || '-'}</td>
-                                                        <td className="text-end">
+                                                        <td className="border-secondary text-white-50"><code>{entry.account_code || '-'}</code></td>
+                                                        <td className="border-secondary text-white">{entry.account_name || '-'}</td>
+                                                        <td className="border-secondary text-white-50">{entry.gloss || '-'}</td>
+                                                        <td className="text-end border-secondary text-white">
                                                             {entry.debit > 0 ? parseFloat(entry.debit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
                                                         </td>
-                                                        <td className="text-end">
+                                                        <td className="text-end border-secondary text-white">
                                                             {entry.credit > 0 ? parseFloat(entry.credit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
                                                         </td>
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="5" className="text-center text-muted">No hay entradas registradas</td>
+                                                    <td colSpan="5" className="text-center text-white-50 border-secondary">No hay entradas registradas</td>
                                                 </tr>
                                             )}
-                                            <tr className="fw-bold bg-light">
-                                                <td colSpan="3" className="text-end">TOTALES:</td>
-                                                <td className="text-end">
+                                            <tr className="fw-bold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                                <td colSpan="3" className="text-end border-secondary text-white">TOTALES:</td>
+                                                <td className="text-end border-secondary text-white">
                                                     {selectedTransaction.total_debit ? parseFloat(selectedTransaction.total_debit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                                 </td>
-                                                <td className="text-end">
+                                                <td className="text-end border-secondary text-white">
                                                     {selectedTransaction.total_credit ? parseFloat(selectedTransaction.total_credit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                                 </td>
                                             </tr>
@@ -1187,13 +1187,13 @@ export default function Journal() {
             {showExportModal && (
                 <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                     <div className="modal-dialog modal-dialog-centered modal-xl">
-                        <div className="modal-content shadow" style={{ maxHeight: '90vh' }}>
-                            <div className="modal-header">
-                                <h5 className="modal-title">
+                        <div className="modal-content shadow glass-panel border-secondary" style={{ maxHeight: '90vh' }}>
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title text-white">
                                     <i className={`bi bi-file-earmark-${exportConfig.format === 'excel' ? 'excel text-success' : 'pdf text-danger'} me-2`}></i>
                                     Exportar a {exportConfig.format === 'excel' ? 'Excel' : 'PDF'}
                                 </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowExportModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowExportModal(false)}></button>
                             </div>
                             <div className="modal-body p-0">
                                 <div className="row h-100 g-0">
