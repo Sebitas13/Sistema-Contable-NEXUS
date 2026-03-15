@@ -888,19 +888,19 @@ export default function Worksheet() {
 
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-2"><i className="bi bi-file-earmark-spreadsheet me-2"></i>Hoja de Trabajo</h2>
+                    <h2 className="mb-1"><i className="bi bi-file-earmark-spreadsheet me-2"></i>Hoja de Trabajo</h2>
                     <p className="text-muted mb-0">Formato completo - Balance de Comprobación, Ajustes, Balance Ajustado, Estado de Resultados, Balance General, Cierre y Cuentas de Orden</p>
                 </div>
-                <div className="d-flex gap-2">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     <button className="btn btn-outline-primary btn-sm" onClick={fetchWorksheetData} disabled={loading}>
                         <i className="bi bi-arrow-clockwise me-1"></i> Recargar
                     </button>
 
-                    <div className="vr"></div>
+                    <div className="vr d-none d-md-block"></div>
                     <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel} disabled={loading}>
-                        <i className="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                        <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
                 </div>
             </div>

@@ -550,7 +550,7 @@ export default function Ledger() {
     return (
         <div className="container-fluid">
             {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1">
                         <i className="bi bi-book me-2 text-primary"></i>
@@ -562,7 +562,7 @@ export default function Ledger() {
                             : 'Resumen de movimientos por cuenta'}
                     </p>
                 </div>
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
                     {!selectedAccountId && (
                         <button
@@ -570,7 +570,7 @@ export default function Ledger() {
                             onClick={toggleAllRows}
                         >
                             <i className={`bi bi-${allExpanded ? 'arrows-collapse' : 'arrows-expand'} me-1`}></i>
-                            {allExpanded ? 'Colapsar' : 'Expandir'} Todos
+                            <span className="d-none d-sm-inline">{allExpanded ? 'Colapsar' : 'Expandir'} Todos</span>
                         </button>
                     )}
                     <button className="btn btn-success btn-sm" onClick={() => handleOpenExport('excel')}>

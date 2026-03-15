@@ -206,7 +206,7 @@ export default function MahoragaDashboard() {
 
   return (
     <div className="fade-in pb-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
           <h2 className="mb-1">
             <i className="bi bi-robot me-2 text-primary"></i>
@@ -214,7 +214,7 @@ export default function MahoragaDashboard() {
           </h2>
           <p className="text-muted mb-0">Cognitive Orchestrator & System Recognition Engine (V6.0 Atonement)</p>
         </div>
-        <div className="d-flex gap-2">
+        <div className="d-flex flex-wrap gap-2 align-items-center">
           <button className="btn btn-outline-primary btn-sm" onClick={refreshData}>
             <i className="bi bi-arrow-clockwise me-1"></i> Actualizar
           </button>

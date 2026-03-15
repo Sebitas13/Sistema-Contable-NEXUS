@@ -496,24 +496,24 @@ export default function UFV() {
 
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-2"><i className="bi bi-graph-up-arrow me-2"></i>UFV - Unidad de Fomento a la Vivienda</h2>
+                    <h2 className="mb-1"><i className="bi bi-graph-up-arrow me-2"></i>UFV - Unidad de Fomento a la Vivienda</h2>
                     <p className="text-muted mb-0">Gestión de valores históricos de UFV</p>
                 </div>
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
                     <button className="btn btn-warning btn-sm" onClick={handleDeleteAll} disabled={loading}>
-                        <i className="bi bi-trash3 me-1"></i> Borrar Datos
+                        <i className="bi bi-trash3 me-1"></i> <span className="d-none d-sm-inline">Borrar</span>
                     </button>
                     <button className="btn btn-success btn-sm" onClick={handleExportExcel}>
-                        <i className="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                        <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
                     <button className="btn btn-danger btn-sm" onClick={handleExportPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
                     <button className="btn btn-info btn-sm" onClick={() => fileInputRef.current.click()} title="Importar desde Excel o PDF">
-                        <i className="bi bi-upload me-1"></i> Importar Excel
+                        <i className="bi bi-upload me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".xlsx,.xls,.xlsm,.pdf" style={{ display: 'none' }} />
                 </div>

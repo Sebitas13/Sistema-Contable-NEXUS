@@ -466,26 +466,26 @@ export default function Settings() {
     // ... I will only replace the part of the file that is relevant
     return (
         <div className="container-fluid py-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="mb-0"><i className="bi bi-gear me-2"></i>Configuración del Sistema</h2>
-                <div className="btn-group">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                <h2 className="mb-0"><i className="bi bi-gear me-2"></i>Configuración <span className="d-none d-sm-inline">del Sistema</span></h2>
+                <div className="d-flex flex-wrap gap-2">
                     <button
                         className={`btn ${activeTab === 'data' ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => setActiveTab('data')}
                     >
-                        <i className="bi bi-tools me-2"></i>Mantenimiento
+                        <i className="bi bi-tools me-1"></i>Mantenimiento
                     </button>
                     <button
                         className={`btn ${activeTab === 'profiles' ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => setActiveTab('profiles')}
                     >
-                        <i className="bi bi-journal-bookmark-fill me-2"></i>Perfiles
+                        <i className="bi bi-journal-bookmark-fill me-1"></i>Perfiles
                     </button>
                     <button
                         className={`btn ${activeTab === 'mahoraga' ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => setActiveTab('mahoraga')}
                     >
-                        <i className="bi bi-cpu me-2"></i>Asistente AI
+                        <i className="bi bi-cpu me-1"></i>Asistente AI
                     </button>
                 </div>
             </div>

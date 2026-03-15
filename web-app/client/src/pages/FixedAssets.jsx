@@ -138,24 +138,24 @@ export default function FixedAssets() {
 
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-2"><i className="bi bi-building me-2"></i>Activos Fijos</h2>
+                    <h2 className="mb-1"><i className="bi bi-building me-2"></i>Activos Fijos</h2>
                     <p className="text-muted mb-0">Registro y depreciación de bienes de uso</p>
                 </div>
-                <div className="d-flex gap-2">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     <button className="btn btn-success btn-sm" onClick={handleExportExcel}>
-                        <i className="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                        <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
                     <button className="btn btn-danger btn-sm" onClick={handleExportPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
                     <button className="btn btn-info btn-sm" onClick={() => fileInputRef.current.click()}>
-                        <i className="bi bi-upload me-1"></i> Importar Excel
+                        <i className="bi bi-upload me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls" style={{ display: 'none' }} />
-                    <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                        <i className="bi bi-plus-circle me-1"></i> Nuevo Activo
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
+                        <i className="bi bi-plus-circle me-1"></i> Nuevo <span className="d-none d-sm-inline">Activo</span>
                     </button>
                 </div>
             </div>

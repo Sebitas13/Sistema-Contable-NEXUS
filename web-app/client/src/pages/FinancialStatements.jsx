@@ -387,22 +387,22 @@ export default function FinancialStatements() {
 
     return (
         <div className="container-fluid py-4 animate__animated animate__fadeIn">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-bank me-2"></i>Estados Financieros</h2>
                     <p className="text-muted mb-0">{selectedCompany?.name} (Consolidado V5)</p>
                 </div>
-                <div>
-                    <button className="btn btn-outline-primary btn-sm me-2" onClick={() => setRefreshTrigger(t => t + 1)}>
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                    <button className="btn btn-outline-primary btn-sm" onClick={() => setRefreshTrigger(t => t + 1)}>
                         <i className="bi bi-arrow-clockwise me-1"></i> Actualizar
                     </button>
                     {mahoragaActive && <MahoragaWheel size="small" />}
-                    <div className="d-flex gap-2">
+                    <div className="d-flex flex-wrap gap-2">
                         <button className="btn btn-success btn-sm" onClick={() => handleOpenExport('excel')}>
-                            <i className="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                            <i className="bi bi-file-earmark-excel me-1"></i> Excel
                         </button>
                         <button className="btn btn-danger btn-sm" onClick={() => handleOpenExport('pdf')}>
-                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                            <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                         </button>
                     </div>
                 </div>

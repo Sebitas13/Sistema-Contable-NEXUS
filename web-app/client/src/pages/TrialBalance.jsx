@@ -210,7 +210,7 @@ export default function TrialBalance() {
 
     return (
         <div className="container-fluid">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1">
                         <i className="bi bi-file-spreadsheet me-2 text-success"></i>
@@ -218,13 +218,13 @@ export default function TrialBalance() {
                     </h2>
                     <p className="text-muted mb-0">Comprobante de sumas y saldos para verificar la partida doble.</p>
                 </div>
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
                     <button className="btn btn-success btn-sm" onClick={() => handleOpenExport('excel')}>
-                        <i className="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                        <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
                     <button className="btn btn-danger btn-sm" onClick={() => handleOpenExport('pdf')}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
                 </div>
             </div>

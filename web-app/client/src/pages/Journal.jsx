@@ -593,31 +593,31 @@ export default function Journal() {
     return (
         <div className="container">
             {/* Encabezado Principal */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-0">Libro Diario</h2>
                     <p className="text-muted mb-0">Gestión de asientos contables</p>
                 </div>
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
                     <button className="btn btn-outline-secondary" onClick={toggleAllCollapse}>
                         <i className={`bi bi-arrows-${allCollapsed ? 'expand' : 'collapse'} me-2`}></i>
-                        {allCollapsed ? 'Expandir Todos' : 'Colapsar Todos'}
+                        <span className="d-none d-sm-inline">{allCollapsed ? 'Expandir' : 'Colapsar'} Todos</span>
                     </button>
                     <button className="btn btn-success" onClick={() => handleOpenExport('excel')}>
-                        <i className="bi bi-file-earmark-excel me-2"></i>Exportar Excel
+                        <i className="bi bi-file-earmark-excel me-1"></i><span className="d-none d-sm-inline">Exportar </span>Excel
                     </button>
                     <button className="btn btn-danger" onClick={() => handleOpenExport('pdf')}>
-                        <i className="bi bi-file-earmark-pdf me-2"></i>Exportar PDF
+                        <i className="bi bi-file-earmark-pdf me-1"></i><span className="d-none d-sm-inline">Exportar </span>PDF
                     </button>
                     <button className="btn btn-info" onClick={() => setShowAdjustmentWizard(true)}>
-                        <i className="bi bi-calculator me-2"></i>Asistente de Ajustes
+                        <i className="bi bi-calculator me-1"></i><span className="d-none d-sm-inline">Asistente de Ajustes</span>
                     </button>
                     <button className="btn btn-warning" onClick={() => setShowClosingWizard(true)}>
-                        <i className="bi bi-archive me-2"></i>Cierre de Gestión
+                        <i className="bi bi-archive me-1"></i><span className="d-none d-sm-inline">Cierre de Gestión</span>
                     </button>
                     <button className="btn btn-primary" onClick={openNewModal}>
-                        <i className="bi bi-plus-circle me-2"></i>Nuevo Asiento
+                        <i className="bi bi-plus-circle me-1"></i>Nuevo<span className="d-none d-sm-inline"> Asiento</span>
                     </button>
                 </div>
             </div>

@@ -321,17 +321,17 @@ export default function Accounts() {
 
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-journal-text me-2"></i>Plan de Cuentas</h2>
                     <small className="text-muted">{accounts.length} cuentas totales | {filteredAccounts.length} mostradas</small>
                 </div>
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
                     <button className="btn btn-danger btn-sm" onClick={handleDeleteAll} title="Eliminar todo el plan de cuentas">
-                        <i className="bi bi-trash3-fill me-1"></i> Eliminar Todo
+                        <i className="bi bi-trash3-fill me-1"></i> <span className="d-none d-md-inline">Eliminar Todo</span>
                     </button>
-                    <div className="vr mx-1"></div>
+                    <div className="vr mx-1 d-none d-sm-block"></div>
                     <button className="btn btn-success btn-sm" onClick={handleExportExcelPreview}>
                         <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
@@ -339,13 +339,13 @@ export default function Accounts() {
                         <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
                     <button className="btn btn-info btn-sm" onClick={() => setShowImportWizard(true)}>
-                        <i className="bi bi-magic me-1"></i> Importar
+                        <i className="bi bi-magic me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
                     <button className="btn btn-warning btn-sm text-dark" onClick={() => navigate('/data-forge')}>
                         <i className="bi bi-lightning-charge-fill me-1"></i> DataForge
                     </button>
-                    <button className="btn btn-primary" onClick={openNewAccountModal}>
-                        <i className="bi bi-plus-circle me-1"></i> Nueva Cuenta
+                    <button className="btn btn-primary btn-sm" onClick={openNewAccountModal}>
+                        <i className="bi bi-plus-circle me-1"></i> <span className="d-none d-sm-inline">Nueva Cuenta</span>
                     </button>
                 </div>
             </div>
