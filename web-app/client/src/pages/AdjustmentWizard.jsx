@@ -768,8 +768,8 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                         {step === 2 && proposal && (
                             <div>
                                 <div className="alert alert-info shadow-sm border-info mb-4">
-                                    <div className="d-flex align-items-center">
-                                        <div className="me-4 p-2 bg-white rounded-circle shadow-sm" style={{ border: '3px solid #FFD700' }}>
+                                    <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center">
+                                        <div className="me-md-4 mb-3 mb-md-0 align-self-center p-2 bg-white rounded-circle shadow-sm" style={{ border: '3px solid #FFD700' }}>
                                             <MahoragaWheel size={80} spinning={loading || wheelSpinning} />
                                         </div>
                                         <div className="flex-grow-1">
@@ -778,7 +778,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                 Ajustes Generados
                                             </h6>
                                             <div className="row">
-                                                <div className="col-md-6">
+                                                <div className="col-md-6 mb-2 mb-md-0">
                                                     <strong>Confianza:</strong> {((proposal.aggregate_confidence || proposal.confidence || 0) * 100).toFixed(1)}%<br />
                                                     <strong>Razonamiento:</strong> {proposal.reasoning || 'Procesamiento automático'}
                                                 </div>
@@ -788,7 +788,7 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="text-end d-flex flex-column gap-2 ms-3">
+                                        <div className="text-md-end d-flex flex-row flex-wrap flex-md-column gap-2 mt-3 mt-md-0 ms-md-3">
                                             <button className="btn btn-warning btn-sm" onClick={handleShowChronology}>
                                                 <i className="bi bi-clock-history me-1"></i>Cronología
                                             </button>

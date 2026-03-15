@@ -128,7 +128,7 @@ export default function ClosingWizard({ onClose, onSuccess }) {
 
                         {step === 2 && proposal && (
                             <div>
-                                <div className="alert alert-info d-flex justify-content-between align-items-center">
+                                <div className="alert alert-info d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                                     <div>
                                         <h5 className="alert-heading">Propuesta de Asientos de Cierre</h5>
                                         <p className="mb-0">
@@ -136,7 +136,7 @@ export default function ClosingWizard({ onClose, onSuccess }) {
                                             La fecha de los comprobantes será <strong>{proposal.closingDate}</strong>.
                                         </p>
                                     </div>
-                                    <div className="text-end">
+                                    <div className="d-flex flex-wrap gap-2">
                                         <button className="btn btn-sm btn-outline-secondary" onClick={() => setStep(1)}>
                                             <i className="bi bi-arrow-left me-1"></i>Cambiar Gestión
                                         </button>
