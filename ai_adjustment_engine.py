@@ -636,6 +636,15 @@ class ARSDSPyEngine:
 
         return False
 
+    def _normalize_account_code(self, code: str) -> str:
+        """Normalize account codes to improve cross-source matching."""
+        code_str = str(code or "").strip()
+        if not code_str:
+            return ""
+        cleaned = re.sub(r"[^0-9A-Za-z]", "", code_str)
+        cleaned = cleaned.lstrip("0")
+        return cleaned or "0"
+
     def _has_fixed_asset_name_signal(self, account_name: str) -> bool:
         """
         Fixed-asset signal based on:
@@ -1160,6 +1169,16 @@ class ARSDSPyEngine:
                         traj_key_stripped.replace(".", "") == code_no_dots):
                         raw_trajectory = trajectories_dict[traj_key]
                         print(f"DEBUG AoT [{account_code_stripped}]: Found trajectory under fuzzy key '{traj_key}'")
+                        break
+
+        # V8.3 FIX: Normalizar códigos para empatar variantes con ceros o separadores distintos
+        if not raw_trajectory:
+            target_norm = self._normalize_account_code(account_code_stripped)
+            if target_norm:
+                for traj_key in trajectories_dict:
+                    if self._normalize_account_code(traj_key) == target_norm:
+                        raw_trajectory = trajectories_dict[traj_key]
+                        print(f"DEBUG AoT [{account_code_stripped}]: Found trajectory under normalized key '{traj_key}'")
                         break
         
         if not raw_trajectory:

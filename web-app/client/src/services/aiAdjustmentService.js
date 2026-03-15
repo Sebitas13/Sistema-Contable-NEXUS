@@ -73,6 +73,7 @@ class AIAdjustmentService {
                 method: 'UFV',
                 gestion: params.gestion,
                 acquisition_dates: params.acquisition_dates,
+                fiscal_start_date: params.fiscal_start_date,
                 fiscal_end_date: params.fiscal_end_date,
                 use_trajectory_mode: params.use_trajectory_mode || false
             };

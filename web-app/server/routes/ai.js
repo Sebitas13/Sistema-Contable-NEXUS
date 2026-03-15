@@ -596,24 +596,65 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 
     if (useTrajectoryMode) {
       console.log('   [LOG] Fetching full ledger for trajectory analysis...');
-      // V8.2 FIX: Use reliable self-URL for internal calls. runtimeBaseUrl can be empty in local dev.
+      // V8.3 FIX: Use robust base URL selection for internal calls (avoid frontend host or empty runtimeBaseUrl).
       const PORT = process.env.PORT || 3001;
-      const selfUrl = runtimeBaseUrl || `http://localhost:${PORT}`;
-      console.log(`   [LOG] Using self-URL for trajectory enrichment: ${selfUrl}`);
+      const trajectoryBaseCandidates = [];
+      const trajectorySeen = new Set();
+      const pushTrajectoryCandidate = (candidate) => {
+        const normalized = normalizeBaseUrl(candidate);
+        if (!normalized || trajectorySeen.has(normalized)) return;
+        trajectorySeen.add(normalized);
+        trajectoryBaseCandidates.push(normalized);
+      };
+
+      pushTrajectoryCandidate(`http://localhost:${PORT}`);
+      pushTrajectoryCandidate(`http://127.0.0.1:${PORT}`);
+      for (const candidate of apiBaseUrlCandidates) {
+        pushTrajectoryCandidate(candidate);
+      }
+      console.log(`   [LOG] Trajectory base URL candidates: ${JSON.stringify(trajectoryBaseCandidates)}`);
       try {
         const fiscalRange = await determineFiscalRange(companyId, req.body.parameters);
         console.log(`   [LOG] Trajectory fiscal range (${fiscalRange.source}): ${fiscalRange.startDate} -> ${fiscalRange.endDate}`);
+        const ledgerDetailsParams = {
+          companyId: String(companyId),
+          startDate: fiscalRange.startDate,
+          endDate: fiscalRange.endDate,
+          excludeAdjustments: true,
+          excludeClosing: true
+        };
 
-        const ledgerDetailsResponse = await axios.get(`${selfUrl}/api/reports/ledger-details`, {
-          params: {
-            companyId: String(companyId),
-            startDate: fiscalRange.startDate,
-            endDate: fiscalRange.endDate,
-            excludeAdjustments: true,
-            excludeClosing: true
-          },
-          timeout: 45000
-        });
+        let ledgerDetailsResponse = null;
+        let trajectoryBaseUrl = '';
+        const ledgerAttempts = [];
+
+        for (const baseUrl of trajectoryBaseCandidates) {
+          try {
+            const candidateResponse = await axios.get(`${baseUrl}/api/reports/ledger-details`, {
+              params: ledgerDetailsParams,
+              timeout: 45000
+            });
+            ledgerAttempts.push({ base_url: baseUrl, status: candidateResponse.status });
+            if (candidateResponse.status === 200) {
+              ledgerDetailsResponse = candidateResponse;
+              trajectoryBaseUrl = baseUrl;
+              break;
+            }
+          } catch (candidateError) {
+            ledgerAttempts.push({ base_url: baseUrl, error: candidateError.message });
+          }
+        }
+
+        if (!ledgerDetailsResponse) {
+          throw new Error(`ledger-details failed. Attempts: ${JSON.stringify(ledgerAttempts)}`);
+        }
+
+        if (trajectoryBaseUrl) {
+          req.body.parameters.api_base_url = trajectoryBaseUrl;
+        }
+
+        console.log(`   [LOG] ledger-details base selected: ${trajectoryBaseUrl}`);
+        console.log(`   [LOG] ledger-details attempts: ${JSON.stringify(ledgerAttempts)}`);
 
         const ledgerDetails = ledgerDetailsResponse.data?.data || [];
         console.log(`   [LOG] Received ${ledgerDetails.length} detail rows from ledger-details`);
@@ -632,8 +673,9 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
         let ufvCache = {};
         if (uniqueDates.length > 0) {
           try {
+            const ufvBaseUrl = trajectoryBaseUrl || trajectoryBaseCandidates[0];
             const ufvBatchResponse = await axios.post(
-              `${selfUrl}/api/ufv/batch`,
+              `${ufvBaseUrl}/api/ufv/batch`,
               { companyId: String(companyId), dates: uniqueDates },
               {
                 timeout: 30000,

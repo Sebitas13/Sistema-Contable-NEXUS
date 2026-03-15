@@ -176,7 +176,12 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                 tc_initial: exchangeRates.tc_initial || 0,
                 tc_final: exchangeRates.tc_final || 0,
                 // El health-check es informativo; no bloquear intento AI por falla transitoria.
-                useAI
+                useAI,
+                // V8.0 AoT: Habilitar cálculo por trayectoria de movimientos
+                use_trajectory_mode: useTrajectoryMode,
+                // V8.2: Enviar fechas fiscales para trayectoria
+                fiscal_start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                fiscal_end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
             };
 
             const result = await aiAdjustmentService.proposeAdjustments(params, adjustmentProfile);
