@@ -18,9 +18,8 @@ import Settings from './pages/Settings';
 import MahoragaDashboard from './pages/MahoragaDashboard';
 import { useState } from 'react';
 
-function Sidebar() {
+function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
     const location = useLocation();
-    const [collapsed, setCollapsed] = useState(false);
     const { selectedCompany, clearCompany } = useCompany();
     const navigate = useNavigate();
 
@@ -47,62 +46,77 @@ function Sidebar() {
     };
 
     return (
-        <div className={`bg-dark text-white ${collapsed ? 'collapsed-sidebar' : 'sidebar'}`} style={{
-            width: collapsed ? '80px' : '280px',
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            transition: 'width 0.3s',
-            zIndex: 1000,
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
-            <div className="p-3 border-bottom border-secondary">
-                {!collapsed && (
-                    <div className="mb-3">
-                        <h5 className="mb-0">
-                            <i className="bi bi-calculator-fill me-2"></i>
-                            Contabilidad
-                        </h5>
+        <>
+            {/* Mobile backdrop wrapper */}
+            {mobileOpen && (
+                <div 
+                    className="sidebar-backdrop d-lg-none" 
+                    onClick={() => setMobileOpen(false)}
+                ></div>
+            )}
+            
+            <div className={`bg-dark text-white sidebar-container ${collapsed ? 'collapsed-sidebar' : 'full-sidebar'} ${mobileOpen ? 'mobile-open' : ''}`}>
+                <div className="p-3 border-bottom border-secondary d-flex flex-column gap-2">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                        {(!collapsed || mobileOpen) && (
+                            <h5 className="mb-0 text-truncate">
+                                <i className="bi bi-calculator-fill me-2"></i>
+                                Contabilidad
+                            </h5>
+                        )}
+                        {/* Mobile close button */}
+                        <button className="btn btn-sm btn-outline-light border-0 d-lg-none" onClick={() => setMobileOpen(false)}>
+                            <i className="bi bi-x-lg"></i>
+                        </button>
                     </div>
-                )}
-                {!collapsed && selectedCompany && (
-                    <div className="company-badge mb-2 p-2 bg-primary bg-opacity-25 rounded">
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div className="flex-grow-1 text-truncate">
-                                <small className="text-white-50 d-block">Empresa Activa</small>
-                                <strong className="text-white small">{selectedCompany.name}</strong>
+
+                    {(!collapsed || mobileOpen) && selectedCompany && (
+                        <div className="company-badge p-2 bg-primary bg-opacity-25 rounded mt-2">
+                            <div className="d-flex align-items-center justify-content-between w-100">
+                                <div className="text-truncate ps-1">
+                                    <small className="text-white-50 d-block" style={{ fontSize: '0.7em' }}>Empresa Activa</small>
+                                    <strong className="text-white small text-truncate d-block" style={{ maxWidth: '140px' }} title={selectedCompany.name}>{selectedCompany.name}</strong>
+                                </div>
+                                <button
+                                    className="btn btn-sm btn-outline-light ms-1 px-2"
+                                    onClick={handleChangeCompany}
+                                    title="Cambiar empresa"
+                                >
+                                    <i className="bi bi-arrow-left-right"></i>
+                                </button>
                             </div>
-                            <button
-                                className="btn btn-sm btn-outline-light ms-2"
-                                onClick={handleChangeCompany}
-                                title="Cambiar empresa"
-                            >
-                                <i className="bi bi-arrow-left-right"></i>
-                            </button>
                         </div>
-                    </div>
-                )}
-                <button className="btn btn-sm btn-outline-light w-100" onClick={() => setCollapsed(!collapsed)}>
-                    <i className={`bi bi-chevron-${collapsed ? 'right' : 'left'}`}></i>
-                    {!collapsed && <span className="ms-2">Colapsar</span>}
-                </button>
+                    )}
+                    
+                    {/* Desktop collapse button */}
+                    <button className="btn btn-sm btn-outline-light w-100 mt-2 d-none d-lg-block" onClick={() => setCollapsed(!collapsed)}>
+                        <i className={`bi bi-chevron-${collapsed ? 'right' : 'left'}`}></i>
+                        {!collapsed && <span className="ms-2">Colapsar</span>}
+                    </button>
+                </div>
+                
+                <nav className="py-3 sidebar-nav">
+                    {menuItems.map((item) => {
+                        const showLabel = !collapsed || mobileOpen;
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => setMobileOpen(false)} // Close sidebar on mobile select
+                                className={`d-flex align-items-center px-3 py-2 text-decoration-none ${isActive(item.path) ? 'bg-primary text-white' : 'text-white-50 hover-bg-secondary'}`}
+                                style={{ transition: 'all 0.2s' }}
+                                title={!showLabel ? item.label : ''}
+                            >
+                                <div className="icon-wrapper d-flex justify-content-center align-items-center" style={{ width: '30px' }}>
+                                    <i className={`bi ${item.icon}`} style={{ fontSize: '1.2rem' }}></i>
+                                </div>
+                                {showLabel && <span className="ms-2 text-truncate">{item.label}</span>}
+                            </Link>
+                        );
+                    })}
+                </nav>
             </div>
-            <nav className="py-3" style={{ flex: 1, overflowY: 'auto' }}>
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`d-flex align-items-center px-3 py-2 text-decoration-none ${isActive(item.path) ? 'bg-primary text-white' : 'text-white-50 hover-bg-secondary'}`}
-                        style={{ transition: 'all 0.2s' }}
-                    >
-                        <i className={`bi ${item.icon} ${collapsed ? '' : 'me-3'}`} style={{ fontSize: '1.2rem' }}></i>
-                        {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                ))}
-            </nav>
-        </div>
+        </>
     );
 }
 
@@ -128,41 +142,56 @@ function ProtectedRoute({ children }) {
 function AppLayout() {
     const { selectedCompany } = useCompany();
     const navigate = useNavigate();
+    const [collapsed, setCollapsed] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     return (
-        <div className="d-flex" style={{ minHeight: '100vh' }}>
-            <Sidebar />
-            <div style={{ marginLeft: '280px', width: 'calc(100% - 280px)', backgroundColor: '#f8f9fa' }} className="main-content">
-                <header className="bg-white shadow-sm py-3 px-4 sticky-top">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 className="mb-0 text-primary">
-                                <i className="bi bi-buildings me-2"></i>
+        <div className="app-layout">
+            <Sidebar 
+                collapsed={collapsed} 
+                setCollapsed={setCollapsed} 
+                mobileOpen={mobileOpen} 
+                setMobileOpen={setMobileOpen} 
+            />
+            
+            <div className={`main-content ${collapsed ? 'content-collapsed' : 'content-expanded'}`}>
+                <header className="bg-white shadow-sm py-3 px-3 px-md-4 sticky-top d-flex justify-content-between align-items-center" style={{ zIndex: 1020 }}>
+                    <div className="d-flex align-items-center gap-2 overflow-hidden">
+                        <button 
+                            className="btn btn-outline-secondary d-lg-none"
+                            onClick={() => setMobileOpen(true)}
+                        >
+                            <i className="bi bi-list fs-5"></i>
+                        </button>
+                        <div className="text-truncate">
+                            <h5 className="mb-0 text-primary fw-bold text-truncate" style={{ fontSize: '1.1rem' }}>
+                                <i className="bi bi-buildings me-2 d-none d-sm-inline-block"></i>
                                 Sistema Contable
-                            </h4>
+                            </h5>
                             {selectedCompany && (
-                                <small className="text-muted">
+                                <small className="text-muted d-none d-md-block text-truncate">
                                     {selectedCompany.name}
                                     {selectedCompany.nit && <span className="ms-2">• NIT: {selectedCompany.nit}</span>}
                                 </small>
                             )}
                         </div>
-                        <div className="d-flex align-items-center gap-3">
-                            <span className="text-muted">
-                                <i className="bi bi-person-circle me-1"></i>
-                                Usuario: Admin
-                            </span>
-                            <button
-                                className="btn btn-outline-primary btn-sm"
-                                onClick={() => navigate('/')}
-                            >
-                                <i className="bi bi-building me-1"></i>
-                                Cambiar Empresa
-                            </button>
-                        </div>
+                    </div>
+                    
+                    <div className="d-flex align-items-center gap-2 gap-sm-3 flex-shrink-0">
+                        <span className="text-muted d-none d-sm-flex align-items-center">
+                            <i className="bi bi-person-circle me-1"></i>
+                            <span className="d-none d-md-inline">Usuario:</span> Admin
+                        </span>
+                        <button
+                            className="btn btn-outline-primary btn-sm d-flex align-items-center px-2 px-sm-3"
+                            onClick={() => navigate('/')}
+                        >
+                            <i className="bi bi-building me-1"></i>
+                            <span className="d-none d-sm-inline">Cambiar Empresa</span>
+                        </button>
                     </div>
                 </header>
-                <main className="p-4">
+                <main className="p-3 p-md-4 main-view-area">
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/accounts" element={<Accounts />} />
@@ -201,32 +230,145 @@ function App() {
                     />
                 </Routes>
                 <style>{`
+                    /* Global Layout Variables */
+                    :root {
+                        --sidebar-width: 280px;
+                        --sidebar-collapsed-width: 80px;
+                        --sidebar-bg: #212529; /* bg-dark */
+                        --content-bg: #f8f9fa;
+                    }
+
+                    body, html {
+                        margin: 0;
+                        padding: 0;
+                        overflow-x: hidden; /* Prevent horizontal scroll completely */
+                    }
+
+                    .app-layout {
+                        display: flex;
+                        min-height: 100vh;
+                        width: 100vw;
+                        overflow-x: hidden;
+                        background-color: var(--content-bg);
+                    }
+
+                    /* Sidebar Base Styling */
+                    .sidebar-container {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        height: 100vh;
+                        background-color: var(--sidebar-bg);
+                        transition: transform 0.3s ease, width 0.3s ease;
+                        z-index: 1040; /* HIGHER than the sticky-top header (1020) */
+                        display: flex;
+                        flex-direction: column;
+                        overflow-x: hidden;
+                    }
+
+                    .sidebar-nav {
+                        flex: 1;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                    }
+
+                    .sidebar-nav::-webkit-scrollbar {
+                        width: 6px;
+                    }
+                    .sidebar-nav::-webkit-scrollbar-thumb {
+                        background-color: rgba(255,255,255,0.2);
+                        border-radius: 4px;
+                    }
+
+                    /* Sidebar Desktop States */
+                    @media (min-width: 992px) {
+                        .full-sidebar {
+                            width: var(--sidebar-width);
+                            transform: translateX(0);
+                        }
+                        .collapsed-sidebar {
+                            width: var(--sidebar-collapsed-width);
+                            transform: translateX(0);
+                        }
+                        .main-content {
+                            transition: margin-left 0.3s ease, width 0.3s ease;
+                        }
+                        .content-expanded {
+                            margin-left: var(--sidebar-width);
+                            width: calc(100% - var(--sidebar-width));
+                        }
+                        .content-collapsed {
+                            margin-left: var(--sidebar-collapsed-width);
+                            width: calc(100% - var(--sidebar-collapsed-width));
+                        }
+                    }
+
+                    /* Sidebar Mobile States */
+                    @media (max-width: 991.98px) {
+                        .sidebar-container {
+                            width: var(--sidebar-width); /* Fixed width on mobile */
+                            transform: translateX(-100%); /* Hidden by default */
+                        }
+                        .sidebar-container.mobile-open {
+                            transform: translateX(0);
+                            box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+                        }
+                        .main-content {
+                            width: 100%;
+                            margin-left: 0;
+                            transition: transform 0.3s ease;
+                        }
+                        
+                        /* Fix padding on small devices */
+                        .main-view-area {
+                            padding: 1rem !important;
+                            max-width: 100vw;
+                            overflow-x: hidden;
+                        }
+
+                        /* If a table exists in main view, make sure it scrolls */
+                        .table-responsive {
+                            max-width: 100%;
+                            width: 100%;
+                            overflow-x: auto;
+                        }
+                    }
+
+                    /* Mobile Menu Backdrop */
+                    .sidebar-backdrop {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background-color: rgba(0, 0, 0, 0.5);
+                        z-index: 1035; /* Below sidebar, above header */
+                        backdrop-filter: blur(2px);
+                        animation: fadeIn 0.3s ease;
+                    }
+
+                    /* Utility UI effects */
                     .hover-bg-secondary:hover {
                         background-color: rgba(255, 255, 255, 0.1) !important;
                     }
-                    .sidebar a {
+                    .sidebar-nav a {
                         border-left: 3px solid transparent;
                     }
-                    .sidebar a.bg-primary {
+                    .sidebar-nav a.bg-primary {
                         border-left-color: #ffc107;
                     }
-                    .main-content {
-                        transition: margin-left 0.3s, width 0.3s;
-                    }
                     .company-badge {
-                        animation: slideInDown 0.5s ease-out;
+                        animation: slideInDown 0.4s ease-out;
                     }
+
                     @keyframes slideInDown {
-                        from {
-                            opacity: 0;
-                            transform: translateY(-10px);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
+                        from { opacity: 0; transform: translateY(-10px); }
+                        to { opacity: 1; transform: translateY(0); }
                     }
-                        
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
                 `}</style>
             </Router>
         </CompanyProvider>
