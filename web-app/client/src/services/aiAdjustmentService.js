@@ -262,6 +262,8 @@ class AIAdjustmentService {
                 acquisition_dates: parameters.acquisition_dates,
                 fiscal_end_date: parameters.fiscal_end_date,
                 use_trajectory_mode: parameters.use_trajectory_mode || false,
+                fiscal_start_date: parameters.fiscal_start_date || null,
+                fiscal_end_date: parameters.fiscal_end_date || null,
                 // Activado por defecto durante depuración para exponer trazas por cuenta.
                 debug_trace: parameters.debug_trace !== false,
                 debug_trace_limit: parameters.debug_trace_limit || 120

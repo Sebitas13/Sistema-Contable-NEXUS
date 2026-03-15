@@ -1136,10 +1136,36 @@ class ARSDSPyEngine:
              if not bool(re.match(r"^1[6-9]", str(account.code or ""))):
                 return 0.0, 0.0, "[SKIP-AITB-AOT] classification_not_non_monetary", {"skip_reason": "classification_not_non_monetary"}
 
-        # Obtener trayectoria de movimientos
-        raw_trajectory = params.ledger_trajectories.get(account.code, [])
+        # Obtener trayectoria de movimientos con normalización de código
+        account_code_stripped = (account.code or "").strip()
+        trajectories_dict = params.ledger_trajectories or {}
+        raw_trajectory = trajectories_dict.get(account_code_stripped, [])
+        
+        # V8.2 FIX: Intentar variaciones comunes del código si no se encuentra
         if not raw_trajectory:
-            print(f"DEBUG AoT: No trajectory for {account.code}, falling back to balance-based")
+            # Intentar sin guiones (600-10-01 -> 6001001) y con variantes
+            code_no_hyphens = account_code_stripped.replace("-", "")
+            code_no_dots = account_code_stripped.replace(".", "")
+            for alt_code in [code_no_hyphens, code_no_dots]:
+                raw_trajectory = trajectories_dict.get(alt_code, [])
+                if raw_trajectory:
+                    print(f"DEBUG AoT [{account_code_stripped}]: Found trajectory under alt key '{alt_code}'")
+                    break
+            # Intentar buscar claves del diccionario que coincidan parcialmente
+            if not raw_trajectory:
+                for traj_key in trajectories_dict:
+                    traj_key_stripped = traj_key.strip()
+                    if (traj_key_stripped == account_code_stripped or
+                        traj_key_stripped.replace("-", "") == code_no_hyphens or
+                        traj_key_stripped.replace(".", "") == code_no_dots):
+                        raw_trajectory = trajectories_dict[traj_key]
+                        print(f"DEBUG AoT [{account_code_stripped}]: Found trajectory under fuzzy key '{traj_key}'")
+                        break
+        
+        if not raw_trajectory:
+            available_keys = list(trajectories_dict.keys())[:10]
+            print(f"⚠️ WARNING AoT [{account_code_stripped}]: NO TRAJECTORY DATA FOUND. "
+                  f"Falling back to PoT. Available trajectory keys (first 10): {available_keys}")
             return self.calculate_aitb_pot(account, params)
         
         ufv_final = params.ufv_final
@@ -1294,9 +1320,18 @@ class ARSDSPyEngine:
             print(f"DEBUG: Processing account {account.code} - {account.name} (Balance: {account.balance})")
             
             # DEBUG: V8.0 AoT - Show trajectory mode status
-            trajectory_count = len(request.parameters.ledger_trajectories.get(account.code, [])) if request.parameters.ledger_trajectories else 0
+            traj_dict = request.parameters.ledger_trajectories or {}
+            trajectory_count = len(traj_dict.get(account.code, []) or traj_dict.get(account.code.strip(), []))
             print(f"DEBUG AoT MODE: use_trajectory_mode={request.parameters.use_trajectory_mode}, trajectories_for_account={trajectory_count}")
             print(f"DEBUG AoT CACHE: ufv_cache_size={len(request.parameters.ufv_cache or {})}")
+            
+            # V8.2 FIX: One-time diagnostic dump of trajectory keys vs account codes (first account only)
+            if processing_stats["accounts_processed"] == 1 and request.parameters.use_trajectory_mode:
+                traj_keys = sorted(traj_dict.keys())[:20]
+                acct_codes = sorted([a.code for a in request.accounts if a.balance > 0])[:20]
+                print(f"🔍 AoT DIAGNOSTIC: Trajectory keys (first 20): {traj_keys}")
+                print(f"🔍 AoT DIAGNOSTIC: Account codes (first 20): {acct_codes}")
+                print(f"🔍 AoT DIAGNOSTIC: Total trajectory keys: {len(traj_dict)}, ufv_cache entries: {len(request.parameters.ufv_cache or {})}")
             
             # 1. AITB (PoT/AoT) - Executed FIRST to update base for Depreciation
             # V8.0: Use trajectory mode if enabled

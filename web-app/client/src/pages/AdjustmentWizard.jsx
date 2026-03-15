@@ -270,7 +270,9 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                 acquisition_dates: acquisitionDates,
                 fiscal_end_date: format(endDate, 'yyyy-MM-dd'),
                 // V8.0 AoT: Habilitar cálculo por trayectoria de movimientos
-                use_trajectory_mode: useTrajectoryMode
+                use_trajectory_mode: useTrajectoryMode,
+                // V8.2: Enviar fecha de inicio para trayectoria
+                fiscal_start_date: format(startDate, 'yyyy-MM-dd')
             };
 
             const result = await aiAdjustmentService.proposeAdjustments(params, adjustmentProfile);

@@ -592,15 +592,19 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 
     // V8.0 AoT: Enrich with ledger trajectories if trajectory mode is requested
     const useTrajectoryMode = req.body.parameters?.use_trajectory_mode === true;
-    console.log(`   ðŸŽ¯ [LOG] Trajectory Mode requested: ${useTrajectoryMode}`);
+    console.log(`   🎯 [LOG] Trajectory Mode requested: ${useTrajectoryMode}`);
 
     if (useTrajectoryMode) {
       console.log('   [LOG] Fetching full ledger for trajectory analysis...');
+      // V8.2 FIX: Use reliable self-URL for internal calls. runtimeBaseUrl can be empty in local dev.
+      const PORT = process.env.PORT || 3001;
+      const selfUrl = runtimeBaseUrl || `http://localhost:${PORT}`;
+      console.log(`   [LOG] Using self-URL for trajectory enrichment: ${selfUrl}`);
       try {
         const fiscalRange = await determineFiscalRange(companyId, req.body.parameters);
         console.log(`   [LOG] Trajectory fiscal range (${fiscalRange.source}): ${fiscalRange.startDate} -> ${fiscalRange.endDate}`);
 
-        const ledgerDetailsResponse = await axios.get(`${runtimeBaseUrl}/api/reports/ledger-details`, {
+        const ledgerDetailsResponse = await axios.get(`${selfUrl}/api/reports/ledger-details`, {
           params: {
             companyId: String(companyId),
             startDate: fiscalRange.startDate,
@@ -612,17 +616,24 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
         });
 
         const ledgerDetails = ledgerDetailsResponse.data?.data || [];
+        console.log(`   [LOG] Received ${ledgerDetails.length} detail rows from ledger-details`);
         const uniqueDates = [...new Set(
           ledgerDetails
             .map((row) => String(row.date || '').slice(0, 10))
             .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
         )];
 
+        // V8.2 FIX: Also include the fiscal end date in the UFV batch to ensure ufv_final is cached
+        const fiscalEndDate = fiscalRange.endDate;
+        if (fiscalEndDate && !uniqueDates.includes(fiscalEndDate)) {
+          uniqueDates.push(fiscalEndDate);
+        }
+
         let ufvCache = {};
         if (uniqueDates.length > 0) {
           try {
             const ufvBatchResponse = await axios.post(
-              `${runtimeBaseUrl}/api/ufv/batch`,
+              `${selfUrl}/api/ufv/batch`,
               { companyId: String(companyId), dates: uniqueDates },
               {
                 timeout: 30000,
@@ -630,6 +641,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
               }
             );
             ufvCache = ufvBatchResponse.data?.data || {};
+            console.log(`   [LOG] UFV batch loaded: ${Object.keys(ufvCache).length} entries for ${uniqueDates.length} dates`);
           } catch (ufvError) {
             console.warn(`   [WARN] UFV batch lookup failed: ${ufvError.message}`);
           }
@@ -656,11 +668,16 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
         req.body.parameters.trajectory_start_date = fiscalRange.startDate;
         req.body.parameters.trajectory_end_date = fiscalRange.endDate;
 
+        const trajectoryKeys = Object.keys(trajectories);
+        const sampleKeys = trajectoryKeys.slice(0, 10);
         console.log(
-          `   [LOG] Trajectories ready: ${Object.keys(trajectories).length} cuentas, ${ledgerDetails.length} movimientos, ${Object.keys(ufvCache).length} UFV`
+          `   ✅ [LOG] Trajectories ready: ${trajectoryKeys.length} cuentas, ${ledgerDetails.length} movimientos, ${Object.keys(ufvCache).length} UFV`
         );
+        console.log(`   🔍 [LOG] Trajectory sample keys: ${JSON.stringify(sampleKeys)}`);
       } catch (trajectoryError) {
-        console.warn(`   [WARN] Trajectory enrichment failed, fallback to balance mode: ${trajectoryError.message}`);
+        console.error(`   ❌ [ERROR] Trajectory enrichment failed: ${trajectoryError.message}`);
+        console.error(`   ❌ [ERROR] Stack: ${trajectoryError.stack}`);
+        console.warn(`   [WARN] Fallback to balance mode (PoT). Trajectory data will be empty.`);
       }
     }
 
