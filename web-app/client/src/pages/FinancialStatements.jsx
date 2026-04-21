@@ -38,7 +38,11 @@ export const TreeRow = ({ node, level = 0 }) => {
                     <div className="d-flex align-items-center">
                         <span>{node.name}</span>
                     </div>
-                    {level > 0 && <div className="text-muted small fst-normal ms-1" style={{ fontSize: '0.7em' }}>{node.code}</div>}
+                    {level > 0 && (
+                        <div className="text-white-50 small fst-normal ms-1" style={{ fontSize: '0.7em' }}>
+                            {node.code}
+                        </div>
+                    )}
                 </td>
                 <td className="text-end fw-bold-if-header">
                     {formatearMonto(node.total)}
