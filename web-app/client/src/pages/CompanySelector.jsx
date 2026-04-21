@@ -43,6 +43,7 @@ export default function CompanySelector() {
     const [restoreDryRunData, setRestoreDryRunData] = useState(null);
     const [restoreSuccess, setRestoreSuccess] = useState(false);
     const [restoreResult, setRestoreResult] = useState(null);
+    const [restoreSelectedFile, setRestoreSelectedFile] = useState(null);
     const restoreFileRef = useRef(null);
     const [formData, setFormData] = useState({
         name: '',
@@ -169,6 +170,7 @@ export default function CompanySelector() {
         setRestoreProgress(0);
         setRestoreSuccess(false);
         setRestoreResult(null);
+        setRestoreSelectedFile(null);
         setShowRestoreModal(true);
     };
 
@@ -179,6 +181,7 @@ export default function CompanySelector() {
         setRestoreProgress(0);
         setRestoreSuccess(false);
         setRestoreResult(null);
+        setRestoreSelectedFile(null);
         if (restoreFileRef.current) restoreFileRef.current.value = '';
     };
 
@@ -195,6 +198,7 @@ export default function CompanySelector() {
         setRestoreError(null);
         setRestoreDryRunData(null);
         setRestoreResult(null);
+        setRestoreSelectedFile(file);
 
         const fd = new FormData();
         fd.append('file', file);
@@ -213,7 +217,8 @@ export default function CompanySelector() {
     };
 
     const handleRestoreImport = async () => {
-        const selectedFile = restoreFileRef.current?.files?.[0] || null;
+        // Nota: el input file se desmonta cuando hay restoreDryRunData, por eso persistimos el archivo en estado.
+        const selectedFile = restoreSelectedFile || restoreFileRef.current?.files?.[0] || null;
         if (!selectedFile) {
             setRestoreError('Selecciona nuevamente el archivo .ZIP para restaurar.');
             return;
@@ -263,6 +268,7 @@ export default function CompanySelector() {
                 setRestoreSuccess(true);
                 setRestoreResult(response.data);
                 setRestoreDryRunData(null);
+                setRestoreSelectedFile(null);
                 if (restoreFileRef.current) restoreFileRef.current.value = '';
                 await refreshCompanies();
 
@@ -872,6 +878,7 @@ export default function CompanySelector() {
                                                         onClick={() => {
                                                             setRestoreDryRunData(null);
                                                             setRestoreError(null);
+                                                            setRestoreSelectedFile(null);
                                                             if (restoreFileRef.current) restoreFileRef.current.value = '';
                                                         }}
                                                         disabled={restoreLoading}

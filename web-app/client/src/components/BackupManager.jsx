@@ -15,8 +15,9 @@ export default function BackupManager() {
         setError(null);
         setSuccess(false);
         try {
+            const baseUrl = API_URL || '';
             const response = await axios({
-                url: `${API_URL}/api/backup/export/${selectedCompany.id}`,
+                url: `${baseUrl}/api/backup/export/${selectedCompany.id}`,
                 method: 'GET',
                 responseType: 'blob',
             });
