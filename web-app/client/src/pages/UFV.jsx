@@ -499,7 +499,7 @@ export default function UFV() {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-graph-up-arrow me-2"></i>UFV - Unidad de Fomento a la Vivienda</h2>
-                    <p className="text-muted mb-0">Gestión de valores históricos de UFV</p>
+                    <p className="text-white-50 mb-0">Gestión de valores históricos de UFV</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
@@ -522,7 +522,7 @@ export default function UFV() {
             <div className="card glass-panel border-secondary shadow-sm">
                 <div className="card-header border-secondary border-bottom d-flex justify-content-between align-items-center">
                     <h5 className="mb-0 text-white"><i className="bi bi-calendar-month me-2"></i>Matriz de UFV</h5>
-                    <div className="d-flex align-items-center gap-2" style={{ position: 'relative', zIndex: 10 }}>
+                    <div className="d-flex align-items-center gap-2" style={{ position: 'relative', zIndex: 1050 }}>
                         <label className="form-label mb-0 small text-white-50">Gestión:</label>
                         <input
                             type="number"
@@ -710,7 +710,7 @@ export default function UFV() {
                 .matrix-table th, .matrix-table td { vertical-align: middle; }
                 .matrix-header-day { min-width: 50px; }
                 .matrix-cell { width: 100%; height: 100%; padding: 0.25rem; font-size: 0.8rem; }
-                .matrix-cell:focus { box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25); background-color: #e9f3ff !important; }
+                .matrix-cell:focus { box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.5); background-color: rgba(13, 110, 253, 0.1) !important; color: white !important; }
             `}</style>
         </div>
     );

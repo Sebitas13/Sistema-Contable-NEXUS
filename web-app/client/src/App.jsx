@@ -237,7 +237,7 @@ function App() {
                     :root {
                         --sidebar-width: 280px;
                         --sidebar-collapsed-width: 80px;
-                        --sidebar-bg: #212529; /* bg-dark */
+                        --sidebar-bg: rgba(11, 14, 20, 0.6);
                         --content-bg: transparent;
                     }
 
@@ -261,7 +261,10 @@ function App() {
                         top: 0;
                         left: 0;
                         height: 100vh;
-                        background-color: var(--sidebar-bg);
+                        background: var(--sidebar-bg);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border-right: 1px solid rgba(255, 255, 255, 0.08);
                         transition: transform 0.3s ease, width 0.3s ease;
                         z-index: 1040; /* HIGHER than the sticky-top header (1020) */
                         display: flex;

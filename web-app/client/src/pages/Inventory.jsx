@@ -219,7 +219,7 @@ export default function Inventory() {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-box-seam me-2"></i>Inventarios (Kardex)</h2>
-                    <p className="text-muted mb-0">Control de existencias con métodos de valuación</p>
+                    <p className="text-white-50 mb-0">Control de existencias con métodos de valuación</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     <select className="form-select form-select-sm bg-dark text-white border-secondary" value={valuationMethod} onChange={(e) => setValuationMethod(e.target.value)} style={{ width: 'auto' }}>
@@ -380,17 +380,17 @@ export default function Inventory() {
             <div className="card glass-panel border-secondary shadow-sm">
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-dark table-hover mb-0" style={{ backgroundColor: 'transparent' }}>
-                            <thead className="border-secondary text-white-50">
+                        <table className="table table-dark table-hover mb-0 align-middle border-secondary" style={{ backgroundColor: 'transparent' }}>
+                            <thead className="border-secondary text-white-50" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                 <tr>
-                                    <th>Código</th>
-                                    <th>Nombre</th>
-                                    <th>Unidad</th>
-                                    <th className="text-end">Cantidad</th>
-                                    <th className="text-end">Costo Unit.</th>
-                                    <th className="text-end">Valor Total</th>
-                                    <th>Movimientos</th>
-                                    <th>Acciones</th>
+                                    <th className="border-secondary">Código</th>
+                                    <th className="border-secondary">Nombre</th>
+                                    <th className="border-secondary">Unidad</th>
+                                    <th className="text-end border-secondary">Cantidad</th>
+                                    <th className="text-end border-secondary">Costo Unit.</th>
+                                    <th className="text-end border-secondary">Valor Total</th>
+                                    <th className="text-center border-secondary">Movimientos</th>
+                                    <th className="border-secondary">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="border-secondary">
@@ -405,15 +405,15 @@ export default function Inventory() {
                                     items.map((item) => {
                                         const calc = calculateInventory(item);
                                         return (
-                                            <tr key={item.id}>
-                                                <td><code>{item.code}</code></td>
-                                                <td>{item.name}</td>
-                                                <td><span className="badge bg-secondary">{item.unit}</span></td>
-                                                <td className="text-end">{calc.quantity.toFixed(2)}</td>
-                                                <td className="text-end text-success">Bs {calc.unit_cost.toFixed(2)}</td>
-                                                <td className="text-end fw-bold text-success">Bs {calc.value.toFixed(2)}</td>
-                                                <td><span className="badge bg-info">{(item.movements || []).length}</span></td>
-                                                <td>
+                                            <tr key={item.id} className="border-secondary">
+                                                <td className="border-secondary"><code>{item.code}</code></td>
+                                                <td className="border-secondary text-white">{item.name}</td>
+                                                <td className="border-secondary"><span className="badge bg-secondary border border-secondary">{item.unit}</span></td>
+                                                <td className="text-end border-secondary text-white">{calc.quantity.toFixed(2)}</td>
+                                                <td className="text-end text-success border-secondary">Bs {calc.unit_cost.toFixed(2)}</td>
+                                                <td className="text-end fw-bold text-success border-secondary">Bs {calc.value.toFixed(2)}</td>
+                                                <td className="text-center border-secondary"><span className="badge bg-info bg-opacity-10 text-info border border-info">{(item.movements || []).length}</span></td>
+                                                <td className="border-secondary">
                                                     <button className="btn btn-sm btn-outline-success me-1" onClick={() => { setSelectedItem(item); setShowMovementModal(true); }}>
                                                         <i className="bi bi-plus"></i>
                                                     </button>

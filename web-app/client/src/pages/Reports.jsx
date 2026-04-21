@@ -103,7 +103,7 @@ export default function Reports() {
         <div>
             <div className="mb-4">
                 <h2 className="mb-2"><i className="bi bi-graph-up me-2"></i>Reportes y Consultas</h2>
-                <p className="text-white-50">Acceso rápido a todos los reportes contables del sistema</p>
+                <p className="text-light opacity-75">Acceso rápido a todos los reportes contables del sistema</p>
             </div>
 
             {/* Reportes Principales */}
@@ -121,9 +121,9 @@ export default function Reports() {
                                             </div>
                                             <div className="flex-grow-1">
                                                 <h5 className="card-title mb-2 text-white">{report.title}</h5>
-                                                <p className="card-text text-white-50 small mb-0">{report.description}</p>
+                                                <p className="card-text text-light opacity-75 small mb-0">{report.description}</p>
                                             </div>
-                                            <i className="bi bi-arrow-right text-white-50"></i>
+                                            <i className="bi bi-arrow-right text-light opacity-75"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -148,9 +148,9 @@ export default function Reports() {
                                             </div>
                                             <div className="flex-grow-1">
                                                 <h5 className="card-title mb-2 text-white">{utility.title}</h5>
-                                                <p className="card-text text-white-50 small mb-0">{utility.description}</p>
+                                                <p className="card-text text-light opacity-75 small mb-0">{utility.description}</p>
                                             </div>
-                                            <i className="bi bi-arrow-right text-white-50"></i>
+                                            <i className="bi bi-arrow-right text-light opacity-75"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -171,28 +171,28 @@ export default function Reports() {
                             <div className="text-center">
                                 <div className="display-6 text-primary mb-2"><i className="bi bi-files"></i></div>
                                 <h4 className="mb-1 text-white">{stats.total_transactions || 0}</h4>
-                                <small className="text-white-50">Transacciones</small>
+                                <small className="text-light opacity-75">Transacciones</small>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-success mb-2"><i className="bi bi-journal-check"></i></div>
                                 <h4 className="mb-1 text-white">{stats.total_accounts || 0}</h4>
-                                <small className="text-white-50">Cuentas Activas</small>
+                                <small className="text-light opacity-75">Cuentas Activas</small>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-info mb-2"><i className="bi bi-box"></i></div>
                                 <h4 className="mb-1 text-white">{stats.total_inventory_items || 0}</h4>
-                                <small className="text-white-50">Items Inventario</small>
+                                <small className="text-light opacity-75">Items Inventario</small>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-warning mb-2"><i className="bi bi-buildings"></i></div>
                                 <h4 className="mb-1 text-white">{stats.total_fixed_assets || 0}</h4>
-                                <small className="text-white-50">Activos Fijos</small>
+                                <small className="text-light opacity-75">Activos Fijos</small>
                             </div>
                         </div>
                     </div>

@@ -141,7 +141,7 @@ export default function FixedAssets() {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-building me-2"></i>Activos Fijos</h2>
-                    <p className="text-muted mb-0">Registro y depreciación de bienes de uso</p>
+                    <p className="text-white-50 mb-0">Registro y depreciación de bienes de uso</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel}>
@@ -255,17 +255,17 @@ export default function FixedAssets() {
             <div className="card glass-panel border-secondary shadow-sm">
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-dark table-hover mb-0" style={{ backgroundColor: 'transparent' }}>
-                            <thead className="border-secondary text-white-50">
+                        <table className="table table-dark table-hover mb-0 align-middle border-secondary" style={{ backgroundColor: 'transparent' }}>
+                            <thead className="border-secondary text-white-50" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                 <tr>
-                                    <th>Código</th>
-                                    <th>Nombre</th>
-                                    <th>Categoría</th>
-                                    <th className="text-end">Costo</th>
-                                    <th className="text-end">Dep. Acum.</th>
-                                    <th className="text-end">Valor Libros</th>
-                                    <th className="text-center">Años Uso</th>
-                                    <th>Acciones</th>
+                                    <th className="border-secondary">Código</th>
+                                    <th className="border-secondary">Nombre</th>
+                                    <th className="border-secondary">Categoría</th>
+                                    <th className="text-end border-secondary">Costo</th>
+                                    <th className="text-end border-secondary">Dep. Acum.</th>
+                                    <th className="text-end border-secondary">Valor Libros</th>
+                                    <th className="text-center border-secondary">Años Uso</th>
+                                    <th className="border-secondary">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="border-secondary">
@@ -280,15 +280,15 @@ export default function FixedAssets() {
                                     assets.map((asset) => {
                                         const dep = calculateDepreciation(asset);
                                         return (
-                                            <tr key={asset.id}>
-                                                <td><code>{asset.code}</code></td>
-                                                <td>{asset.name}</td>
-                                                <td><span className="badge bg-secondary">{asset.category}</span></td>
-                                                <td className="text-end">Bs {parseFloat(asset.acquisition_cost).toFixed(2)}</td>
-                                                <td className="text-end text-danger">Bs {dep.accumulatedDepreciation.toFixed(2)}</td>
-                                                <td className="text-end fw-bold text-success">Bs {dep.bookValue.toFixed(2)}</td>
-                                                <td className="text-center">{dep.yearsElapsed}</td>
-                                                <td>
+                                            <tr key={asset.id} className="border-secondary">
+                                                <td className="border-secondary"><code>{asset.code}</code></td>
+                                                <td className="border-secondary text-white">{asset.name}</td>
+                                                <td className="border-secondary"><span className="badge bg-secondary border border-secondary">{asset.category}</span></td>
+                                                <td className="text-end border-secondary text-white">Bs {parseFloat(asset.acquisition_cost).toFixed(2)}</td>
+                                                <td className="text-end text-danger border-secondary">Bs {dep.accumulatedDepreciation.toFixed(2)}</td>
+                                                <td className="text-end fw-bold text-success border-secondary">Bs {dep.bookValue.toFixed(2)}</td>
+                                                <td className="text-center border-secondary text-white-50">{dep.yearsElapsed}</td>
+                                                <td className="border-secondary">
                                                     <button className="btn btn-sm btn-outline-primary me-1">
                                                         <i className="bi bi-eye"></i>
                                                     </button>

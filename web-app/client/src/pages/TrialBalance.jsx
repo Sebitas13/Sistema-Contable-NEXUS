@@ -216,7 +216,7 @@ export default function TrialBalance() {
                         <i className="bi bi-file-spreadsheet me-2 text-success"></i>
                         Balance de Comprobación
                     </h2>
-                    <p className="text-white-50 mb-0">Comprobante de sumas y saldos para verificar la partida doble.</p>
+                    <p className="text-light opacity-75 mb-0">Comprobante de sumas y saldos para verificar la partida doble.</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
