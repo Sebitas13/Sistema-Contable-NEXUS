@@ -8,10 +8,19 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { getFiscalYearDetails } = require('../utils/serverFiscalYearUtils');
+const {
+  buildAiEngineUrlCandidates,
+  normalizeServiceBaseUrl
+} = require('../utils/aiEngineResolver');
 
 const isDev = process.env.NODE_ENV !== 'production';
-const envEngineUrl = process.env.AI_ENGINE_URL || process.env.AI_ENGINE_URL_ALT;
-const AI_ENGINE_URL = isDev ? 'http://localhost:8003' : (envEngineUrl || 'http://localhost:8000');
+const AI_ENGINE_URL = normalizeServiceBaseUrl(
+  process.env.AI_ENGINE_INTERNAL_URL ||
+  process.env.AI_ENGINE_INTERNAL_URL_ALT ||
+  process.env.AI_ENGINE_URL ||
+  process.env.AI_ENGINE_URL_ALT ||
+  (isDev ? 'http://localhost:8003' : 'http://localhost:8003')
+);
 const db = require('../db');
 
 // Helper function to promisify db.all - PROPER CALLBACK WRAPPER
@@ -34,54 +43,47 @@ const aiHealthCache = {
   expiresAt: 0
 };
 
-const normalizeBaseUrl = (rawValue) => {
-  if (!rawValue || typeof rawValue !== 'string') return '';
-  let normalized = rawValue.trim();
-  if (!normalized) return '';
-  normalized = normalized.replace(/\/+$/, '');
-  if (normalized.endsWith('/api')) {
-    normalized = normalized.slice(0, -4);
-  }
-  return normalized;
-};
+const normalizeBaseUrl = normalizeServiceBaseUrl;
 
-const resolveRuntimeBaseUrl = (req) => {
+const resolveRequestBaseUrl = (req) => {
   const forwardedProto = req.headers['x-forwarded-proto'];
   const forwardedHost = req.headers['x-forwarded-host'];
   const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
   const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
-  const runtimeBaseUrl = process.env.API_BASE_URL || (host ? `${protocol}://${host}` : '');
+  return normalizeBaseUrl(host ? `${protocol}://${host}` : '');
+};
+
+const resolveRuntimeBaseUrl = (req) => {
+  const runtimeBaseUrl = process.env.API_BASE_URL || resolveRequestBaseUrl(req);
   return normalizeBaseUrl(runtimeBaseUrl);
 };
 
 const buildApiBaseUrlCandidates = (req, runtimeBaseUrl, explicitBaseUrl = '') => {
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const forwardedHost = req.headers['x-forwarded-host'];
-  const protocol = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : req.protocol) || 'http';
-  const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0] : req.get('host')) || '';
+  const requestBaseUrl = resolveRequestBaseUrl(req);
+  const currentPort = process.env.PORT || 3001;
+  const localCandidates = [
+    `http://localhost:${currentPort}`,
+    `http://127.0.0.1:${currentPort}`,
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://host.docker.internal:3001',
+    'http://host.docker.internal:3000'
+  ];
 
   const rawCandidates = isDev ? [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3001',
+    ...localCandidates,
     explicitBaseUrl,
     runtimeBaseUrl,
     process.env.API_BASE_URL || '',
-    host ? `${protocol}://${host}` : '',
-    'http://host.docker.internal:3000',
-    'http://host.docker.internal:3001'
+    requestBaseUrl
   ] : [
     explicitBaseUrl,
+    ...localCandidates,
     runtimeBaseUrl,
     process.env.API_BASE_URL || '',
-    host ? `${protocol}://${host}` : '',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://host.docker.internal:3000',
-    'http://host.docker.internal:3001'
+    requestBaseUrl
   ];
 
   const unique = [];
@@ -93,6 +95,127 @@ const buildApiBaseUrlCandidates = (req, runtimeBaseUrl, explicitBaseUrl = '') =>
     unique.push(normalized);
   }
   return unique;
+};
+
+const RETRYABLE_AI_STATUSES = new Set([429, 502, 503, 504]);
+
+const resolveAiEngineTargets = (req) => {
+  return buildAiEngineUrlCandidates({
+    isDevelopment: isDev,
+    explicitUrls: [
+      process.env.AI_ENGINE_INTERNAL_URL || '',
+      process.env.AI_ENGINE_INTERNAL_URL_ALT || '',
+      process.env.AI_ENGINE_URL || '',
+      process.env.AI_ENGINE_URL_ALT || ''
+    ],
+    requestBaseUrl: resolveRequestBaseUrl(req),
+    runtimeBaseUrl: resolveRuntimeBaseUrl(req)
+  });
+};
+
+const callAiEngine = async (req, method, endpointPath, {
+  data,
+  timeout = 30000,
+  maxRetriesPerCandidate = 0,
+  headers = {}
+} = {}) => {
+  const { candidates, diagnostics } = resolveAiEngineTargets(req);
+  const attempts = [];
+  let lastError = null;
+
+  if (!candidates.length) {
+    const configError = new Error('No hay endpoints válidos configurados para el motor AI.');
+    configError.aiEngineDiagnostics = diagnostics;
+    throw configError;
+  }
+
+  for (const baseUrl of candidates) {
+    for (let attempt = 0; attempt <= maxRetriesPerCandidate; attempt += 1) {
+      try {
+        const response = await axios({
+          method,
+          url: `${baseUrl}${endpointPath}`,
+          data,
+          timeout,
+          headers
+        });
+
+        return {
+          response,
+          baseUrl,
+          attempts,
+          diagnostics
+        };
+      } catch (error) {
+        lastError = error;
+        const status = error.response?.status || null;
+        attempts.push({
+          base_url: baseUrl,
+          attempt: attempt + 1,
+          status,
+          code: error.code || null,
+          message: error.message
+        });
+
+        const shouldRetry =
+          (RETRYABLE_AI_STATUSES.has(status) || error.code === 'ECONNABORTED') &&
+          attempt < maxRetriesPerCandidate;
+
+        if (shouldRetry) {
+          const retryAfterHeader = Number(error.response?.headers?.['retry-after']);
+          const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+            ? retryAfterHeader * 1000
+            : (attempt + 1) * 1200;
+          await sleep(waitMs);
+          continue;
+        }
+
+        break;
+      }
+    }
+  }
+
+  if (lastError) {
+    lastError.aiEngineDiagnostics = diagnostics;
+    lastError.aiEngineAttempts = attempts;
+    lastError.aiEngineCandidates = candidates;
+  }
+
+  throw lastError || new Error('No se pudo completar la llamada al motor AI.');
+};
+
+const postToInternalApiCandidates = async (baseCandidates, endpointPath, payload, timeout = 45000) => {
+  const attempts = [];
+  let lastError = null;
+
+  for (const baseUrl of baseCandidates) {
+    try {
+      const response = await axios.post(
+        `${baseUrl}${endpointPath}`,
+        payload,
+        {
+          timeout,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      attempts.push({ base_url: baseUrl, status: response.status });
+      return { response, baseUrl, attempts };
+    } catch (error) {
+      lastError = error;
+      attempts.push({
+        base_url: baseUrl,
+        status: error.response?.status || null,
+        code: error.code || null,
+        message: error.message
+      });
+    }
+  }
+
+  if (lastError) {
+    lastError.internalAttempts = attempts;
+  }
+
+  throw lastError || new Error(`No se pudo llamar al endpoint interno ${endpointPath}`);
 };
 
 const buildReportsFallbackPayload = (requestBody, companyId) => {
@@ -182,12 +305,24 @@ router.post('/reload-profiles', async (req, res) => {
     console.log(`ðŸ§  AI Reload Signal: Refreshing cache for ${companyId || 'ALL companies'}`);
 
     // Ping the Python AI engine to let it know data changed
-    const pythonResponse = await axios.post(`${AI_ENGINE_URL}/api/ai/reload`, { company_id: companyId }, { timeout: 5000 }).catch(e => ({ data: { success: false, error: e.message } }));
+    const pythonResponse = await callAiEngine(req, 'post', '/api/ai/reload', {
+      data: { company_id: companyId },
+      timeout: 5000
+    }).catch((e) => ({
+      response: {
+        data: {
+          success: false,
+          error: e.message,
+          ai_engine_attempts: e.aiEngineAttempts || [],
+          ai_engine_diagnostics: e.aiEngineDiagnostics || null
+        }
+      }
+    }));
 
     res.json({
       success: true,
       message: 'AI reload signal processed',
-      python_engine: pythonResponse.data
+      python_engine: pythonResponse.response.data
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -419,7 +554,8 @@ router.post('/adjustments/generate', async (req, res) => {
       console.log(`ðŸ”„ Perfil fusionado para empresa ${companyId}: ${(req.body.profile_schema?.monetary_rules?.length || 0)} reglas M, ${(req.body.profile_schema?.non_monetary_rules?.length || 0)} reglas NM`);
     }
 
-    const response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/generate`, req.body, {
+    const { response } = await callAiEngine(req, 'post', '/api/ai/adjustments/generate', {
+      data: req.body,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json'
@@ -459,34 +595,22 @@ router.get('/health', async (req, res) => {
     return res.json(aiHealthCache.payload);
   }
 
-  let lastError = null;
-  const maxAttempts = 2;
   try {
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      try {
-        const response = await axios.get(`${AI_ENGINE_URL}/api/ai/health`, {
-          timeout: attempt === 0 ? 5000 : 10000
-        });
-        const payload = {
-          ...response.data,
-          healthy: response.data?.status === 'healthy' || response.data?.healthy === true,
-          ai_engine_available: true
-        };
-        aiHealthCache.payload = payload;
-        aiHealthCache.expiresAt = now + 10000;
-        return res.json(payload);
-      } catch (error) {
-        lastError = error;
-        const upstreamStatus = error.response?.status;
-        const retryable = [429, 502, 503, 504].includes(upstreamStatus) || error.code === 'ECONNABORTED';
-        if (!retryable || attempt >= maxAttempts - 1) {
-          break;
-        }
-        await sleep((attempt + 1) * 400);
-      }
-    }
-
-    throw lastError || new Error('Unknown health check failure');
+    const { response, baseUrl, attempts, diagnostics } = await callAiEngine(req, 'get', '/api/ai/health', {
+      timeout: 5000,
+      maxRetriesPerCandidate: 1
+    });
+    const payload = {
+      ...response.data,
+      healthy: response.data?.status === 'healthy' || response.data?.healthy === true,
+      ai_engine_available: true,
+      ai_engine_base_url: baseUrl,
+      ai_engine_attempts: attempts,
+      ai_engine_diagnostics: diagnostics
+    };
+    aiHealthCache.payload = payload;
+    aiHealthCache.expiresAt = now + 10000;
+    return res.json(payload);
   } catch (error) {
     const degradedPayload = {
       status: 'degraded',
@@ -495,7 +619,9 @@ router.get('/health', async (req, res) => {
       error: 'AI Engine unavailable',
       upstream_status: error.response?.status || null,
       code: error.code || null,
-      checked_at: new Date().toISOString()
+      checked_at: new Date().toISOString(),
+      ai_engine_attempts: error.aiEngineAttempts || [],
+      ai_engine_diagnostics: error.aiEngineDiagnostics || null
     };
     aiHealthCache.payload = degradedPayload;
     aiHealthCache.expiresAt = now + 5000;
@@ -506,7 +632,8 @@ router.get('/health', async (req, res) => {
 // POST /api/ai/adjustments/batch-validate - Proxy to FastAPI
 router.post('/adjustments/batch-validate', async (req, res) => {
   try {
-    const response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/batch-validate`, req.body, {
+    const { response } = await callAiEngine(req, 'post', '/api/ai/adjustments/batch-validate', {
+      data: req.body,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json'
@@ -522,7 +649,8 @@ router.post('/adjustments/batch-validate', async (req, res) => {
 // POST /api/ai/adjustments/explain - Proxy to FastAPI
 router.post('/adjustments/explain', async (req, res) => {
   try {
-    const response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/explain`, req.body, {
+    const { response } = await callAiEngine(req, 'post', '/api/ai/adjustments/explain', {
+      data: req.body,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json'
@@ -538,7 +666,9 @@ router.post('/adjustments/explain', async (req, res) => {
 // GET /api/ai/adjustments/config - Get AI Engine configuration
 router.get('/adjustments/config', async (req, res) => {
   try {
-    const response = await axios.get(`${AI_ENGINE_URL}/api/ai/adjustments/config`, { timeout: 10000 });
+    const { response } = await callAiEngine(req, 'get', '/api/ai/adjustments/config', {
+      timeout: 10000
+    });
     res.json(response.data);
   } catch (error) {
     console.error('AI config error:', error.message);
@@ -726,29 +856,33 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     console.log(`   ðŸ“¡ [LOG] Preparing to send request to AI Engine at: ${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`);
     console.log(`   ðŸ“¦ [LOG] Final payload to be sent:`, JSON.stringify(req.body, null, 2));
 
-    const maxRetries = 2;
-    let response;
+    const aiEngineTargets = resolveAiEngineTargets(req);
+    console.log(`   [LOG] AI Engine candidates: ${JSON.stringify(aiEngineTargets.candidates)}`);
+    console.log(`   [LOG] Excluded self-references: ${JSON.stringify(aiEngineTargets.diagnostics.excluded_self_references)}`);
+    const { response, baseUrl: aiEngineBaseUrl, attempts: aiEngineAttempts } = await callAiEngine(
+      req,
+      'post',
+      '/api/ai/adjustments/generate-from-ledger',
+      {
+        data: req.body,
+        timeout: 60000,
+        maxRetriesPerCandidate: 1,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
 
+    console.log(`   [LOG] AI Engine responded with HTTP Status: ${response.status}`);
+    console.log(`   [LOG] AI Engine base selected: ${aiEngineBaseUrl}`);
+    console.log(`   [LOG] AI Engine attempts: ${JSON.stringify(aiEngineAttempts)}`);
+    console.log(`   [LOG] AI Engine Response Body:`, JSON.stringify(response.data, null, 2));
+    console.log("=".repeat(80) + "\n");
+    return res.json(response.data);
+    const maxRetries = 0;
+    const waitMs = 0;
+    const retryStatus = 'n/a';
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-      try {
-        response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`, req.body, {
-          timeout: 60000,
-          headers: { 'Content-Type': 'application/json' }
-        });
-        break;
-      } catch (retryError) {
-        const retryStatus = retryError.response?.status;
-        const shouldRetry = [429, 502, 503, 504].includes(retryStatus);
-        if (!shouldRetry || attempt >= maxRetries) {
-          throw retryError;
-        }
-
-        const retryAfterHeader = Number(retryError.response?.headers?.['retry-after']);
-        const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
-          ? retryAfterHeader * 1000
-          : (attempt + 1) * 1200;
+      if (false) {
         console.warn(`Ã¢Å¡Â Ã¯Â¸Â [LOG] Retry ${attempt + 1}/${maxRetries} after ${waitMs}ms (status ${retryStatus})`);
-        await sleep(waitMs);
       }
     }
 
@@ -864,7 +998,8 @@ router.post('/adjustments/feedback', async (req, res) => {
     req.body.existing_profile = existingProfile || {};
 
     console.log(`   ðŸ“¡ Enviando a Python AI Engine...`);
-    const response = await axios.post(`${AI_ENGINE_URL}/api/ai/adjustments/feedback`, req.body, {
+    const { response } = await callAiEngine(req, 'post', '/api/ai/adjustments/feedback', {
+      data: req.body,
       timeout: 10000,
       headers: { 'Content-Type': 'application/json' }
     });
