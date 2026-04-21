@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useCompany } from '../context/CompanyContext';
 import CompanyCard from '../components/CompanyCard';
+import API_URL from '../api';
 
 export default function CompanySelector() {
     const { companies, loading, deleteCompany, refreshCompanies, createCompany, updateCompany } = useCompany();
@@ -30,6 +32,15 @@ export default function CompanySelector() {
     const [showModal, setShowModal] = useState(false);
     const [editingCompany, setEditingCompany] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // --- Restore Backup State ---
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const [restoreLoading, setRestoreLoading] = useState(false);
+    const [restoreProgress, setRestoreProgress] = useState(0);
+    const [restoreError, setRestoreError] = useState(null);
+    const [restoreDryRunData, setRestoreDryRunData] = useState(null);
+    const [restoreSuccess, setRestoreSuccess] = useState(false);
+    const restoreFileRef = useRef(null);
     const [formData, setFormData] = useState({
         name: '',
         nit: '',
@@ -148,6 +159,95 @@ export default function CompanySelector() {
         }));
     };
 
+    // --- Restore Backup Handlers ---
+    const openRestoreModal = () => {
+        setRestoreDryRunData(null);
+        setRestoreError(null);
+        setRestoreProgress(0);
+        setRestoreSuccess(false);
+        setShowRestoreModal(true);
+    };
+
+    const closeRestoreModal = () => {
+        setShowRestoreModal(false);
+        setRestoreDryRunData(null);
+        setRestoreError(null);
+        setRestoreProgress(0);
+        setRestoreSuccess(false);
+        if (restoreFileRef.current) restoreFileRef.current.value = '';
+    };
+
+    const handleRestoreFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 100 * 1024 * 1024) {
+            setRestoreError('El archivo excede el límite de 100MB.');
+            return;
+        }
+
+        setRestoreLoading(true);
+        setRestoreError(null);
+        setRestoreDryRunData(null);
+
+        const fd = new FormData();
+        fd.append('file', file);
+
+        try {
+            const response = await axios.post(`${API_URL}/api/backup/dry-run`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setRestoreDryRunData(response.data.metadata);
+        } catch (err) {
+            setRestoreError(err.response?.data?.error || 'Error al leer el archivo de backup.');
+        } finally {
+            setRestoreLoading(false);
+        }
+    };
+
+    const handleRestoreImport = async () => {
+        if (!restoreFileRef.current?.files[0]) return;
+
+        if (!window.confirm('¿Estás seguro de restaurar esta empresa? Se creará una nueva empresa con los datos del backup.')) {
+            return;
+        }
+
+        setRestoreLoading(true);
+        setRestoreProgress(10);
+        setRestoreError(null);
+
+        const fd = new FormData();
+        fd.append('file', restoreFileRef.current.files[0]);
+
+        try {
+            setRestoreProgress(30);
+            const response = await axios.post(`${API_URL}/api/backup/import`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setRestoreProgress(30 + (percentCompleted * 0.4));
+                }
+            });
+
+            setRestoreProgress(90);
+            if (response.data.success) {
+                setRestoreProgress(100);
+                setRestoreSuccess(true);
+                setRestoreDryRunData(null);
+                if (restoreFileRef.current) restoreFileRef.current.value = '';
+                await refreshCompanies();
+                setTimeout(() => {
+                    closeRestoreModal();
+                }, 2500);
+            }
+        } catch (err) {
+            setRestoreError(err.response?.data?.error || 'Error durante la restauración.');
+        } finally {
+            setRestoreLoading(false);
+            setTimeout(() => setRestoreProgress(0), 2000);
+        }
+    };
+
     if (loading) {
         return (
             <div className="loading-screen-premium">
@@ -185,13 +285,23 @@ export default function CompanySelector() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <button
-                    className="btn btn-premium btn-new-company flex-shrink-0 px-4"
-                    onClick={openNewCompanyModal}
-                >
-                    <i className="bi bi-plus-circle me-2"></i>
-                    Nueva Empresa
-                </button>
+                <div className="d-flex gap-2 flex-shrink-0">
+                    <button
+                        className="btn btn-outline-info px-3"
+                        onClick={openRestoreModal}
+                        title="Restaurar empresa desde un archivo de backup"
+                    >
+                        <i className="bi bi-cloud-upload me-2"></i>
+                        Cargar Backup
+                    </button>
+                    <button
+                        className="btn btn-premium btn-new-company px-4"
+                        onClick={openNewCompanyModal}
+                    >
+                        <i className="bi bi-plus-circle me-2"></i>
+                        Nueva Empresa
+                    </button>
+                </div>
             </div>
 
             {/* Companies Grid */}
@@ -506,6 +616,180 @@ export default function CompanySelector() {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Restore Backup Modal */}
+            {showRestoreModal && (
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title">
+                                    <i className="bi bi-cloud-upload me-2 text-info"></i>
+                                    Restaurar Empresa desde Backup
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close btn-close-white"
+                                    onClick={closeRestoreModal}
+                                    disabled={restoreLoading}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                {/* Success state */}
+                                {restoreSuccess ? (
+                                    <div className="text-center py-4 animate__animated animate__fadeIn">
+                                        <div className="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3"
+                                            style={{ width: '80px', height: '80px', background: 'rgba(25, 135, 84, 0.15)', border: '2px solid rgba(25, 135, 84, 0.4)' }}>
+                                            <i className="bi bi-check-lg text-success" style={{ fontSize: '2.5rem' }}></i>
+                                        </div>
+                                        <h5 className="text-success fw-bold">¡Restauración Completada!</h5>
+                                        <p className="text-white-50 small">La empresa ha sido creada exitosamente desde el backup.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Upload area */}
+                                        {!restoreDryRunData && (
+                                            <div className="text-center">
+                                                <div
+                                                    className="p-4 rounded-3 mb-3 position-relative"
+                                                    style={{
+                                                        border: '2px dashed rgba(13, 202, 240, 0.3)',
+                                                        backgroundColor: 'rgba(13, 202, 240, 0.03)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                    onClick={() => restoreFileRef.current?.click()}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.borderColor = 'rgba(13, 202, 240, 0.6)';
+                                                        e.currentTarget.style.backgroundColor = 'rgba(13, 202, 240, 0.08)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.borderColor = 'rgba(13, 202, 240, 0.3)';
+                                                        e.currentTarget.style.backgroundColor = 'rgba(13, 202, 240, 0.03)';
+                                                    }}
+                                                >
+                                                    <div className="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3"
+                                                        style={{ width: '64px', height: '64px', background: 'rgba(13, 202, 240, 0.1)', border: '1px solid rgba(13, 202, 240, 0.25)' }}>
+                                                        <i className="bi bi-file-earmark-zip text-info" style={{ fontSize: '1.8rem' }}></i>
+                                                    </div>
+                                                    <h6 className="text-white fw-bold mb-1">Seleccionar archivo de Backup</h6>
+                                                    <p className="text-white-50 small mb-0">Haz clic aquí o arrastra un archivo <code className="text-info">.ZIP</code></p>
+                                                    <input
+                                                        type="file"
+                                                        className="d-none"
+                                                        accept=".zip"
+                                                        ref={restoreFileRef}
+                                                        onChange={handleRestoreFileChange}
+                                                        disabled={restoreLoading}
+                                                    />
+                                                </div>
+                                                <small className="text-white-50">
+                                                    <i className="bi bi-shield-check me-1 text-info"></i>
+                                                    Se creará una <strong className="text-white">nueva empresa</strong> con los datos del backup. Nada existente será modificado.
+                                                </small>
+                                            </div>
+                                        )}
+
+                                        {/* Loading spinner during dry-run */}
+                                        {restoreLoading && !restoreDryRunData && (
+                                            <div className="text-center py-3">
+                                                <div className="spinner-border text-info" role="status"></div>
+                                                <p className="text-white-50 small mt-2 mb-0">Analizando archivo...</p>
+                                            </div>
+                                        )}
+
+                                        {/* Error display */}
+                                        {restoreError && (
+                                            <div className="alert alert-danger border-danger bg-danger bg-opacity-10 text-danger d-flex align-items-center mt-3 small">
+                                                <i className="bi bi-exclamation-octagon-fill me-2 fs-5"></i>
+                                                {restoreError}
+                                            </div>
+                                        )}
+
+                                        {/* Dry Run Preview */}
+                                        {restoreDryRunData && (
+                                            <div className="animate__animated animate__fadeIn">
+                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                    <h6 className="fw-bold text-info mb-0">
+                                                        <i className="bi bi-eye-fill me-2"></i>Previsualización del Backup
+                                                    </h6>
+                                                    <span className="badge bg-info bg-opacity-20 text-info border border-info">V {restoreDryRunData.version}</span>
+                                                </div>
+                                                <div className="p-3 rounded-3 mb-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                                    <div className="row g-3 small">
+                                                        <div className="col-6">
+                                                            <div className="text-white-50">Empresa Origen</div>
+                                                            <div className="fw-bold text-white">{restoreDryRunData.companyName}</div>
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <div className="text-white-50">NIT</div>
+                                                            <div className="fw-bold text-white">{restoreDryRunData.nit || 'N/A'}</div>
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <div className="text-white-50">Cuentas</div>
+                                                            <div className="fw-bold text-white">
+                                                                <i className="bi bi-journal-text me-1 text-info"></i>
+                                                                {restoreDryRunData.counts?.accounts || 0}
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <div className="text-white-50">Asientos</div>
+                                                            <div className="fw-bold text-white">
+                                                                <i className="bi bi-receipt me-1 text-info"></i>
+                                                                {restoreDryRunData.counts?.transactions || 0}
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-12">
+                                                            <div className="text-white-50">Fecha Generación</div>
+                                                            <div className="fw-bold text-white small">{new Date(restoreDryRunData.timestamp).toLocaleString()}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Progress Bar */}
+                                                {restoreProgress > 0 && (
+                                                    <div className="progress mb-3 bg-dark border border-secondary" style={{ height: '10px', borderRadius: '8px' }}>
+                                                        <div
+                                                            className="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                                            role="progressbar"
+                                                            style={{ width: `${restoreProgress}%`, boxShadow: '0 0 12px rgba(13,202,240,0.4)' }}
+                                                        ></div>
+                                                    </div>
+                                                )}
+
+                                                <div className="d-flex gap-2">
+                                                    <button
+                                                        className="btn btn-premium flex-grow-1"
+                                                        onClick={handleRestoreImport}
+                                                        disabled={restoreLoading}
+                                                    >
+                                                        {restoreLoading ? (
+                                                            <span><span className="spinner-border spinner-border-sm me-2"></span>Restaurando...</span>
+                                                        ) : (
+                                                            <span><i className="bi bi-check-circle me-2"></i>Confirmar Restauración</span>
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        onClick={() => {
+                                                            setRestoreDryRunData(null);
+                                                            setRestoreError(null);
+                                                            if (restoreFileRef.current) restoreFileRef.current.value = '';
+                                                        }}
+                                                        disabled={restoreLoading}
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
