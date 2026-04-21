@@ -161,7 +161,13 @@ function createTransactionApi(tx) {
 
 async function withTransaction(work) {
     if (typeof db.transaction === 'function') {
-        return db.transaction(async (tx) => work(createTransactionApi(tx)));
+        // libsql/@libsql/client no garantiza retornar el valor del callback,
+        // así que capturamos el resultado manualmente para evitar `undefined`.
+        let result;
+        await db.transaction(async (tx) => {
+            result = await work(createTransactionApi(tx));
+        });
+        return result;
     }
 
     const fallbackApi = rootDbApi;
@@ -853,6 +859,10 @@ router.post('/import', upload.single('file'), async (req, res) => {
         const bundle = await readBackupBundle(req.file.path);
         const restoreResult = await restoreBackupBundle(bundle);
 
+        if (!restoreResult || !restoreResult.newCompanyId) {
+            throw new Error('La restauración no devolvió un resultado válido (newCompanyId ausente).');
+        }
+
         await notifyAiProfileReload(restoreResult.newCompanyId);
 
         res.json({
@@ -861,9 +871,9 @@ router.post('/import', upload.single('file'), async (req, res) => {
             newCompanyId: restoreResult.newCompanyId,
             restoredCompanyName: restoreResult.restoredCompanyName,
             sourceCompanyName: restoreResult.sourceCompanyName,
-            counts: restoreResult.stats.imported,
-            skipped: restoreResult.stats.skipped,
-            warnings: restoreResult.warnings
+            counts: restoreResult.stats?.imported || {},
+            skipped: restoreResult.stats?.skipped || {},
+            warnings: restoreResult.warnings || []
         });
     } catch (error) {
         console.error('Import error:', error);
