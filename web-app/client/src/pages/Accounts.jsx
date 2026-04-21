@@ -344,7 +344,7 @@ export default function Accounts() {
                     <button className="btn btn-warning btn-sm" style={{ color: '#000' }} onClick={() => navigate('/data-forge')}>
                         <i className="bi bi-lightning-charge-fill me-1"></i> DataForge
                     </button>
-                    <button className="btn btn-primary btn-sm" onClick={openNewAccountModal}>
+                    <button className="btn btn-premium btn-sm px-3" onClick={openNewAccountModal}>
                         <i className="bi bi-plus-circle me-1"></i> <span className="d-none d-sm-inline">Nueva Cuenta</span>
                     </button>
                 </div>
@@ -409,16 +409,16 @@ export default function Accounts() {
             {showPDFPreview && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
                     <div className="modal-dialog modal-xl modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary">
                                 <h5 className="modal-title"><i className="bi bi-file-earmark-pdf me-2"></i>Vista Previa del PDF</h5>
-                                <button type="button" className="btn-close" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}></button>
                             </div>
                             <div className="modal-body" style={{ height: '70vh', overflow: 'hidden' }}>
                                 <iframe src={pdfPreviewUrl} style={{ width: '100%', height: '100%', border: 'none' }}></iframe>
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}>Cerrar</button>
+                            <div className="modal-footer border-secondary">
+                                <button className="btn btn-outline-secondary" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}>Cerrar</button>
                                 <a href={pdfPreviewUrl} download="plan_de_cuentas.pdf" className="btn btn-danger">
                                     <i className="bi bi-download me-1"></i> Descargar PDF
                                 </a>
@@ -430,18 +430,18 @@ export default function Accounts() {
 
             {/* Excel Preview Modal */}
             {showExcelPreview && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title"><i className="bi bi-file-earmark-excel me-2"></i>Vista Previa de Exportación Excel</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowExcelPreview(false)}></button>
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title"><i className="bi bi-file-earmark-excel me-2 text-success"></i>Vista Previa de Exportación Excel</h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowExcelPreview(false)}></button>
                             </div>
                             <div className="modal-body">
-                                <p className="text-muted">Se exportarán <strong>{excelPreviewData.length}</strong> registros con las siguientes columnas:</p>
+                                <p className="text-white-50">Se exportarán <strong>{excelPreviewData.length}</strong> registros con las siguientes columnas:</p>
                                 <div className="table-responsive" style={{ maxHeight: '400px' }}>
-                                    <table className="table table-sm table-bordered table-striped">
-                                        <thead className="table-light sticky-top">
+                                    <table className="table table-dark table-sm table-bordered table-striped border-secondary">
+                                        <thead className="table-dark sticky-top border-secondary">
                                             <tr>
                                                 <th>Código</th>
                                                 <th>Nombre</th>
@@ -462,7 +462,7 @@ export default function Accounts() {
                                             ))}
                                             {excelPreviewData.length > 10 && (
                                                 <tr>
-                                                    <td colSpan="5" className="text-center text-muted fst-italic">
+                                                    <td colSpan="5" className="text-center text-white-50 fst-italic">
                                                         ... y {excelPreviewData.length - 10} filas más
                                                     </td>
                                                 </tr>
@@ -471,8 +471,8 @@ export default function Accounts() {
                                     </table>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setShowExcelPreview(false)}>Cancelar</button>
+                            <div className="modal-footer border-secondary">
+                                <button className="btn btn-outline-secondary" onClick={() => setShowExcelPreview(false)}>Cancelar</button>
                                 <button className="btn btn-success" onClick={confirmExportExcel}>
                                     <i className="bi bi-download me-1"></i> Confirmar Descarga
                                 </button>
@@ -484,26 +484,26 @@ export default function Accounts() {
 
             {/* New/Edit Account Modal */}
             {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title"><i className={`bi ${editingAccount ? 'bi-pencil' : 'bi-plus-circle'} me-2`}></i>{editingAccount ? 'Editar Cuenta' : 'Nueva Cuenta'}</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
+                                <h5 className="modal-title"><i className={`bi ${editingAccount ? 'bi-pencil text-warning' : 'bi-plus-circle text-primary'} me-2`}></i>{editingAccount ? 'Editar Cuenta' : 'Nueva Cuenta'}</h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="mb-3">
-                                        <label className="form-label">Código</label>
-                                        <input type="text" className="form-control" name="code" value={formData.code} onChange={handleInputChange} required />
+                                        <label className="form-label text-white-50">Código</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" name="code" value={formData.code} onChange={handleInputChange} required placeholder="Ej: 1.1.1.01" />
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Nombre</label>
-                                        <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required />
+                                        <label className="form-label text-white-50">Nombre</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" name="name" value={formData.name} onChange={handleInputChange} required placeholder="Nombre de la cuenta" />
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Tipo</label>
-                                        <select className="form-select" name="type" value={formData.type} onChange={handleInputChange}>
+                                        <label className="form-label text-white-50">Tipo</label>
+                                        <select className="form-select bg-dark text-white border-secondary" name="type" value={formData.type} onChange={handleInputChange}>
                                             {ACCOUNT_TYPES.map(type => (
                                                 <option key={type.value} value={type.value}>{type.label}</option>
                                             ))}
@@ -511,17 +511,17 @@ export default function Accounts() {
                                     </div>
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Nivel</label>
-                                            <input type="number" className="form-control" name="level" value={formData.level} onChange={handleInputChange} required min="1" max="5" />
+                                            <label className="form-label text-white-50">Nivel</label>
+                                            <input type="number" className="form-control bg-dark text-white border-secondary" name="level" value={formData.level} onChange={handleInputChange} required min="1" max="5" />
                                         </div>
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Cuenta Padre (Código)</label>
-                                            <input type="text" className="form-control" name="parent_code" value={formData.parent_code} onChange={handleInputChange} />
+                                            <label className="form-label text-white-50">Cuenta Padre (Código)</label>
+                                            <input type="text" className="form-control bg-dark text-white border-secondary" name="parent_code" value={formData.parent_code} onChange={handleInputChange} placeholder="Opcional" />
                                         </div>
                                     </div>
-                                    <div className="modal-footer px-0 pb-0">
-                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                                        <button type="submit" className="btn btn-primary">Guardar</button>
+                                    <div className="modal-footer border-secondary px-0 pb-0 justify-content-end gap-2">
+                                        <button type="button" className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                                        <button type="submit" className="btn btn-premium px-4 border-0"><i className="bi bi-save me-2"></i>Guardar</button>
                                     </div>
                                 </form>
                             </div>

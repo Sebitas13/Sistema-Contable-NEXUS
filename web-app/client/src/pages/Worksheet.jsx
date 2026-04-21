@@ -908,7 +908,7 @@ export default function Worksheet() {
             {/* Debug panel removed */}
 
             {/* Summary Cards */}
-            <div className="row g-3 mb-4" style={{ position: 'relative', zIndex: 1050 }}>
+            <div className="row g-3 mb-4">
                 <div className="col-md-3">
                     <div className="card glass-panel border-primary text-white h-100">
                         <div className="card-body">

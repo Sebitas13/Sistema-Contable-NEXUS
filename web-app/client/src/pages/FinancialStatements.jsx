@@ -25,13 +25,14 @@ export const TreeRow = ({ node, level = 0 }) => {
     const isHeader = level === 0;
     const paddingLeft = `${level * 1.5}rem`;
     const isReguladora = node.esReguladora;
-    let rowClass = "";
-    if (isHeader) rowClass += " table-light fw-bold";
+    if (isHeader) rowClass += " fw-bold";
     if (isReguladora) rowClass += " text-danger fst-italic";
+
+    const headerStyle = isHeader ? { backgroundColor: 'rgba(255, 255, 255, 0.05)', fontSize: '1rem' } : { fontSize: '0.9rem' };
 
     return (
         <>
-            <tr className={rowClass} style={{ fontSize: isHeader ? '1rem' : '0.9rem' }}>
+            <tr className={rowClass} style={headerStyle}>
                 <td style={{ paddingLeft }}>
                     <div className="d-flex align-items-center">
                         <span>{node.name}</span>
@@ -61,7 +62,7 @@ export const RenderList = ({ list, title }) => {
     if (!list || list.length === 0) return null;
     return (
         <>
-            {title && <tr className="fw-bold bg-light"><td colSpan="2" className="ps-4 text-uppercase pt-3" style={{ fontSize: '0.8rem' }}>{title}</td></tr>}
+            {title && <tr className="fw-bold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}><td colSpan="2" className="ps-4 text-uppercase pt-3" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>{title}</td></tr>}
             {list.map(node => (
                 <ERRow key={node.id} label={node.name} value={node.displayValue} level={1} />
             ))}
@@ -410,14 +411,18 @@ export default function FinancialStatements() {
 
             {error && <div className="alert alert-danger mb-4 shadow-sm">{error}</div>}
 
-            <ul className="nav nav-tabs mb-4">
+            <ul className="nav nav-tabs mb-4 border-secondary">
                 <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'balance' ? 'active fw-bold' : ''}`} onClick={() => setActiveTab('balance')}>
+                    <button className={`nav-link border-0 ${activeTab === 'balance' ? 'active text-primary bg-transparent' : 'text-white-50 bg-transparent'}`} 
+                            style={{ borderBottom: activeTab === 'balance' ? '2px solid var(--accent-primary) !important' : 'none' }}
+                            onClick={() => setActiveTab('balance')}>
                         Estado de Situación Financiera
                     </button>
                 </li>
                 <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'resultados' ? 'active fw-bold' : ''}`} onClick={() => setActiveTab('resultados')}>
+                    <button className={`nav-link border-0 ${activeTab === 'resultados' ? 'active text-primary bg-transparent' : 'text-white-50 bg-transparent'}`} 
+                            style={{ borderBottom: activeTab === 'resultados' ? '2px solid var(--accent-primary) !important' : 'none' }}
+                            onClick={() => setActiveTab('resultados')}>
                         Estado de Resultados
                     </button>
                 </li>
@@ -503,20 +508,20 @@ export default function FinancialStatements() {
 
                                                 {/* 2. COSTOS */}
                                                 <RenderList list={estadoResultados.secciones.costos} title="MENOS: COSTO DE VENTAS" />
-                                                <ERRow label="UTILIDAD BRUTA EN VENTAS" value={estadoResultados.totales.utilidadBruta} bold color="table-primary" />
+                                                <ERRow label="UTILIDAD BRUTA EN VENTAS" value={estadoResultados.totales.utilidadBruta} bold color="text-info" />
 
                                                 {/* 3. GASTOS OPS */}
-                                                <tr className="fw-bold text-muted"><td colSpan="2" className="pt-3 ps-4 text-uppercase" style={{ fontSize: '0.8rem' }}>MENOS: GASTOS OPERATIVOS</td></tr>
+                                                <tr className="fw-bold text-white-50"><td colSpan="2" className="pt-3 ps-4 text-uppercase" style={{ fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.03)' }}>MENOS: GASTOS OPERATIVOS</td></tr>
                                                 <RenderList list={estadoResultados.secciones.gastosAdmin} title="Administración" />
                                                 <RenderList list={estadoResultados.secciones.gastosVenta} title="Venta y Comercialización" />
                                                 <RenderList list={estadoResultados.secciones.gastosFinancieros} title="Financieros" />
-                                                <ERRow label="Utilidad Neta en Ventas" value={estadoResultados.totales.utilidadEnVentas} bold color="table-light ps-4" />
+                                                <ERRow label="Utilidad Neta en Ventas" value={estadoResultados.totales.utilidadEnVentas} bold color="text-white ps-4" />
 
                                                 {/* 4. OTROS */}
                                                 <RenderList list={estadoResultados.secciones.otrosIngresos} title="MÁS: OTROS INGRESOS" />
                                                 <ERRow label="UTILIDAD OPERATIVA" value={estadoResultados.totales.utilidadOperativa} bold />
                                                 <RenderList list={estadoResultados.secciones.otrosEgresos} title="MENOS: OTROS GASTOS" />
-                                                <ERRow label="UTILIDAD BRUTA DEL EJERCICIO" value={estadoResultados.totales.utilidadBrutaEjercicio} bold color="table-info" />
+                                                <ERRow label="UTILIDAD BRUTA DEL EJERCICIO" value={estadoResultados.totales.utilidadBrutaEjercicio} bold color="text-info" />
 
                                                 {/* TRIBUTARIO */}
                                                 {estadoResultados.totales.compensacion > 0 && (
@@ -555,7 +560,7 @@ export default function FinancialStatements() {
                                         </table>
 
                                         {estadoResultados.audit.length > 0 && (
-                                            <div className="bg-light p-3 small border-top text-muted">
+                                            <div className="bg-dark p-3 small border-top border-secondary text-white-50">
                                                 <strong><i className="bi bi-info-circle me-1"></i> Log del Motor:</strong>
                                                 <ul className="mb-0 ps-3">
                                                     {estadoResultados.audit.map((log, i) => <li key={i}>{log}</li>)}

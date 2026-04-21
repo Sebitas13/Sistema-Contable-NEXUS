@@ -2148,19 +2148,19 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                 {showProfileLibrary && (
                                     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                                         <div className="modal-dialog modal-lg modal-dialog-centered">
-                                            <div className="modal-content shadow-lg border-info">
-                                                <div className="modal-header bg-info text-white py-2">
-                                                    <h6 className="modal-title"><i className="bi bi-journal-bookmark-fill me-2"></i>Cargar Perfil Guardado</h6>
+                                            <div className="modal-content shadow-lg glass-panel border-info">
+                                                <div className="modal-header border-secondary py-2">
+                                                    <h6 className="modal-title text-white"><i className="bi bi-journal-bookmark-fill me-2 text-info"></i>Cargar Perfil Guardado</h6>
                                                     <button type="button" className="btn-close btn-close-white" onClick={() => setShowProfileLibrary(false)}></button>
                                                 </div>
                                                 <div className="modal-body p-0">
                                                     <div className="table-responsive" style={{ maxHeight: '350px' }}>
-                                                        <table className="table table-hover table-sm align-middle mb-0">
-                                                            <thead className="table-light">
+                                                        <table className="table table-dark table-hover table-sm align-middle mb-0 border-secondary">
+                                                            <thead className="sticky-top" style={{ backgroundColor: '#1a1f2e' }}>
                                                                 <tr>
-                                                                    <th>Empresa</th>
-                                                                    <th>Configuración</th>
-                                                                    <th className="text-center">Acción</th>
+                                                                    <th className="text-white-50 border-secondary">Empresa</th>
+                                                                    <th className="text-white-50 border-secondary">Configuración</th>
+                                                                    <th className="text-center text-white-50 border-secondary">Acción</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -2219,9 +2219,9 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                         </table>
                                                     </div>
                                                 </div>
-                                                <div className="modal-footer bg-light py-1">
-                                                    <small className="text-muted me-auto px-2">Gestiona tus perfiles en la página de Configuración.</small>
-                                                    <button className="btn btn-secondary btn-sm" onClick={() => setShowProfileLibrary(false)}>Cerrar</button>
+                                                <div className="modal-footer border-secondary py-1">
+                                                    <small className="text-white-50 me-auto px-2">Gestiona tus perfiles en la página de Configuración.</small>
+                                                    <button className="btn btn-outline-secondary btn-sm" onClick={() => setShowProfileLibrary(false)}>Cerrar</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -2256,9 +2256,9 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
                                     {/* Expanded Rules Editor */}
                                     {showAddRule && (
-                                        <div className="card border shadow-sm">
-                                            <div className="card-header py-2">
-                                                <h6 className="mb-0 small"><i className="bi bi-tags me-2"></i>Editor de Reglas de Grupo</h6>
+                                        <div className="card glass-panel shadow-sm border-secondary mb-3">
+                                            <div className="card-header border-secondary py-2">
+                                                <h6 className="mb-0 small text-white"><i className="bi bi-tags me-2"></i>Editor de Reglas de Grupo</h6>
                                             </div>
                                             <div className="card-body p-3">
                                                 <div className="alert alert-info small mb-3">
@@ -2292,13 +2292,13 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
                                                 {/* Rules table */}
                                                 <div className="table-responsive" style={{ maxHeight: '200px' }}>
-                                                    <table className="table table-sm table-hover mb-0">
-                                                        <thead className="table-light">
+                                                    <table className="table table-sm table-dark table-hover mb-0 border-secondary">
+                                                        <thead className="sticky-top" style={{ backgroundColor: '#1a1f2e' }}>
                                                             <tr>
-                                                                <th style={{ width: '80px' }}>Dígito</th>
-                                                                <th>Tipo</th>
-                                                                <th style={{ width: '70px' }}>Cuenta</th>
-                                                                <th style={{ width: '50px' }}></th>
+                                                                <th style={{ width: '80px' }} className="text-white-50 border-secondary">Dígito</th>
+                                                                <th className="text-white-50 border-secondary">Tipo</th>
+                                                                <th style={{ width: '70px' }} className="text-white-50 border-secondary">Cuenta</th>
+                                                                <th style={{ width: '50px' }} className="border-secondary"></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -2338,16 +2338,16 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
                                 {/* Controles de Paginación (Vital para rendimiento UI) */}
                                 {previewData.length > itemsPerPage && (
-                                    <div className="d-flex justify-content-between align-items-center mb-2 bg-light p-2 rounded">
-                                        <small className="text-muted">Mostrando {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, previewData.length)} de {previewData.length}</small>
+                                    <div className="d-flex justify-content-between align-items-center mb-2 bg-dark bg-opacity-50 border border-secondary p-2 rounded">
+                                        <small className="text-white-50">Mostrando {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, previewData.length)} de {previewData.length}</small>
                                         <div className="btn-group btn-group-sm">
-                                            <button className="btn btn-outline-secondary" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                                            <button className="btn btn-outline-secondary text-white" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                                 <i className="bi bi-chevron-left"></i>
                                             </button>
-                                            <span className="btn btn-outline-secondary disabled text-dark fw-bold" style={{ minWidth: '80px' }}>
+                                            <span className="btn btn-outline-secondary disabled text-white fw-bold" style={{ minWidth: '80px' }}>
                                                 Pág {currentPage} / {totalPages}
                                             </span>
-                                            <button className="btn btn-outline-secondary" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                                            <button className="btn btn-outline-secondary text-white" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
                                                 <i className="bi bi-chevron-right"></i>
                                             </button>
                                         </div>
@@ -2357,7 +2357,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                 <div className="table-responsive" style={{ maxHeight: '500px' }}>
                                     {/* Bulk Actions Bar */}
                                     {selectedIds.length > 0 && (
-                                        <div className="card bg-light border-primary mb-3 sticky-top shadow-sm animate__animated animate__fadeInDown" style={{ zIndex: 1021, top: '0' }}>
+                                        <div className="card glass-panel border-primary mb-3 sticky-top shadow-sm animate__animated animate__fadeInDown" style={{ zIndex: 1021, top: '0' }}>
                                             <div className="card-body py-2 d-flex align-items-center justify-content-between">
                                                 <div className="d-flex align-items-center">
                                                     <span className="badge bg-primary me-3 fs-6">
@@ -2365,39 +2365,39 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                     </span>
 
                                                     <div className="input-group input-group-sm me-2" style={{ maxWidth: '250px' }}>
-                                                        <select className="form-select" value={bulkType} onChange={e => setBulkType(e.target.value)}>
+                                                        <select className="form-select bg-dark text-white border-secondary" value={bulkType} onChange={e => setBulkType(e.target.value)}>
                                                             {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                                         </select>
-                                                        <button className="btn btn-primary" onClick={() => applyBulkAction('type')}>
+                                                        <button className="btn btn-premium" onClick={() => applyBulkAction('type')}>
                                                             Asignar Tipo
                                                         </button>
                                                     </div>
 
                                                     <div className="input-group input-group-sm me-2" style={{ maxWidth: '200px' }}>
-                                                        <input type="number" className="form-control" value={bulkLevel} onChange={e => setBulkLevel(parseInt(e.target.value) || 1)} min="1" max="10" />
+                                                        <input type="number" className="form-control bg-dark text-white border-secondary" value={bulkLevel} onChange={e => setBulkLevel(parseInt(e.target.value) || 1)} min="1" max="10" />
                                                         <button className="btn btn-outline-primary" onClick={() => applyBulkAction('level')}>
                                                             Asignar Nivel
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <button className="btn btn-sm btn-link text-muted" onClick={() => setSelectedIds([])}>
+                                                <button className="btn btn-sm btn-link text-white-50" onClick={() => setSelectedIds([])}>
                                                     Desmarcar todos
                                                 </button>
                                             </div>
                                         </div>
                                     )}
 
-                                    <table className="table table-sm table-hover table-striped">
-                                        <thead className="table-light sticky-top" style={{ zIndex: 1020, top: selectedIds.length > 0 ? '54px' : '0' }}>
+                                    <table className="table table-sm table-dark table-hover table-striped border-secondary mb-0">
+                                        <thead className="sticky-top" style={{ backgroundColor: '#1a1f2e', zIndex: 1020, top: selectedIds.length > 0 ? '54px' : '0' }}>
                                             <tr>
                                                 <th style={{ width: '40px' }} className="text-center">
-                                                    <input type="checkbox" className="form-check-input"
+                                                    <input type="checkbox" className="form-check-input bg-dark border-secondary"
                                                         checked={selectedIds.length === previewData.length && previewData.length > 0}
                                                         onChange={toggleSelectAll} />
                                                 </th>
-                                                <th style={{ width: '40px' }}>#</th>
-                                                <th style={{ width: '120px' }}>Código</th>
-                                                <th>Nombre</th>
+                                                <th style={{ width: '40px' }} className="text-white-50">#</th>
+                                                <th style={{ width: '120px' }} className="text-white-50">Código</th>
+                                                <th className="text-white-50">Nombre</th>
                                                 <th style={{ width: '140px' }}>Tipo</th>
                                                 <th style={{ width: '80px' }}>Nivel</th>
                                                 <th style={{ width: '50px' }}></th>

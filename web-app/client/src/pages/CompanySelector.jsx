@@ -150,11 +150,10 @@ export default function CompanySelector() {
 
     if (loading) {
         return (
-            <div className="company-selector-loading">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Cargando...</span>
-                </div>
-                <p className="mt-3">Cargando empresas...</p>
+            <div className="loading-screen-premium">
+                <div className="spinner-premium"></div>
+                <h4 className="mt-4 text-white fw-light animate__animated animate__pulse animate__infinite">Cargando empresas...</h4>
+                <p className="text-white-50 small">Preparando su espacio contable</p>
             </div>
         );
     }
@@ -187,7 +186,7 @@ export default function CompanySelector() {
                     />
                 </div>
                 <button
-                    className="btn btn-primary btn-new-company flex-shrink-0"
+                    className="btn btn-premium btn-new-company flex-shrink-0 px-4"
                     onClick={openNewCompanyModal}
                 >
                     <i className="bi bi-plus-circle me-2"></i>

@@ -616,7 +616,7 @@ export default function Journal() {
                     <button className="btn btn-warning" onClick={() => setShowClosingWizard(true)}>
                         <i className="bi bi-archive me-1"></i><span className="d-none d-sm-inline">Cierre de Gestión</span>
                     </button>
-                    <button className="btn btn-primary" onClick={openNewModal}>
+                    <button className="btn btn-premium px-3" onClick={openNewModal}>
                         <i className="bi bi-plus-circle me-1"></i>Nuevo<span className="d-none d-sm-inline"> Asiento</span>
                     </button>
                 </div>
@@ -806,11 +806,11 @@ export default function Journal() {
                         <div key={t.id} className="card glass-panel border-secondary">
                             {/* Encabezado del asiento */}
                             <div
-                                className="card-header d-flex justify-content-between align-items-center border-secondary flex-nowrap"
-                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer', gap: '1rem' }}
+                                className="card-header d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center border-secondary gap-2"
+                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
                                 onClick={() => toggleCollapse(t.id)}
                             >
-                                <div className="d-flex align-items-center gap-2 gap-sm-3 flex-wrap flex-grow-1" style={{ minWidth: 0 }}>
+                                <div className="d-flex align-items-center gap-2 gap-sm-3 flex-wrap flex-grow-1" style={{ minWidth: 0, width: '100%' }}>
                                     <i className={`bi bi-chevron-${collapsedEntries[t.id] ? 'right' : 'down'} text-white-50`}></i>
                                     <div>
                                         <i className="bi bi-calendar3 me-2" style={{ color: 'var(--accent-primary)' }}></i>
@@ -819,13 +819,13 @@ export default function Journal() {
                                     <span className={`badge bg-${t.type === 'Ingreso' ? 'success' : t.type === 'Egreso' ? 'danger' : t.type === 'Cierre' ? 'dark' : 'info'}`}>
                                         {t.type} #{transactionNumbers[t.id] || 0}
                                     </span>
-                                    <span className="text-white-50 text-truncate d-inline-block" style={{ fontSize: '0.9rem', maxWidth: '300px', flex: '1 1 auto' }} title={t.gloss}>
+                                    <span className="text-white-50 text-truncate d-inline-block" style={{ fontSize: '0.9rem', maxWidth: '100%', flex: '1 1 auto' }} title={t.gloss}>
                                         <i className="bi bi-chat-left-text me-1"></i>
                                         {t.gloss}
                                     </span>
                                     {/* Mostrar totales cuando está colapsado */}
                                     {collapsedEntries[t.id] && (
-                                        <div className="d-flex gap-3 ms-3">
+                                        <div className="d-flex gap-2 ms-xl-3 flex-wrap">
                                             <span className="badge bg-dark text-white border border-secondary">
                                                 <i className="bi bi-arrow-down-circle me-1 text-success"></i>
                                                 Debe: {t.total_debit ? parseFloat(t.total_debit).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
@@ -837,28 +837,30 @@ export default function Journal() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="btn-group flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        className="btn btn-sm btn-outline-primary"
-                                        onClick={() => handleEdit(t)}
-                                        title="Editar"
-                                    >
-                                        <i className="bi bi-pencil"></i>
-                                    </button>
-                                    <button
-                                        className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => fetchTransactionDetails(t.id)}
-                                        title="Ver Detalles"
-                                    >
-                                        <i className="bi bi-eye"></i>
-                                    </button>
-                                    <button
-                                        className="btn btn-sm btn-outline-danger"
-                                        onClick={() => handleDelete(t.id)}
-                                        title="Eliminar"
-                                    >
-                                        <i className="bi bi-trash"></i>
-                                    </button>
+                                <div className="d-flex align-self-end align-self-xl-center justify-content-end w-100 w-xl-auto mt-2 mt-xl-0" onClick={(e) => e.stopPropagation()}>
+                                    <div className="btn-group flex-shrink-0">
+                                        <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => handleEdit(t)}
+                                            title="Editar"
+                                        >
+                                            <i className="bi bi-pencil"></i>
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-outline-info"
+                                            onClick={() => fetchTransactionDetails(t.id)}
+                                            title="Ver detalles"
+                                        >
+                                            <i className="bi bi-eye"></i>
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-outline-danger"
+                                            onClick={() => handleDelete(t.id)}
+                                            title="Eliminar"
+                                        >
+                                            <i className="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             {/* Tabla de cuentas - solo visible si no está colapsado */}
@@ -974,12 +976,12 @@ export default function Journal() {
                                         <table className="table table-sm table-dark table-bordered border-secondary" style={{ backgroundColor: 'transparent' }}>
                                             <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                                 <tr>
-                                                    <th style={{ width: '15%' }} className="text-white-50 border-secondary">Código</th>
-                                                    <th style={{ width: '30%' }} className="text-white-50 border-secondary">Cuenta</th>
-                                                    <th style={{ width: '25%' }} className="text-white-50 border-secondary">Glosa (Opcional)</th>
-                                                    <th style={{ width: '12%' }} className="text-white-50 border-secondary">Debe</th>
-                                                    <th style={{ width: '12%' }} className="text-white-50 border-secondary">Haber</th>
-                                                    <th style={{ width: '6%' }} className="border-secondary"></th>
+                                                    <th style={{ width: '15%', minWidth: '120px' }} className="text-white-50 border-secondary">Código</th>
+                                                    <th style={{ width: '30%', minWidth: '180px' }} className="text-white-50 border-secondary">Cuenta</th>
+                                                    <th style={{ width: '25%', minWidth: '150px' }} className="text-white-50 border-secondary">Glosa (Opcional)</th>
+                                                    <th style={{ width: '12%', minWidth: '90px' }} className="text-white-50 border-secondary">Debe</th>
+                                                    <th style={{ width: '12%', minWidth: '90px' }} className="text-white-50 border-secondary">Haber</th>
+                                                    <th style={{ width: '6%', minWidth: '50px' }} className="border-secondary"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1071,7 +1073,7 @@ export default function Journal() {
                                         ))}
                                     </datalist>
 
-                                    <div className="modal-footer px-0 pb-0">
+                                    <div className="modal-footer border-secondary px-0 pb-0 justify-content-end gap-2">
                                         <div className="me-auto text-muted small">
                                             {Math.abs(totals.debit - totals.credit) > 0.01 && (
                                                 <span className="text-danger">
@@ -1080,8 +1082,10 @@ export default function Journal() {
                                                 </span>
                                             )}
                                         </div>
-                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                                        <button type="submit" className="btn btn-primary" disabled={Math.abs(totals.debit - totals.credit) > 0.01}>Guardar Asiento</button>
+                                        <button type="button" className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                                        <button type="submit" className="btn btn-premium px-4 border-0" disabled={Math.abs(totals.debit - totals.credit) > 0.01}>
+                                            <i className="bi bi-save me-2"></i>Guardar Asiento
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -1128,15 +1132,15 @@ export default function Journal() {
                                 <hr className="border-secondary" />
 
                                 <h6 className="mb-3 text-white">Detalle de Cuentas</h6>
-                                <div className="table-responsive">
-                                    <table className="table table-sm table-dark table-bordered border-secondary" style={{ backgroundColor: 'transparent' }}>
-                                        <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                <div className="table-responsive" style={{ maxHeight: '60vh', overflowY: 'auto', overflowX: 'auto' }}>
+                                    <table className="table table-sm table-dark table-bordered border-secondary mb-0" style={{ backgroundColor: 'transparent' }}>
+                                        <thead className="sticky-top" style={{ backgroundColor: '#1a1f2e', zIndex: 1 }}>
                                             <tr>
-                                                <th style={{ width: '15%' }} className="text-white-50 border-secondary">Código</th>
-                                                <th style={{ width: '35%' }} className="text-white-50 border-secondary">Cuenta</th>
-                                                <th style={{ width: '25%' }} className="text-white-50 border-secondary">Glosa</th>
-                                                <th style={{ width: '12%' }} className="text-end text-white-50 border-secondary">Debe</th>
-                                                <th style={{ width: '12%' }} className="text-end text-white-50 border-secondary">Haber</th>
+                                                <th style={{ width: '15%', minWidth: '100px' }} className="text-white-50 border-secondary">Código</th>
+                                                <th style={{ width: '35%', minWidth: '200px' }} className="text-white-50 border-secondary">Cuenta</th>
+                                                <th style={{ width: '25%', minWidth: '150px' }} className="text-white-50 border-secondary">Glosa</th>
+                                                <th style={{ width: '12%', minWidth: '100px' }} className="text-end text-white-50 border-secondary">Debe</th>
+                                                <th style={{ width: '12%', minWidth: '100px' }} className="text-end text-white-50 border-secondary">Haber</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1172,8 +1176,8 @@ export default function Journal() {
                                     </table>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => {
+                            <div className="modal-footer border-secondary">
+                                <button type="button" className="btn btn-outline-secondary" onClick={() => {
                                     setShowDetailModal(false);
                                     setSelectedTransaction(null);
                                 }}>

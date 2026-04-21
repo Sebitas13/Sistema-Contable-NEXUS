@@ -70,16 +70,15 @@ export default function CompanyCard({ company, onEdit, onDelete }) {
                 </div>
 
                 {/* Stats */}
-                <div className="company-stats d-flex justify-content-around border-top border-bottom border-secondary py-2 my-2 text-white-50">
+                <div className="company-stats-premium d-flex justify-content-around py-3 my-3">
                     <div className="stat-item d-flex flex-column align-items-center">
-                        <i className="bi bi-journal-text mb-1 text-primary"></i>
-                        <span className="stat-value fw-bold text-white">{company.account_count || 0}</span>
-                        <span className="stat-label small">Cuentas</span>
+                        <span className="stat-value h4 mb-1 fw-bold text-white mb-0">{company.account_count || 0}</span>
+                        <span className="stat-label small text-white-50 text-uppercase" style={{ fontSize: '0.65rem', letterSpacing: '1px' }}>Cuentas</span>
                     </div>
+                    <div className="stat-divider border-end border-secondary"></div>
                     <div className="stat-item d-flex flex-column align-items-center">
-                        <i className="bi bi-receipt mb-1 text-success"></i>
-                        <span className="stat-value fw-bold text-white">{company.transaction_count || 0}</span>
-                        <span className="stat-label small">Asientos</span>
+                        <span className="stat-value h4 mb-1 fw-bold text-white mb-0">{company.transaction_count || 0}</span>
+                        <span className="stat-label small text-white-50 text-uppercase" style={{ fontSize: '0.65rem', letterSpacing: '1px' }}>Asientos</span>
                     </div>
                 </div>
 
@@ -90,26 +89,28 @@ export default function CompanyCard({ company, onEdit, onDelete }) {
                 </div>
 
                 {/* Actions */}
-                <div className="company-actions">
+                <div className="company-actions d-flex gap-2">
                     <button
-                        className="btn btn-primary btn-enter"
+                        className="btn btn-premium btn-enter flex-grow-1"
                         onClick={handleEnter}
                     >
                         <i className="bi bi-box-arrow-in-right me-2"></i>
                         Ingresar
                     </button>
                     <button
-                        className="btn btn-outline-secondary btn-icon"
+                        className="btn glass-panel border-secondary text-white btn-icon"
                         onClick={() => onEdit(company)}
                         title="Editar"
+                        style={{ width: '42px', height: '42px' }}
                     >
                         <i className="bi bi-pencil"></i>
                     </button>
                     <button
-                        className="btn btn-outline-danger btn-icon"
+                        className="btn glass-panel border-secondary text-danger btn-icon"
                         onClick={() => onDelete(company)}
                         title="Eliminar"
                         disabled={company.id === 1}
+                        style={{ width: '42px', height: '42px' }}
                     >
                         <i className="bi bi-trash"></i>
                     </button>

@@ -429,10 +429,16 @@ export default function UFV() {
     };
 
     const handleYearChange = (newYear) => {
+        if (newYear === '') {
+            setYear('');
+            return;
+        }
         const y = parseInt(newYear);
-        if (!isNaN(y) && y > 1990 && y < 2100) {
+        if (!isNaN(y)) {
             setYear(y);
-            fetchUFV(y);
+            if (y > 1990 && y < 2100) {
+                fetchUFV(y);
+            }
         }
     };
 

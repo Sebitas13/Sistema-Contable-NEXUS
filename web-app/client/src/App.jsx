@@ -361,7 +361,9 @@ function App() {
                         border-left: 3px solid transparent;
                     }
                     .sidebar-nav a.bg-primary {
-                        border-left-color: #ffc107;
+                        background-color: rgba(59, 130, 246, 0.15) !important;
+                        border-left-color: var(--accent-primary);
+                        color: var(--accent-primary) !important;
                     }
                     .company-badge {
                         animation: slideInDown 0.4s ease-out;
