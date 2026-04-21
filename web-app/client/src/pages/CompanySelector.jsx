@@ -200,7 +200,8 @@ export default function CompanySelector() {
         fd.append('file', file);
 
         try {
-            const response = await axios.post(`${API_URL}/api/backup/dry-run`, fd, {
+            const baseUrl = API_URL || '';
+            const response = await axios.post(`${baseUrl}/api/backup/dry-run`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             setRestoreDryRunData(response.data.metadata);
@@ -212,8 +213,26 @@ export default function CompanySelector() {
     };
 
     const handleRestoreImport = async () => {
-        if (!restoreFileRef.current?.files[0]) return;
-        if (!restoreDryRunData?.compatibility?.ready || restoreDryRunData?.integrity?.valid === false) return;
+        const selectedFile = restoreFileRef.current?.files?.[0] || null;
+        if (!selectedFile) {
+            setRestoreError('Selecciona nuevamente el archivo .ZIP para restaurar.');
+            return;
+        }
+
+        if (!restoreDryRunData) {
+            setRestoreError('Primero selecciona un backup para previsualizarlo.');
+            return;
+        }
+
+        if (restoreDryRunData?.integrity?.valid === false) {
+            setRestoreError('El backup tiene errores de integridad y no puede restaurarse.');
+            return;
+        }
+
+        if (!restoreDryRunData?.compatibility?.ready) {
+            setRestoreError('El backup no es compatible con este entorno y no puede restaurarse.');
+            return;
+        }
 
         if (!window.confirm('¿Estás seguro de restaurar esta empresa? Se creará una nueva empresa con los datos del backup.')) {
             return;
@@ -224,11 +243,12 @@ export default function CompanySelector() {
         setRestoreError(null);
 
         const fd = new FormData();
-        fd.append('file', restoreFileRef.current.files[0]);
+        fd.append('file', selectedFile);
 
         try {
             setRestoreProgress(30);
-            const response = await axios.post(`${API_URL}/api/backup/import`, fd, {
+            const baseUrl = API_URL || '';
+            const response = await axios.post(`${baseUrl}/api/backup/import`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {
                     const total = progressEvent.total || progressEvent.loaded || 1;
