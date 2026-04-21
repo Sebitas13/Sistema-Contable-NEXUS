@@ -1395,20 +1395,31 @@ function SmartImportWizard({ onClose, onSuccess }) {
     return (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-xl modal-dialog-scrollable">
-                <div className="modal-content">
-                    <div className="modal-header bg-primary text-white">
-                        <h5 className="modal-title"><i className="bi bi-magic me-2"></i>Asistente de Importación - Paso {step === 3.5 ? 3 : step} de 4</h5>
+                <div className="modal-content glass-panel shadow-lg border-secondary text-white">
+                    <div className="modal-header border-secondary py-3">
+                        <h5 className="modal-title fw-bold">
+                            <i className="bi bi-magic me-2 text-primary"></i>
+                            Asistente de Importación <span className="text-white-50 ms-2">Paso {step === 3.5 ? 3 : step} de 4</span>
+                        </h5>
                         <button className="btn-close btn-close-white" onClick={onClose}></button>
                     </div>
-                    <div className="modal-body">
+                    <div className="modal-body p-4">
                         {error && <div className="alert alert-danger"><i className="bi bi-exclamation-triangle me-2"></i>{error}</div>}
 
                         {step === 1 && (
-                            <div className="text-center p-5">
-                                <i className="bi bi-file-earmark-arrow-up display-1 text-primary mb-4"></i>
-                                <h4>Selecciona el Archivo</h4>
-                                <p className="text-muted mb-4">Formatos: .xlsx, .xls, .xlsm, .pdf</p>
-                                <input type="file" className="form-control w-50 mx-auto" accept=".xlsx,.xls,.xlsm,.pdf" onChange={handleFileUpload} />
+                            <div className="text-center p-5 animate__animated animate__fadeIn">
+                                <div className="mb-4 d-inline-block p-4 rounded-circle bg-primary bg-opacity-10 border border-primary border-opacity-25">
+                                    <i className="bi bi-file-earmark-arrow-up display-1 text-primary"></i>
+                                </div>
+                                <h4 className="fw-bold mb-2">Selecciona el Archivo</h4>
+                                <p className="text-white-50 mb-4">Formatos soportados: <span className="text-info fw-bold">.xlsx, .xls, .xlsm, .pdf</span></p>
+                                <div className="p-4 rounded-4 border border-dashed border-secondary bg-dark bg-opacity-50" style={{ maxWidth: '500px', margin: '0 auto' }}>
+                                    <input type="file" className="form-control bg-dark text-white border-secondary mb-2" accept=".xlsx,.xls,.xlsm,.pdf" onChange={handleFileUpload} />
+                                    <small className="text-white-50 mt-2 d-block">
+                                        <i className="bi bi-shield-lock me-1 text-success"></i>
+                                        Tus datos se procesan de forma local en tu navegador
+                                    </small>
+                                </div>
                             </div>
                         )}
 
@@ -1441,21 +1452,23 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                     // Excel sheet and row selection
                                     <>
                                         <div className="col-md-6">
-                                            <label className="form-label">Hoja del Excel</label>
-                                            <select className="form-select" value={selectedSheet} onChange={e => setSelectedSheet(e.target.value)}>
+                                            <label className="form-label text-white-50 small fw-bold">Hoja del Excel</label>
+                                            <select className="form-select bg-dark text-white border-secondary" value={selectedSheet} onChange={e => setSelectedSheet(e.target.value)}>
                                                 {sheets.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         </div>
                                         <div className="col-md-3">
-                                            <label className="form-label">Fila Inicio</label>
-                                            <input type="number" className="form-control" value={range.startRow || ''} onChange={e => setRange({ ...range, startRow: parseInt(e.target.value) || 0 })} />
+                                            <label className="form-label text-white-50 small fw-bold">Fila Inicio</label>
+                                            <input type="number" className="form-control bg-dark text-white border-secondary text-center" value={range.startRow || ''} onChange={e => setRange({ ...range, startRow: parseInt(e.target.value) || 0 })} />
                                         </div>
                                         <div className="col-md-3">
-                                            <label className="form-label">Fila Fin</label>
-                                            <input type="number" className="form-control" value={range.endRow || ''} onChange={e => setRange({ ...range, endRow: parseInt(e.target.value) || 0 })} />
+                                            <label className="form-label text-white-50 small fw-bold">Fila Fin</label>
+                                            <input type="number" className="form-control bg-dark text-white border-secondary text-center" value={range.endRow || ''} onChange={e => setRange({ ...range, endRow: parseInt(e.target.value) || 0 })} />
                                         </div>
-                                        <div className="col-12 text-end">
-                                            <button className="btn btn-primary" onClick={loadSheetData}><i className="bi bi-arrow-right me-2"></i>Cargar Datos</button>
+                                        <div className="col-12 text-end pt-3">
+                                            <button className="btn btn-premium px-5" onClick={loadSheetData}>
+                                                Cargar Datos <i className="bi bi-arrow-right ms-2"></i>
+                                            </button>
                                         </div>
                                     </>
                                 )}
@@ -1529,9 +1542,13 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                 )}
 
                                 <div className="col-12">
-                                    <div className="d-flex justify-content-between">
-                                        <button className="btn btn-secondary" onClick={() => setStep(2)}><i className="bi bi-arrow-left me-2"></i>Atrás</button>
-                                        <button className="btn btn-primary" onClick={analyzeStructure}><i className="bi bi-cpu me-2"></i>Analizar Estructura</button>
+                                    <div className="d-flex justify-content-between pt-3">
+                                        <button className="btn btn-outline-secondary px-4" onClick={() => setStep(2)}>
+                                            <i className="bi bi-arrow-left me-2"></i>Atrás
+                                        </button>
+                                        <button className="btn btn-premium px-4" onClick={analyzeStructure}>
+                                            <i className="bi bi-cpu me-2"></i>Analizar Estructura
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1552,18 +1569,18 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                         )}
                                     </div>
 
-                                    <div className="card bg-light mb-4 border-0">
-                                        <div className="card-body">
-                                            <div className="d-flex align-items-center justify-content-between mb-3">
-                                                <label className="fw-bold">Método de Detección</label>
+                                    <div className="card glass-panel border-secondary mb-4 p-3">
+                                        <div className="card-body p-0">
+                                            <div className="d-flex align-items-center justify-content-between mb-3 px-1">
+                                                <label className="fw-bold text-white-50 small">MÉTODO DE DETECCIÓN</label>
                                                 <div className="btn-group btn-group-sm">
                                                     <button className={`btn ${structureConfig.hasSeparator ? 'btn-primary' : 'btn-outline-primary'}`}
                                                         onClick={() => setStructureConfig({ ...structureConfig, hasSeparator: true })}>
-                                                        Por Separador
+                                                        Separador
                                                     </button>
                                                     <button className={`btn ${!structureConfig.hasSeparator ? 'btn-primary' : 'btn-outline-primary'}`}
                                                         onClick={() => setStructureConfig({ ...structureConfig, hasSeparator: false })}>
-                                                        Por Longitud
+                                                        Longitud
                                                     </button>
                                                 </div>
                                             </div>
@@ -1694,9 +1711,9 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                     <h5 className="mb-3 text-success"><i className="bi bi-eye me-2"></i>Simulador y Vista Previa</h5>
 
                                     {/* Playground */}
-                                    <div className="card mb-4 border-success">
-                                        <div className="card-header bg-success text-white py-1">
-                                            <small className="fw-bold">Probar Configuración</small>
+                                    <div className="card glass-panel border-success mb-4 overflow-hidden">
+                                        <div className="card-header bg-success bg-opacity-10 text-success border-success border-opacity-25 py-2">
+                                            <small className="fw-bold uppercase-label"><i className="bi bi-terminal me-2"></i>Probador de Configuración</small>
                                         </div>
                                         <div className="card-body p-3">
                                             <div className="input-group mb-2">
@@ -2408,23 +2425,25 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                 const typeInfo = getTypeInfo(row.type);
                                                 const isSelected = selectedIds.includes(row.id);
                                                 return (
-                                                    <tr key={row.id} className={`${row.isDuplicate ? 'table-danger' : ''} ${isSelected ? 'table-primary-subtle' : ''}`}>
+                                                    <tr key={row.id} className={`${row.isDuplicate ? 'bg-danger bg-opacity-25' : ''} ${isSelected ? 'bg-primary bg-opacity-25' : ''} border-secondary`}>
                                                         <td className="text-center">
-                                                            <input type="checkbox" className="form-check-input"
+                                                            <input type="checkbox" className="form-check-input bg-dark border-secondary"
                                                                 checked={isSelected}
                                                                 onChange={() => toggleSelect(row.id)} />
                                                         </td>
-                                                        <td className="text-muted small">{row.id}</td>
-                                                        <td><input type="text" className="form-control form-control-sm font-monospace" value={row.code} onChange={e => updateAccountField(row.id, 'code', e.target.value)} /></td>
-                                                        <td><input type="text" className="form-control form-control-sm" value={row.name} onChange={e => updateAccountField(row.id, 'name', e.target.value)} /></td>
-                                                        <td>
-                                                            <select className="form-select form-select-sm" value={row.type} onChange={e => updateAccountField(row.id, 'type', e.target.value)}>
+                                                        <td className="text-muted small align-middle">{row.id}</td>
+                                                        <td className="align-middle"><input type="text" className="form-control form-control-sm bg-dark text-white border-secondary font-monospace" value={row.code} onChange={e => updateAccountField(row.id, 'code', e.target.value)} /></td>
+                                                        <td className="align-middle"><input type="text" className="form-control form-control-sm bg-dark text-white border-secondary" value={row.name} onChange={e => updateAccountField(row.id, 'name', e.target.value)} /></td>
+                                                        <td className="align-middle">
+                                                            <select className="form-select form-select-sm bg-dark text-white border-secondary" value={row.type} onChange={e => updateAccountField(row.id, 'type', e.target.value)}>
                                                                 {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                                             </select>
                                                         </td>
-                                                        <td><input type="number" className="form-control form-control-sm" style={{ width: '60px' }} value={row.level} onChange={e => updateAccountField(row.id, 'level', parseInt(e.target.value))} /></td>
-                                                        <td className="text-center">
-                                                            <i className="bi bi-trash text-danger" onClick={() => deleteAccount(row.id)} style={{ cursor: 'pointer' }}></i>
+                                                        <td className="align-middle"><input type="number" className="form-control form-control-sm bg-dark text-white border-secondary text-center" style={{ width: '60px' }} value={row.level} onChange={e => updateAccountField(row.id, 'level', parseInt(e.target.value))} /></td>
+                                                        <td className="text-center align-middle">
+                                                            <button className="btn btn-sm btn-outline-danger border-0" onClick={() => deleteAccount(row.id)}>
+                                                                <i className="bi bi-trash"></i>
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 );
@@ -2437,11 +2456,11 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                         <div className="text-center">
                                             <div className="mb-3">
                                                 <h5>Importando cuentas...</h5>
-                                                <div className="progress mb-2" style={{ height: '25px' }}>
+                                                <div className="progress mb-2 bg-dark border border-secondary" style={{ height: '25px', borderRadius: '12px' }}>
                                                     <div
-                                                        className="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                                        className="progress-bar progress-bar-striped progress-bar-animated bg-primary"
                                                         role="progressbar"
-                                                        style={{ width: `${importProgress}%` }}
+                                                        style={{ width: `${importProgress}%`, boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)' }}
                                                         aria-valuenow={importProgress}
                                                         aria-valuemin="0"
                                                         aria-valuemax="100"
@@ -2458,9 +2477,9 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="text-end">
-                                            <button className="btn btn-secondary me-2" onClick={() => setStep(3.5)}>Atrás</button>
-                                            <button className="btn btn-success" onClick={performImport}>
+                                        <div className="text-end pt-3 border-top border-secondary">
+                                            <button className="btn btn-outline-secondary me-2 px-4 text-white" onClick={() => setStep(3.5)}>Atrás</button>
+                                            <button className="btn btn-premium px-5" onClick={performImport}>
                                                 <i className="bi bi-cloud-upload me-2"></i>Confirmar e Importar
                                             </button>
                                         </div>

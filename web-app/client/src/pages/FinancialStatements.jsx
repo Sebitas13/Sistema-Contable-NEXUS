@@ -25,6 +25,7 @@ export const TreeRow = ({ node, level = 0 }) => {
     const isHeader = level === 0;
     const paddingLeft = `${level * 1.5}rem`;
     const isReguladora = node.esReguladora;
+    let rowClass = "align-middle";
     if (isHeader) rowClass += " fw-bold";
     if (isReguladora) rowClass += " text-danger fst-italic";
 
