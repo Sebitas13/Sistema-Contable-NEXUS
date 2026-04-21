@@ -422,7 +422,7 @@ export default function ExchangeRate() {
             <td className="p-0">
                 <input
                     type="text"
-                    className="form-control form-control-sm border-0 text-end bg-transparent matrix-cell"
+                    className="form-control form-control-sm border-0 text-end bg-transparent matrix-cell text-white"
                     value={currentValue}
                     onChange={e => setCurrentValue(e.target.value)}
                     onBlur={handleSave}
@@ -442,40 +442,40 @@ export default function ExchangeRate() {
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
-                    <button className="btn btn-warning btn-sm" onClick={handleDeleteAll} disabled={loading}>
+                    <button className="btn btn-outline-warning btn-sm" onClick={handleDeleteAll} disabled={loading}>
                         <i className="bi bi-trash3 me-1"></i> <span className="d-none d-sm-inline">Borrar</span>
                     </button>
-                    <button className="btn btn-success btn-sm" onClick={handleExportExcel}>
+                    <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel}>
                         <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
-                    <button className="btn btn-danger btn-sm" onClick={handleExportPDF}>
+                    <button className="btn btn-outline-danger btn-sm" onClick={handleExportPDF}>
                         <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
-                    <button className="btn btn-info btn-sm" onClick={() => fileInputRef.current.click()} title="Importar desde Excel">
+                    <button className="btn btn-outline-info btn-sm" onClick={() => fileInputRef.current.click()} title="Importar desde Excel">
                         <i className="bi bi-upload me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".xlsx,.xls,.xlsm" style={{ display: 'none' }} />
                 </div>
             </div>
 
-            <div className="card shadow-sm border-0">
-                <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-                    <div className="nav nav-tabs card-header-tabs">
+            <div className="card glass-panel border-secondary shadow-sm">
+                <div className="card-header border-secondary border-bottom d-flex justify-content-between align-items-center">
+                    <div className="nav nav-tabs card-header-tabs border-bottom-0">
                         <div className="nav-item">
-                            <button className={`nav-link ${view === 'sell_rate' ? 'active' : ''}`} onClick={() => setView('sell_rate')}>T/C Venta</button>
+                            <button className={`nav-link border-0 ${view === 'sell_rate' ? 'active bg-primary text-white rounded-top' : 'text-white-50'}`} onClick={() => setView('sell_rate')}>T/C Venta</button>
                         </div>
                         <div className="nav-item">
-                            <button className={`nav-link ${view === 'buy_rate' ? 'active' : ''}`} onClick={() => setView('buy_rate')}>T/C Compra</button>
+                            <button className={`nav-link border-0 ${view === 'buy_rate' ? 'active bg-primary text-white rounded-top' : 'text-white-50'}`} onClick={() => setView('buy_rate')}>T/C Compra</button>
                         </div>
                     </div>
-                    <div className="d-flex align-items-center gap-2">
-                        <label className="form-label mb-0 small">Gestión:</label>
+                    <div className="d-flex align-items-center gap-2" style={{ position: 'relative', zIndex: 10 }}>
+                        <label className="form-label mb-0 small text-white-50">Gestión:</label>
                         <DatePicker
                             selected={new Date(gestion, 0, 1)}
                             onChange={(date) => setGestion(date.getFullYear())}
                             showYearPicker
                             dateFormat="yyyy"
-                            className="form-control form-control-sm text-center"
+                            className="form-control form-control-sm text-center bg-dark text-white border-secondary"
                             locale={es}
                             popperProps={{ strategy: 'fixed' }}
                         />
@@ -483,8 +483,8 @@ export default function ExchangeRate() {
                 </div>
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-bordered table-sm mb-0 text-center matrix-table">
-                            <thead className="table-light">
+                        <table className="table table-dark table-bordered table-sm mb-0 text-center matrix-table border-secondary" style={{ backgroundColor: 'transparent' }}>
+                            <thead className="border-secondary text-white-50">
                                 <tr>
                                     <th className="matrix-header-day">Día</th>
                                     {fiscalYearDetails?.months.map(m => <th key={m.index}>{m.name}</th>)}
@@ -492,17 +492,18 @@ export default function ExchangeRate() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="6" className="text-center py-4"><div className="spinner-border spinner-border-sm"></div></td></tr>
+                                    <tr><td colSpan="6" className="text-center py-4"><div className="spinner-border spinner-border-sm text-primary"></div></td></tr>
                                 ) : !selectedCompany || !fiscalYearDetails ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-4 text-muted">
-                                            <i className="bi bi-info-circle me-2"></i>Seleccione una empresa para ver los tipos de cambio.
+                                        <td colSpan="6" className="text-center py-5 text-white-50">
+                                            <i className="bi bi-info-circle fs-1 d-block mb-2"></i>
+                                            Seleccione una empresa para ver los tipos de cambio.
                                         </td>
                                     </tr>
                                 ) : (
                                     Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                                         <tr key={day}>
-                                            <td className="fw-bold bg-light matrix-header-day">{day}</td>
+                                            <td className="fw-bold matrix-header-day text-white-50 border-secondary" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>{day}</td>
                                             {fiscalYearDetails.months.map(month => (
                                                 <EditableCell key={`${day}-${month.index}`} day={day} month={month.index} year={month.year} rateType={view} />
                                             ))}
@@ -517,49 +518,49 @@ export default function ExchangeRate() {
 
             {/* Import Config Modal */}
             {showImportModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
                                 <h5 className="modal-title"><i className="bi bi-gear-wide-connected me-2"></i>Configurar Importación de T/C</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowImportModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowImportModal(false)}></button>
                             </div>
                             <div className="modal-body">
-                                <div className="alert alert-info small">
+                                <div className="alert alert-info bg-info bg-opacity-10 border-info text-info small">
                                     <i className="bi bi-info-circle me-2"></i>
                                     Ajusta los parámetros para que el sistema lea tu archivo Excel correctamente.
                                 </div>
                                 <div className="row g-3">
                                     <div className="col-md-12">
-                                        <label className="form-label">Hoja de Excel</label>
-                                        <select className="form-select" value={importConfig.sheet} onChange={e => setImportConfig({ ...importConfig, sheet: e.target.value })}>
+                                        <label className="form-label text-white-50">Hoja de Excel</label>
+                                        <select className="form-select bg-dark text-white border-secondary" value={importConfig.sheet} onChange={e => setImportConfig({ ...importConfig, sheet: e.target.value })}>
                                             {importSheets.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label">Fila de Inicio</label>
-                                        <input type="number" className="form-control" value={importConfig.startRow} onChange={e => { const v = parseInt(e.target.value); setImportConfig({ ...importConfig, startRow: isNaN(v) ? 1 : v }); }} />
+                                        <label className="form-label text-white-50">Fila de Inicio</label>
+                                        <input type="number" className="form-control bg-dark text-white border-secondary" value={importConfig.startRow} onChange={e => { const v = parseInt(e.target.value); setImportConfig({ ...importConfig, startRow: isNaN(v) ? 1 : v }); }} />
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label">Fila de Fin (opcional)</label>
-                                        <input type="number" className="form-control" placeholder="Automático" value={importConfig.endRow || ''} onChange={e => { const v = parseInt(e.target.value); setImportConfig({ ...importConfig, endRow: isNaN(v) ? null : v }); }} />
+                                        <label className="form-label text-white-50">Fila de Fin (opcional)</label>
+                                        <input type="number" className="form-control bg-dark text-white border-secondary" placeholder="Automático" value={importConfig.endRow || ''} onChange={e => { const v = parseInt(e.target.value); setImportConfig({ ...importConfig, endRow: isNaN(v) ? null : v }); }} />
                                     </div>
                                     <div className="col-md-4">
-                                        <label className="form-label">Columna de Días</label>
-                                        <input type="text" className="form-control" placeholder="Ej: A" value={importConfig.dayCol} onChange={e => setImportConfig({ ...importConfig, dayCol: e.target.value.toUpperCase() })} />
+                                        <label className="form-label text-white-50">Columna de Días</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: A" value={importConfig.dayCol} onChange={e => setImportConfig({ ...importConfig, dayCol: e.target.value.toUpperCase() })} />
                                     </div>
                                     <div className="col-md-4">
-                                        <label className="form-label">Columna Mes de Inicio</label>
-                                        <input type="text" className="form-control" placeholder="Ej: B" value={importConfig.startMonthCol} onChange={e => setImportConfig({ ...importConfig, startMonthCol: e.target.value.toUpperCase() })} />
+                                        <label className="form-label text-white-50">Columna Mes de Inicio</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: B" value={importConfig.startMonthCol} onChange={e => setImportConfig({ ...importConfig, startMonthCol: e.target.value.toUpperCase() })} />
                                     </div>
                                     <div className="col-md-4">
-                                        <label className="form-label">Columna Mes de Fin</label>
-                                        <input type="text" className="form-control" placeholder="Ej: M" value={importConfig.endMonthCol || ''} onChange={e => setImportConfig({ ...importConfig, endMonthCol: e.target.value.toUpperCase() })} />
+                                        <label className="form-label text-white-50">Columna Mes de Fin</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: M" value={importConfig.endMonthCol || ''} onChange={e => setImportConfig({ ...importConfig, endMonthCol: e.target.value.toUpperCase() })} />
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowImportModal(false)}>Cancelar</button>
+                            <div className="modal-footer border-secondary">
+                                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowImportModal(false)}>Cancelar</button>
                                 <button type="button" className="btn btn-primary" onClick={executeImport} disabled={isImporting}>
                                     {isImporting ? 'Procesando...' : 'Confirmar e Importar'}
                                 </button>
@@ -571,26 +572,26 @@ export default function ExchangeRate() {
 
             {/* Preview Modal */}
             {showPreviewModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog modal-xl modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
                                 <h5 className="modal-title">
                                     <i className="bi bi-eye me-2"></i>
                                     Previsualización de Exportación - {previewType === 'excel' ? 'Excel' : 'PDF'}
                                 </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowPreviewModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowPreviewModal(false)}></button>
                             </div>
                             <div className="modal-body">
-                                <div className="alert alert-info">
+                                <div className="alert alert-info bg-info bg-opacity-10 border-info text-info">
                                     <i className="bi bi-info-circle me-2"></i>
-                                    Se encontraron <strong>{previewData.length}</strong> registros para exportar del año <strong>{fiscalYearDetails?.year || currentYear}</strong>
+                                    Se encontraron <strong className="text-white">{previewData.length}</strong> registros para exportar del año <strong className="text-white">{fiscalYearDetails?.year || currentYear}</strong>
                                 </div>
 
                                 {previewData.length > 0 ? (
                                     <div className="table-responsive">
-                                        <table className="table table-sm table-bordered">
-                                            <thead className="table-light">
+                                        <table className="table table-dark table-sm table-bordered">
+                                            <thead className="border-secondary text-white-50">
                                                 <tr>
                                                     <th>Fecha</th>
                                                     <th>Moneda</th>
@@ -599,34 +600,34 @@ export default function ExchangeRate() {
                                                     <th>Diferencial</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody className="border-secondary">
                                                 {previewData.slice(0, 10).map((item, index) => (
                                                     <tr key={index}>
                                                         <td>{item['Fecha']}</td>
                                                         <td>{item['Moneda']}</td>
-                                                        <td className="text-end">{item['T/C Compra']}</td>
-                                                        <td className="text-end">{item['T/C Venta']}</td>
+                                                        <td className="text-end text-success">{item['T/C Compra']}</td>
+                                                        <td className="text-end text-primary">{item['T/C Venta']}</td>
                                                         <td className="text-end">{item['Diferencial']}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                         {previewData.length > 10 && (
-                                            <div className="text-muted small mt-2">
+                                            <div className="text-white-50 small mt-2">
                                                 <i className="bi bi-three-dots me-1"></i>
                                                 Mostrando primeros 10 registros de {previewData.length} totales
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="alert alert-warning">
+                                    <div className="alert alert-warning bg-warning bg-opacity-10 border-warning text-warning">
                                         <i className="bi bi-exclamation-triangle me-2"></i>
                                         No hay datos para exportar
                                     </div>
                                 )}
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowPreviewModal(false)}>
+                            <div className="modal-footer border-secondary">
+                                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPreviewModal(false)}>
                                     <i className="bi bi-x-circle me-1"></i> Cancelar
                                 </button>
                                 {previewData.length > 0 && (

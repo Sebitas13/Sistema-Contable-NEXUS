@@ -908,7 +908,7 @@ export default function Worksheet() {
             {/* Debug panel removed */}
 
             {/* Summary Cards */}
-            <div className="row g-3 mb-4">
+            <div className="row g-3 mb-4" style={{ position: 'relative', zIndex: 1050 }}>
                 <div className="col-md-3">
                     <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
                         <div className="card-body text-white">
@@ -934,18 +934,18 @@ export default function Worksheet() {
                                     <button className="btn btn-sm text-white p-0 opacity-75" data-bs-toggle="dropdown" title="Configurar Reserva">
                                         <i className="bi bi-gear-fill"></i>
                                     </button>
-                                    <div className="dropdown-menu dropdown-menu-end p-3" style={{ minWidth: '200px' }}>
+                                    <div className="dropdown-menu dropdown-menu-end dropdown-menu-dark p-3 glass-panel border-secondary" style={{ minWidth: '200px' }}>
                                         <div className="mb-2">
                                             <label className="form-label small fw-bold">Porcentaje:</label>
                                             <div className="input-group input-group-sm">
                                                 <input
                                                     type="number"
-                                                    className="form-control"
+                                                    className="form-control bg-dark text-white border-secondary"
                                                     value={reservaLegalPct}
                                                     onChange={e => setReservaLegalPct(Number(e.target.value))}
                                                     min="0" max="100"
                                                 />
-                                                <span className="input-group-text">%</span>
+                                                <span className="input-group-text bg-dark text-white border-secondary">%</span>
                                             </div>
                                         </div>
                                         <div className="form-check form-switch small">
@@ -975,14 +975,14 @@ export default function Worksheet() {
             </div>
 
             {/* Hoja de Trabajo completa */}
-            <div className="card shadow-sm border-0">
-                <div className="card-header bg-white border-bottom">
-                    <h5 className="mb-0"><i className="bi bi-table me-2"></i>Hoja de Trabajo - 16 Columnas</h5>
+            <div className="card glass-panel border-secondary shadow-sm mb-4">
+                <div className="card-header border-secondary border-bottom">
+                    <h5 className="mb-0 text-white"><i className="bi bi-table me-2"></i>Hoja de Trabajo - 16 Columnas</h5>
                 </div>
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-sm table-bordered mb-0" style={{ fontSize: '0.7rem' }}>
-                            <thead className="table-light sticky-top">
+                        <table className="table table-sm table-dark table-bordered mb-0 border-secondary" style={{ fontSize: '0.7rem', backgroundColor: 'transparent' }}>
+                            <thead className="sticky-top" style={{ backgroundColor: 'rgb(11, 14, 20)' }}>
                                 <tr>
                                     <th rowSpan="2" className="align-middle text-center" style={{ minWidth: '40px' }}>Nº</th>
                                     <th rowSpan="2" className="align-middle text-center" style={{ minWidth: '70px' }}>TIPO</th>
@@ -1418,29 +1418,29 @@ export default function Worksheet() {
             {/* Validation Alert */}
 
 
-            <div className={`alert ${isBalanced ? 'alert-success' : 'alert-danger'} mt-4`}>
+            <div className={`alert ${isBalanced ? 'alert-success bg-success bg-opacity-10 border-success text-success' : 'alert-danger bg-danger bg-opacity-10 border-danger text-danger'} mt-4`}>
                 <h6 className="mb-2">
                     <i className={`bi ${isBalanced ? 'bi-check-circle' : 'bi-x-circle'} me-2`}></i>
                     Validación del Balance
                 </h6>
                 <div className="row g-3">
                     <div className="col-md-3">
-                        <div className="p-2 border rounded bg-light">
-                            <small className="text-muted d-block">Total Activos</small>
-                            <span className="fw-bold">Bs {totalActivosDyn.toFixed(2)}</span>
+                        <div className="p-2 border border-secondary rounded bg-dark" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                            <small className="text-white-50 d-block">Total Activos</small>
+                            <span className="fw-bold text-white">Bs {totalActivosDyn.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="col-md-3">
-                        <div className="p-2 border rounded bg-light">
-                            <small className="text-muted d-block">Total Pasivos</small>
+                        <div className="p-2 border border-secondary rounded bg-dark" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                            <small className="text-white-50 d-block">Total Pasivos</small>
                             <span className="fw-bold text-danger">Bs {totalPasivos.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="col-md-3">
-                        <div className="p-2 border rounded bg-light">
-                            <small className="text-muted d-block">Patrimonio + Resultados</small>
+                        <div className="p-2 border border-secondary rounded bg-dark" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                            <small className="text-white-50 d-block">Patrimonio + Resultados</small>
                             <span className="fw-bold text-success">Bs {(totalPasivosPatrimonioDyn - totalPasivos).toFixed(2)}</span>
-                            <div className="small mt-1 text-muted" style={{ fontSize: '0.65rem' }}>
+                            <div className="small mt-1 text-white-50" style={{ fontSize: '0.65rem' }}>
                                 (Patr: Bs {totalPatrimonio.toFixed(2)} + Res: Bs {totalResult.toFixed(2)})
                             </div>
                         </div>
@@ -1461,37 +1461,37 @@ export default function Worksheet() {
             </div>
 
             {/* Legend */}
-            <div className="card shadow-sm border-0 mt-3">
+            <div className="card glass-panel border-secondary shadow-sm mb-4">
                 <div className="card-body">
-                    <h6 className="mb-3"><i className="bi bi-info-circle me-2"></i>Leyenda de Secciones</h6>
-                    <div className="row g-2 small">
+                    <h6 className="mb-3 text-white"><i className="bi bi-info-circle me-2"></i>Leyenda de Secciones</h6>
+                    <div className="row g-2 small text-white">
                         <div className="col-md-2">
                             <span className="badge bg-primary">Balance Comprobación</span>
-                            <small className="d-block text-muted mt-1">Sumas y Saldos</small>
+                            <small className="d-block text-white-50 mt-1">Sumas y Saldos</small>
                         </div>
                         <div className="col-md-2">
                             <span className="badge bg-warning text-dark">Ajustes</span>
-                            <small className="d-block text-muted mt-1">Asientos de Ajuste</small>
+                            <small className="d-block text-white-50 mt-1">Asientos de Ajuste</small>
                         </div>
                         <div className="col-md-2">
                             <span className="badge bg-success">Balance Ajustado</span>
-                            <small className="d-block text-muted mt-1">BC + Ajustes</small>
+                            <small className="d-block text-white-50 mt-1">BC + Ajustes</small>
                         </div>
                         <div className="col-md-2">
                             <span className="badge bg-info">Estado Resultados</span>
-                            <small className="d-block text-muted mt-1">Ingresos y Costos</small>
+                            <small className="d-block text-white-50 mt-1">Ingresos y Costos</small>
                         </div>
                         <div className="col-md-2">
                             <span className="badge bg-danger">Balance General</span>
-                            <small className="d-block text-muted mt-1">A = P + P</small>
+                            <small className="d-block text-white-50 mt-1">A = P + P</small>
                         </div>
                         <div className="col-md-1">
                             <span className="badge bg-secondary">Cierre</span>
-                            <small className="d-block text-muted mt-1">Asientos</small>
+                            <small className="d-block text-white-50 mt-1">Asientos</small>
                         </div>
                         <div className="col-md-1">
-                            <span className="badge bg-dark">Orden</span>
-                            <small className="d-block text-muted mt-1">Cuentas</small>
+                            <span className="badge bg-dark border border-secondary">Orden</span>
+                            <small className="d-block text-white-50 mt-1">Cuentas</small>
                         </div>
                     </div>
                 </div>

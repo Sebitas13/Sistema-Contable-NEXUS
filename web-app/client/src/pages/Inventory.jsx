@@ -222,19 +222,19 @@ export default function Inventory() {
                     <p className="text-muted mb-0">Control de existencias con métodos de valuación</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
-                    <select className="form-select form-select-sm" value={valuationMethod} onChange={(e) => setValuationMethod(e.target.value)} style={{ width: 'auto' }}>
+                    <select className="form-select form-select-sm bg-dark text-white border-secondary" value={valuationMethod} onChange={(e) => setValuationMethod(e.target.value)} style={{ width: 'auto' }}>
                         <option value="PEPS">PEPS (FIFO)</option>
                         <option value="UEPS">UEPS (LIFO)</option>
                         <option value="CPP">CPP (Promedio)</option>
                         <option value="IE">IE (Identificación)</option>
                     </select>
-                    <button className="btn btn-success btn-sm" onClick={handleExportExcel}>
+                    <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel}>
                         <i className="bi bi-file-earmark-excel me-1"></i> <span className="d-none d-sm-inline">Exportar </span>
                     </button>
-                    <button className="btn btn-danger btn-sm" onClick={handleExportPDF}>
+                    <button className="btn btn-outline-danger btn-sm" onClick={handleExportPDF}>
                         <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
-                    <button className="btn btn-info btn-sm" onClick={() => fileInputRef.current.click()}>
+                    <button className="btn btn-outline-info btn-sm" onClick={() => fileInputRef.current.click()}>
                         <i className="bi bi-upload me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls" style={{ display: 'none' }} />
@@ -245,7 +245,7 @@ export default function Inventory() {
             </div>
 
             {/* Method Info Card */}
-            <div className="alert alert-info mb-4">
+            <div className="alert alert-info bg-info bg-opacity-10 border-info text-info mb-4">
                 <h6 className="mb-1"><i className="bi bi-info-circle me-2"></i>Método Actual: <strong>{valuationMethod}</strong></h6>
                 <small>
                     {valuationMethod === 'PEPS' && 'Primeros en Entrar, Primeros en Salir - Las primeras compras son las primeras en salir del inventario'}
@@ -258,26 +258,26 @@ export default function Inventory() {
             {/* Summary Cards */}
             <div className="row g-3 mb-4">
                 <div className="col-md-4">
-                    <div className="card shadow-sm border-0 bg-primary text-white">
+                    <div className="card shadow-sm border-0 text-white" style={{ background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' }}>
                         <div className="card-body">
-                            <h6 className="mb-1">Total Artículos</h6>
-                            <h3 className="mb-0">{items.length}</h3>
+                            <h6 className="mb-1 opacity-75">Total Artículos</h6>
+                            <h3 className="mb-0 fw-bold">{items.length}</h3>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-4">
-                    <div className="card shadow-sm border-0 bg-success text-white">
+                    <div className="card shadow-sm border-0 text-white" style={{ background: 'linear-gradient(135deg, #0ba360 0%, #3cba92 100%)' }}>
                         <div className="card-body">
-                            <h6 className="mb-1">Valor Total Inventario ({valuationMethod})</h6>
-                            <h3 className="mb-0">Bs {totalValue.toFixed(2)}</h3>
+                            <h6 className="mb-1 opacity-75">Valor Total Inventario ({valuationMethod})</h6>
+                            <h3 className="mb-0 fw-bold">Bs {totalValue.toFixed(2)}</h3>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-4">
-                    <div className="card shadow-sm border-0 bg-info text-white">
+                    <div className="card shadow-sm border-0 text-white" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }}>
                         <div className="card-body">
-                            <h6 className="mb-1">Unidades Totales</h6>
-                            <h3 className="mb-0">{items.reduce((sum, item) => sum + calculateInventory(item).quantity, 0).toFixed(2)}</h3>
+                            <h6 className="mb-1 opacity-75">Unidades Totales</h6>
+                            <h3 className="mb-0 fw-bold">{items.reduce((sum, item) => sum + calculateInventory(item).quantity, 0).toFixed(2)}</h3>
                         </div>
                     </div>
                 </div>
@@ -285,27 +285,27 @@ export default function Inventory() {
 
             {/* New Item Modal */}
             {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
                                 <h5 className="modal-title"><i className="bi bi-plus-circle me-2"></i>Nuevo Artículo</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="mb-3">
-                                        <label className="form-label">Código</label>
-                                        <input type="text" className="form-control" name="code" value={formData.code} onChange={handleInputChange} required />
+                                        <label className="form-label text-white-50">Código</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" name="code" value={formData.code} onChange={handleInputChange} required />
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Nombre del Artículo</label>
-                                        <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required />
+                                        <label className="form-label text-white-50">Nombre del Artículo</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" name="name" value={formData.name} onChange={handleInputChange} required />
                                     </div>
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Unidad</label>
-                                            <select className="form-select" name="unit" value={formData.unit} onChange={handleInputChange}>
+                                            <label className="form-label text-white-50">Unidad</label>
+                                            <select className="form-select bg-dark text-white border-secondary" name="unit" value={formData.unit} onChange={handleInputChange}>
                                                 <option value="Unidad">Unidad</option>
                                                 <option value="Kg">Kg</option>
                                                 <option value="Litro">Litro</option>
@@ -314,16 +314,16 @@ export default function Inventory() {
                                             </select>
                                         </div>
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Cantidad Inicial</label>
-                                            <input type="number" step="0.01" className="form-control" name="initial_quantity" value={formData.initial_quantity} onChange={handleInputChange} required />
+                                            <label className="form-label text-white-50">Cantidad Inicial</label>
+                                            <input type="number" step="0.01" className="form-control bg-dark text-white border-secondary" name="initial_quantity" value={formData.initial_quantity} onChange={handleInputChange} required />
                                         </div>
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Costo Unitario Inicial (Bs)</label>
-                                        <input type="number" step="0.01" className="form-control" name="initial_cost" value={formData.initial_cost} onChange={handleInputChange} required />
+                                        <label className="form-label text-white-50">Costo Unitario Inicial (Bs)</label>
+                                        <input type="number" step="0.01" className="form-control bg-dark text-white border-secondary" name="initial_cost" value={formData.initial_cost} onChange={handleInputChange} required />
                                     </div>
-                                    <div className="modal-footer px-0 pb-0">
-                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                                    <div className="modal-footer border-secondary px-0 pb-0 pt-3">
+                                        <button type="button" className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                                         <button type="submit" className="btn btn-primary">Guardar</button>
                                     </div>
                                 </form>
@@ -335,38 +335,38 @@ export default function Inventory() {
 
             {/* Movement Modal */}
             {showMovementModal && selectedItem && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
                                 <h5 className="modal-title"><i className="bi bi-arrow-left-right me-2"></i>Nuevo Movimiento - {selectedItem.name}</h5>
-                                <button type="button" className="btn-close" onClick={() => { setShowMovementModal(false); setSelectedItem(null); }}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => { setShowMovementModal(false); setSelectedItem(null); }}></button>
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleMovementSubmit}>
                                     <div className="mb-3">
-                                        <label className="form-label">Fecha</label>
-                                        <input type="date" className="form-control" name="date" value={movementData.date} onChange={handleMovementChange} required />
+                                        <label className="form-label text-white-50">Fecha</label>
+                                        <input type="date" className="form-control bg-dark text-white border-secondary" name="date" value={movementData.date} onChange={handleMovementChange} required />
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Tipo de Movimiento</label>
-                                        <select className="form-select" name="type" value={movementData.type} onChange={handleMovementChange}>
+                                        <label className="form-label text-white-50">Tipo de Movimiento</label>
+                                        <select className="form-select bg-dark text-white border-secondary" name="type" value={movementData.type} onChange={handleMovementChange}>
                                             <option value="Entrada">Entrada (Compra)</option>
                                             <option value="Salida">Salida (Venta)</option>
                                         </select>
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Cantidad</label>
-                                        <input type="number" step="0.01" className="form-control" name="quantity" value={movementData.quantity} onChange={handleMovementChange} required />
+                                        <label className="form-label text-white-50">Cantidad</label>
+                                        <input type="number" step="0.01" className="form-control bg-dark text-white border-secondary" name="quantity" value={movementData.quantity} onChange={handleMovementChange} required />
                                     </div>
                                     {movementData.type === 'Entrada' && (
                                         <div className="mb-3">
-                                            <label className="form-label">Costo Unitario (Bs)</label>
-                                            <input type="number" step="0.01" className="form-control" name="unit_cost" value={movementData.unit_cost} onChange={handleMovementChange} required />
+                                            <label className="form-label text-white-50">Costo Unitario (Bs)</label>
+                                            <input type="number" step="0.01" className="form-control bg-dark text-white border-secondary" name="unit_cost" value={movementData.unit_cost} onChange={handleMovementChange} required />
                                         </div>
                                     )}
-                                    <div className="modal-footer px-0 pb-0">
-                                        <button type="button" className="btn btn-secondary" onClick={() => { setShowMovementModal(false); setSelectedItem(null); }}>Cancelar</button>
+                                    <div className="modal-footer px-0 pb-0 pt-3 border-secondary border-top">
+                                        <button type="button" className="btn btn-outline-secondary" onClick={() => { setShowMovementModal(false); setSelectedItem(null); }}>Cancelar</button>
                                         <button type="submit" className="btn btn-primary">Registrar</button>
                                     </div>
                                 </form>
@@ -377,11 +377,11 @@ export default function Inventory() {
             )}
 
             {/* Inventory Table */}
-            <div className="card shadow-sm border-0">
+            <div className="card glass-panel border-secondary shadow-sm">
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-hover mb-0">
-                            <thead className="table-light">
+                        <table className="table table-dark table-hover mb-0" style={{ backgroundColor: 'transparent' }}>
+                            <thead className="border-secondary text-white-50">
                                 <tr>
                                     <th>Código</th>
                                     <th>Nombre</th>
@@ -393,11 +393,12 @@ export default function Inventory() {
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="border-secondary">
                                 {items.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="text-center py-4 text-muted">
-                                            <i className="bi bi-inbox me-2"></i>No hay artículos registrados
+                                        <td colSpan="8" className="text-center py-5 text-white-50">
+                                            <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                                            No hay artículos registrados
                                         </td>
                                     </tr>
                                 ) : (
@@ -409,8 +410,8 @@ export default function Inventory() {
                                                 <td>{item.name}</td>
                                                 <td><span className="badge bg-secondary">{item.unit}</span></td>
                                                 <td className="text-end">{calc.quantity.toFixed(2)}</td>
-                                                <td className="text-end">Bs {calc.unit_cost.toFixed(2)}</td>
-                                                <td className="text-end fw-bold">Bs {calc.value.toFixed(2)}</td>
+                                                <td className="text-end text-success">Bs {calc.unit_cost.toFixed(2)}</td>
+                                                <td className="text-end fw-bold text-success">Bs {calc.value.toFixed(2)}</td>
                                                 <td><span className="badge bg-info">{(item.movements || []).length}</span></td>
                                                 <td>
                                                     <button className="btn btn-sm btn-outline-success me-1" onClick={() => { setSelectedItem(item); setShowMovementModal(true); }}>

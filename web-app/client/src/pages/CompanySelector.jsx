@@ -175,19 +175,19 @@ export default function CompanySelector() {
             </div>
 
             {/* Search and Actions Bar */}
-            <div className="company-toolbar">
-                <div className="search-container">
-                    <i className="bi bi-search search-icon"></i>
+            <div className="company-toolbar glass-panel border-secondary p-3 mb-4 rounded-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div className="search-container position-relative flex-grow-1" style={{ maxWidth: '500px' }}>
+                    <i className="bi bi-search search-icon position-absolute top-50 translate-middle-y ms-3 text-white-50"></i>
                     <input
                         type="text"
-                        className="form-control search-input"
+                        className="form-control search-input bg-dark border-secondary text-white ps-5"
                         placeholder="Buscar empresas por nombre o NIT..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <button
-                    className="btn btn-primary btn-new-company"
+                    className="btn btn-primary btn-new-company flex-shrink-0"
                     onClick={openNewCompanyModal}
                 >
                     <i className="bi bi-plus-circle me-2"></i>
@@ -198,12 +198,12 @@ export default function CompanySelector() {
             {/* Companies Grid */}
             <div className="companies-container">
                 {filteredCompanies.length === 0 ? (
-                    <div className="no-companies">
-                        <i className="bi bi-building"></i>
-                        <h3>No hay empresas registradas</h3>
-                        <p>Comienza registrando tu primera empresa</p>
+                    <div className="no-companies text-center py-5 glass-panel border-secondary rounded-3">
+                        <i className="bi bi-building display-1 text-white-50 mb-3"></i>
+                        <h3 className="text-white">No hay empresas registradas</h3>
+                        <p className="text-white-50">Comienza registrando tu primera empresa</p>
                         <button
-                            className="btn btn-primary"
+                            className="btn btn-primary mt-3"
                             onClick={openNewCompanyModal}
                         >
                             <i className="bi bi-plus-circle me-2"></i>
@@ -226,17 +226,17 @@ export default function CompanySelector() {
 
             {/* Registration/Edit Modal */}
             {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content company-modal">
-                            <div className="modal-header">
+                        <div className="modal-content company-modal glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
                                 <h5 className="modal-title">
                                     <i className={`bi bi-${editingCompany ? 'pencil' : 'plus-circle'} me-2`}></i>
                                     {editingCompany ? 'Editar Empresa' : 'Registrar Nueva Empresa'}
                                 </h5>
                                 <button
                                     type="button"
-                                    className="btn-close"
+                                    className="btn-close btn-close-white"
                                     onClick={() => setShowModal(false)}
                                 ></button>
                             </div>
@@ -245,13 +245,13 @@ export default function CompanySelector() {
                                     <div className="row g-3">
                                         {/* Company Name */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-building me-2"></i>
                                                 Nombre Comercial de la Empresa *
                                             </label>
                                             <input
                                                 type="text"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.name}
                                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                                 required
@@ -261,13 +261,13 @@ export default function CompanySelector() {
 
                                         {/* NIT */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-card-text me-2"></i>
                                                 NIT
                                             </label>
                                             <input
                                                 type="text"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.nit}
                                                 onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
                                                 placeholder="Ej: 1234567890"
@@ -276,13 +276,13 @@ export default function CompanySelector() {
 
                                         {/* Legal Name */}
                                         <div className="col-12">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-file-text me-2"></i>
                                                 Razón o Denominación Social
                                             </label>
                                             <input
                                                 type="text"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.legal_name}
                                                 onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
                                                 placeholder="Nombre legal completo con siglas del tipo de sociedad"
@@ -291,28 +291,28 @@ export default function CompanySelector() {
 
                                         {/* Societal Type */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-people me-2"></i>
                                                 Tipo Societario
                                             </label>
                                             <select
-                                                className="form-select"
+                                                className="form-select bg-dark text-white border-secondary"
                                                 value={formData.societal_type}
                                                 onChange={(e) => setFormData({ ...formData, societal_type: e.target.value })}
                                             >
                                                 {SOCIETAL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                             </select>
-                                            <small className="text-muted" style={{ fontSize: '0.7rem' }}>Define la obligación de Reserva Legal</small>
+                                            <small className="text-white-50" style={{ fontSize: '0.7rem' }}>Define la obligación de Reserva Legal</small>
                                         </div>
 
                                         {/* Activity Type */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-briefcase me-2"></i>
                                                 Actividad Económica
                                             </label>
                                             <select
-                                                className="form-select"
+                                                className="form-select bg-dark text-white border-secondary"
                                                 value={formData.activity_type}
                                                 onChange={handleActivityChange}
                                             >
@@ -322,13 +322,13 @@ export default function CompanySelector() {
 
                                         {/* Address */}
                                         <div className="col-md-8">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-geo-alt me-2"></i>
                                                 Dirección
                                             </label>
                                             <input
                                                 type="text"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                                 placeholder="Calle, número, zona"
@@ -337,13 +337,13 @@ export default function CompanySelector() {
 
                                         {/* City */}
                                         <div className="col-md-4">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-pin-map me-2"></i>
                                                 Ciudad
                                             </label>
                                             <input
                                                 type="text"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.city}
                                                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                                                 placeholder="Ej: La Paz"
@@ -352,13 +352,13 @@ export default function CompanySelector() {
 
                                         {/* Phone */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-telephone me-2"></i>
                                                 Teléfono
                                             </label>
                                             <input
                                                 type="tel"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                                 placeholder="Ej: +591 2 1234567"
@@ -367,13 +367,13 @@ export default function CompanySelector() {
 
                                         {/* Email */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-envelope me-2"></i>
                                                 Email
                                             </label>
                                             <input
                                                 type="email"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                                 placeholder="contacto@empresa.com"
@@ -382,13 +382,13 @@ export default function CompanySelector() {
 
                                         {/* Website */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-globe me-2"></i>
                                                 Sitio Web
                                             </label>
                                             <input
                                                 type="url"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.website}
                                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                                                 placeholder="https://www.empresa.com"
@@ -397,12 +397,12 @@ export default function CompanySelector() {
 
                                         {/* Currency */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-currency-exchange me-2"></i>
                                                 Moneda
                                             </label>
                                             <select
-                                                className="form-select"
+                                                className="form-select bg-dark text-white border-secondary"
                                                 value={formData.currency}
                                                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                                             >
@@ -413,26 +413,26 @@ export default function CompanySelector() {
 
                                         {/* Fiscal Year Info (Dynamic) */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-calendar-check me-2"></i>
                                                 Año de Gestión Activa
                                             </label>
                                             <input
                                                 type="number"
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 value={formData.current_year}
                                                 onChange={(e) => setFormData({ ...formData, current_year: parseInt(e.target.value) || new Date().getFullYear() })}
                                                 min="2000"
                                                 max="2030"
                                             />
-                                            <small className="text-muted d-block mt-1">
+                                            <small className="text-white-50 d-block mt-1">
                                                 Determina el periodo contable activo.
                                             </small>
                                         </div>
 
                                         <div className="col-md-6">
-                                            <div className="alert alert-info border small mb-0 h-100 d-flex flex-column justify-content-center">
-                                                <div><i className="bi bi-calendar-range me-2"></i><strong>Periodo Fiscal:</strong></div>
+                                            <div className="alert alert-info bg-info bg-opacity-10 border border-info small mb-0 h-100 d-flex flex-column justify-content-center text-info">
+                                                <div><i className="bi bi-calendar-range me-2"></i><strong className="text-white">Periodo Fiscal:</strong></div>
                                                 <div className="mt-1">
                                                     {(() => {
                                                         const startParts = formData.fiscal_year_start.split('-');
@@ -473,30 +473,30 @@ export default function CompanySelector() {
 
                                         {/* Operation Start Date (Override) */}
                                         <div className="col-md-6">
-                                            <label className="form-label">
+                                            <label className="form-label text-white-50">
                                                 <i className="bi bi-calendar-event me-2"></i>
                                                 Inicio de Operaciones (Opcional)
                                             </label>
                                             <DatePicker
                                                 selected={formData.operation_start_date ? parseISO(formData.operation_start_date) : null}
                                                 onChange={(date) => setFormData({ ...formData, operation_start_date: date ? format(date, 'yyyy-MM-dd') : '' })}
-                                                className="form-control"
+                                                className="form-control bg-dark text-white border-secondary"
                                                 placeholderText="Seleccione fecha (Opcional)"
                                                 dateFormat="dd/MM/yyyy"
                                                 locale={es}
                                                 isClearable
                                                 popperProps={{ strategy: 'fixed' }}
                                             />
-                                            <small className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                            <small className="text-white-50" style={{ fontSize: '0.7rem' }}>
                                                 Úselo si la empresa inició actividades después del inicio de gestión.
                                             </small>
                                         </div>
                                     </div>
 
-                                    <div className="modal-footer mt-4 px-0">
+                                    <div className="modal-footer border-secondary mt-4 px-0">
                                         <button
                                             type="button"
-                                            className="btn btn-secondary"
+                                            className="btn btn-outline-secondary"
                                             onClick={() => setShowModal(false)}
                                         >
                                             Cancelar

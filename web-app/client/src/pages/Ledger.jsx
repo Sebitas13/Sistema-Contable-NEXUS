@@ -535,7 +535,7 @@ export default function Ledger() {
         // Si el saldo es positivo (normal), verde/negro. Si es negativo (anormal), rojo.
         const isNormal = val >= 0;
         // For variable nature accounts, always use normal styling (no red, no (A))
-        const colorClass = (isNormal || isVariable) ? 'text-dark fw-bold' : 'text-danger fw-bold';
+        const colorClass = (isNormal || isVariable) ? 'text-success fw-bold' : 'text-danger fw-bold';
 
         // Display always as positive, color indicates abnormality
         const displayValue = Math.abs(val);
@@ -647,7 +647,7 @@ export default function Ledger() {
             </div>
 
             {/* Filters */}
-            <div className="card glass-panel border-secondary shadow-sm mb-4">
+            <div className="card glass-panel border-secondary shadow-sm mb-4" style={{ position: 'relative', zIndex: 1050 }}>
                 <div className="card-body">
                     <div className="row g-3 align-items-end">
                         <div className="col-md-4">

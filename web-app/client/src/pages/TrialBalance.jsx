@@ -212,11 +212,11 @@ export default function TrialBalance() {
         <div className="container-fluid">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-1">
+                    <h2 className="mb-1 text-white">
                         <i className="bi bi-file-spreadsheet me-2 text-success"></i>
                         Balance de Comprobación
                     </h2>
-                    <p className="text-muted mb-0">Comprobante de sumas y saldos para verificar la partida doble.</p>
+                    <p className="text-white-50 mb-0">Comprobante de sumas y saldos para verificar la partida doble.</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
@@ -230,18 +230,18 @@ export default function TrialBalance() {
             </div>
 
 
-            <div className="card shadow-sm border-0">
+            <div className="card glass-panel border-secondary shadow-sm mb-4">
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-hover mb-0 align-middle">
-                            <thead className="table-light">
+                        <table className="table table-dark table-hover mb-0 align-middle border-secondary" style={{ backgroundColor: 'transparent' }}>
+                            <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                 <tr>
-                                    <th style={{ width: '15%' }}>Código</th>
-                                    <th>Cuenta</th>
-                                    <th className="text-end" style={{ width: '15%' }}>Debe</th>
-                                    <th className="text-end" style={{ width: '15%' }}>Haber</th>
-                                    <th className="text-end" style={{ width: '15%' }}>Saldo Deudor</th>
-                                    <th className="text-end" style={{ width: '15%' }}>Saldo Acreedor</th>
+                                    <th className="border-secondary text-white-50" style={{ width: '15%' }}>Código</th>
+                                    <th className="border-secondary text-white-50">Cuenta</th>
+                                    <th className="text-end border-secondary text-white-50" style={{ width: '15%' }}>Debe</th>
+                                    <th className="text-end border-secondary text-white-50" style={{ width: '15%' }}>Haber</th>
+                                    <th className="text-end border-secondary text-white-50" style={{ width: '15%' }}>Saldo Deudor</th>
+                                    <th className="text-end border-secondary text-white-50" style={{ width: '15%' }}>Saldo Acreedor</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -249,42 +249,42 @@ export default function TrialBalance() {
                                     <tr>
                                         <td colSpan="6" className="text-center py-5">
                                             <div className="spinner-border text-primary" role="status"></div>
-                                            <p className="mt-3 text-muted mb-0">Cargando balance...</p>
+                                            <p className="mt-3 text-white-50 mb-0">Cargando balance...</p>
                                         </td>
                                     </tr>
                                 ) : accounts.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-5 text-muted">
+                                        <td colSpan="6" className="text-center py-5 text-white-50">
                                             <i className="bi bi-inbox fs-2 d-block mb-2"></i>
                                             No hay cuentas con movimientos para mostrar.
                                         </td>
                                     </tr>
                                 ) : (
                                     accounts.map((acc) => (
-                                        <tr key={acc.id}>
-                                            <td><span className="badge bg-light text-dark border">{acc.code}</span></td>
-                                            <td>{acc.name}</td>
-                                            <td className="text-end">{formatCurrency(acc.total_debit)}</td>
-                                            <td className="text-end">{formatCurrency(acc.total_credit)}</td>
-                                            <td className="text-end text-primary fw-medium">{acc.balance > 0 ? formatCurrency(acc.balance) : '-'}</td>
-                                            <td className="text-end text-info fw-medium">{acc.balance < 0 ? formatCurrency(Math.abs(acc.balance)) : '-'}</td>
+                                        <tr key={acc.id} className="border-secondary">
+                                            <td className="border-secondary"><span className="badge bg-dark text-white border border-secondary">{acc.code}</span></td>
+                                            <td className="border-secondary text-white">{acc.name}</td>
+                                            <td className="text-end border-secondary">{formatCurrency(acc.total_debit)}</td>
+                                            <td className="text-end border-secondary">{formatCurrency(acc.total_credit)}</td>
+                                            <td className="text-end text-success fw-medium border-secondary">{acc.balance > 0 ? formatCurrency(acc.balance) : '-'}</td>
+                                            <td className="text-end text-success fw-medium border-secondary">{acc.balance < 0 ? formatCurrency(Math.abs(acc.balance)) : '-'}</td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                             {!loading && accounts.length > 0 && (
-                                <tfoot className="table-dark">
-                                    <tr className="fw-bold">
-                                        <td colSpan="2" className="text-end">TOTALES</td>
-                                        <td className="text-end">{formatCurrency(totals.debit)}</td>
-                                        <td className="text-end">{formatCurrency(totals.credit)}</td>
-                                        <td className="text-end">{formatCurrency(totals.balanceDebit)}</td>
-                                        <td className="text-end">{formatCurrency(totals.balanceCredit)}</td>
+                                <tfoot className="border-top border-secondary">
+                                    <tr className="fw-bold" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                                        <td colSpan="2" className="text-end border-secondary text-white">TOTALES</td>
+                                        <td className="text-end border-secondary text-white">{formatCurrency(totals.debit)}</td>
+                                        <td className="text-end border-secondary text-white">{formatCurrency(totals.credit)}</td>
+                                        <td className="text-end border-secondary text-white">{formatCurrency(totals.balanceDebit)}</td>
+                                        <td className="text-end border-secondary text-white">{formatCurrency(totals.balanceCredit)}</td>
                                     </tr>
                                     {totals.balanceDebit !== totals.balanceCredit && (
-                                        <tr className="fw-bold bg-warning text-dark">
-                                            <td colSpan="4" className="text-end">Diferencia</td>
-                                            <td colSpan="2" className="text-center">{formatCurrency(Math.abs(totals.balanceDebit - totals.balanceCredit))}</td>
+                                        <tr className="fw-bold border-secondary" style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)' }}>
+                                            <td colSpan="4" className="text-end text-warning border-secondary">Diferencia</td>
+                                            <td colSpan="2" className="text-center text-warning border-secondary">{formatCurrency(Math.abs(totals.balanceDebit - totals.balanceCredit))}</td>
                                         </tr>
                                     )}
 
@@ -297,34 +297,34 @@ export default function TrialBalance() {
 
             {/* Export Modal */}
             {showExportModal && (
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1050, backdropFilter: 'blur(5px)' }}>
                     <div className="modal-dialog modal-dialog-centered modal-xl">
-                        <div className="modal-content shadow" style={{ maxHeight: '90vh' }}>
-                            <div className="modal-header">
-                                <h5 className="modal-title">
+                        <div className="modal-content glass-panel border-secondary shadow" style={{ maxHeight: '90vh' }}>
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title text-white">
                                     <i className={`bi bi-file-earmark-${exportConfig.format === 'excel' ? 'excel text-success' : 'pdf text-danger'} me-2`}></i>
                                     Exportar a {exportConfig.format === 'excel' ? 'Excel' : 'PDF'}
                                 </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowExportModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowExportModal(false)}></button>
                             </div>
                             <div className="modal-body p-0">
                                 <div className="row h-100 g-0">
-                                    <div className="col-md-3 border-end p-3 bg-light">
+                                    <div className="col-md-3 border-end border-secondary p-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
                                         <form onSubmit={(e) => e.preventDefault()}>
                                             <div className="mb-3">
-                                                <label className="form-label fw-bold">Configuración</label>
+                                                <label className="form-label fw-bold text-white">Configuración</label>
                                                 <div className="mb-3">
-                                                    <label className="form-label small">Nombre del archivo</label>
+                                                    <label className="form-label small text-white-50">Nombre del archivo</label>
                                                     <input
                                                         type="text"
-                                                        className="form-control"
+                                                        className="form-control bg-dark text-white border-secondary"
                                                         value={exportConfig.fileName}
                                                         onChange={(e) => setExportConfig({ ...exportConfig, fileName: e.target.value })}
                                                     />
                                                 </div>
                                                 {exportConfig.format === 'pdf' && (
                                                     <div className="mb-3">
-                                                        <label className="form-label small d-block">Orientación</label>
+                                                        <label className="form-label small d-block text-white-50">Orientación</label>
                                                         <div className="btn-group w-100" role="group">
                                                             <input
                                                                 type="radio"
@@ -334,7 +334,7 @@ export default function TrialBalance() {
                                                                 checked={exportConfig.orientation === 'portrait'}
                                                                 onChange={() => setExportConfig({ ...exportConfig, orientation: 'portrait' })}
                                                             />
-                                                            <label className="btn btn-outline-secondary btn-sm" htmlFor="portrait">
+                                                            <label className="btn btn-outline-light btn-sm" htmlFor="portrait">
                                                                 <i className="bi bi-file-earmark me-1"></i>Vertical
                                                             </label>
                                                             <input
@@ -345,29 +345,29 @@ export default function TrialBalance() {
                                                                 checked={exportConfig.orientation === 'landscape'}
                                                                 onChange={() => setExportConfig({ ...exportConfig, orientation: 'landscape' })}
                                                             />
-                                                            <label className="btn btn-outline-secondary btn-sm" htmlFor="landscape">
+                                                            <label className="btn btn-outline-light btn-sm" htmlFor="landscape">
                                                                 <i className="bi bi-file-earmark-landscape me-1"></i>Horiz.
                                                             </label>
                                                         </div>
                                                     </div>
                                                 )}
-                                                <div className="alert alert-info py-2 small mb-0">
+                                                <div className="alert alert-info bg-dark border-info text-info py-2 small mb-0">
                                                     <i className="bi bi-info-circle me-2"></i>
                                                     {accounts.length} cuentas listas para exportar.
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
-                                    <div className="col-md-9 p-3 bg-secondary bg-opacity-10 d-flex flex-column">
-                                        <h6 className="text-muted mb-2 small text-uppercase fw-bold">Vista Previa</h6>
-                                        <div className="flex-grow-1 bg-white shadow-sm border rounded overflow-hidden position-relative" style={{ minHeight: '400px', maxHeight: '60vh', overflowY: 'auto' }}>
+                                    <div className="col-md-9 p-3 d-flex flex-column" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+                                        <h6 className="text-white-50 mb-2 small text-uppercase fw-bold">Vista Previa</h6>
+                                        <div className="flex-grow-1 bg-dark shadow-sm border border-secondary rounded overflow-hidden position-relative" style={{ minHeight: '400px', maxHeight: '60vh', overflowY: 'auto' }}>
                                             {exportConfig.format === 'pdf' ? (
                                                 previewUrl ? (
                                                     <iframe src={previewUrl} title="PDF Preview" style={{ width: '100%', height: '100%', minHeight: '500px', border: 'none' }} />
                                                 ) : (
                                                     <div className="d-flex align-items-center justify-content-center h-100 p-5">
                                                         <div className="spinner-border text-secondary" role="status"></div>
-                                                        <span className="ms-2 text-muted">Generando vista previa...</span>
+                                                        <span className="ms-2 text-white-50">Generando vista previa...</span>
                                                     </div>
                                                 )
                                             ) : (
@@ -376,26 +376,26 @@ export default function TrialBalance() {
                                                         const { data, columns } = getExportData();
                                                         return (
                                                             <>
-                                                                <table className="table table-striped table-bordered table-sm small mb-0">
-                                                                    <thead className="table-light sticky-top">
+                                                                <table className="table table-dark table-striped table-bordered table-sm small mb-0 border-secondary">
+                                                                    <thead className="sticky-top" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                                                         <tr>
                                                                             {columns.map((col, i) => (
-                                                                                <th key={i} className="text-nowrap px-2 py-1">{col.header}</th>
+                                                                                <th key={i} className="text-nowrap px-2 py-1 border-secondary text-white-50">{col.header}</th>
                                                                             ))}
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
                                                                         {data.slice(0, 100).map((row, i) => (
-                                                                            <tr key={i} className={row['Código'] === 'TOTALES' ? 'fw-bold table-active' : ''}>
+                                                                            <tr key={i} className={`border-secondary ${row['Código'] === 'TOTALES' ? 'fw-bold table-active' : ''}`}>
                                                                                 {columns.map((col, j) => (
-                                                                                    <td key={j} className="text-nowrap px-2 py-1">{row[col.field]}</td>
+                                                                                    <td key={j} className="text-nowrap px-2 py-1 border-secondary text-white">{row[col.field]}</td>
                                                                                 ))}
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
                                                                 </table>
                                                                 {data.length > 100 && (
-                                                                    <div className="text-center p-2 text-muted small bg-light border-top">
+                                                                    <div className="text-center p-2 text-white-50 small border-top border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
                                                                         Mostrando primeros 100 registros...
                                                                     </div>
                                                                 )}
@@ -408,8 +408,8 @@ export default function TrialBalance() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer bg-light">
-                                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowExportModal(false)}>
+                            <div className="modal-footer border-secondary mt-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                                <button type="button" className="btn btn-outline-secondary text-white" onClick={() => setShowExportModal(false)}>
                                     Cancelar
                                 </button>
                                 <button

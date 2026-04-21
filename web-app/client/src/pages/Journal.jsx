@@ -810,7 +810,7 @@ export default function Journal() {
                                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
                                 onClick={() => toggleCollapse(t.id)}
                             >
-                                <div className="d-flex align-items-center gap-3">
+                                <div className="d-flex align-items-center gap-2 gap-sm-3 flex-wrap flex-grow-1">
                                     <i className={`bi bi-chevron-${collapsedEntries[t.id] ? 'right' : 'down'} text-white-50`}></i>
                                     <div>
                                         <i className="bi bi-calendar3 me-2" style={{ color: 'var(--accent-primary)' }}></i>
@@ -819,7 +819,7 @@ export default function Journal() {
                                     <span className={`badge bg-${t.type === 'Ingreso' ? 'success' : t.type === 'Egreso' ? 'danger' : t.type === 'Cierre' ? 'dark' : 'info'}`}>
                                         {t.type} #{transactionNumbers[t.id] || 0}
                                     </span>
-                                    <span className="text-white-50" style={{ fontSize: '0.9rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.gloss}>
+                                    <span className="text-white-50 text-truncate d-inline-block" style={{ fontSize: '0.9rem', maxWidth: '300px', flex: '1 1 auto' }} title={t.gloss}>
                                         <i className="bi bi-chat-left-text me-1"></i>
                                         {t.gloss}
                                     </span>
@@ -864,7 +864,8 @@ export default function Journal() {
                             {/* Tabla de cuentas - solo visible si no está colapsado */}
                             {!collapsedEntries[t.id] && (
                                 <div className="card-body p-0">
-                                    <table className="table table-sm table-dark table-bordered mb-0 border-secondary" style={{ backgroundColor: 'transparent' }}>
+                                    <div className="table-responsive">
+                                        <table className="table table-sm table-dark table-bordered mb-0 border-secondary" style={{ backgroundColor: 'transparent' }}>
                                         <thead>
                                             <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                                 <th style={{ width: '15%', padding: '8px 12px' }} className="border-secondary text-white-50">Código</th>
@@ -902,7 +903,8 @@ export default function Journal() {
                                                 </td>
                                             </tr>
                                         </tfoot>
-                                    </table>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </div>

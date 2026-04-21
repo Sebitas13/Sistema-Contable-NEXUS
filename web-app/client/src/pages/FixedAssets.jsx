@@ -144,13 +144,13 @@ export default function FixedAssets() {
                     <p className="text-muted mb-0">Registro y depreciación de bienes de uso</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
-                    <button className="btn btn-success btn-sm" onClick={handleExportExcel}>
+                    <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel}>
                         <i className="bi bi-file-earmark-excel me-1"></i> Excel
                     </button>
-                    <button className="btn btn-danger btn-sm" onClick={handleExportPDF}>
+                    <button className="btn btn-outline-danger btn-sm" onClick={handleExportPDF}>
                         <i className="bi bi-file-earmark-pdf me-1"></i> PDF
                     </button>
-                    <button className="btn btn-info btn-sm" onClick={() => fileInputRef.current.click()}>
+                    <button className="btn btn-outline-info btn-sm" onClick={() => fileInputRef.current.click()}>
                         <i className="bi bi-upload me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls" style={{ display: 'none' }} />
@@ -163,26 +163,26 @@ export default function FixedAssets() {
             {/* Summary Cards */}
             <div className="row g-3 mb-4">
                 <div className="col-md-4">
-                    <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                        <div className="card-body text-white">
+                    <div className="card shadow-sm border-0 text-white" style={{ background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' }}>
+                        <div className="card-body">
                             <h6 className="mb-1 opacity-75">Costo Total Activos</h6>
-                            <h3 className="mb-0">Bs {totalCost.toFixed(2)}</h3>
+                            <h3 className="mb-0 fw-bold">Bs {totalCost.toFixed(2)}</h3>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-4">
-                    <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-                        <div className="card-body text-white">
+                    <div className="card shadow-sm border-0 text-white" style={{ background: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)' }}>
+                        <div className="card-body">
                             <h6 className="mb-1 opacity-75">Depreciación Acumulada</h6>
-                            <h3 className="mb-0">Bs {totalDepreciation.toFixed(2)}</h3>
+                            <h3 className="mb-0 fw-bold">Bs {totalDepreciation.toFixed(2)}</h3>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-4">
-                    <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-                        <div className="card-body text-white">
+                    <div className="card shadow-sm border-0 text-white" style={{ background: 'linear-gradient(135deg, #0ba360 0%, #3cba92 100%)' }}>
+                        <div className="card-body">
                             <h6 className="mb-1 opacity-75">Valor en Libros</h6>
-                            <h3 className="mb-0">Bs {totalBookValue.toFixed(2)}</h3>
+                            <h3 className="mb-0 fw-bold">Bs {totalBookValue.toFixed(2)}</h3>
                         </div>
                     </div>
                 </div>
@@ -190,23 +190,23 @@ export default function FixedAssets() {
 
             {/* Modal */}
             {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary text-white">
+                            <div className="modal-header border-secondary border-bottom">
                                 <h5 className="modal-title"><i className="bi bi-plus-circle me-2"></i>Nuevo Activo Fijo</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Código</label>
-                                            <input type="text" className="form-control" name="code" value={formData.code} onChange={handleInputChange} required />
+                                            <label className="form-label text-white-50">Código</label>
+                                            <input type="text" className="form-control bg-dark text-white border-secondary" name="code" value={formData.code} onChange={handleInputChange} required />
                                         </div>
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Categoría</label>
-                                            <select className="form-select" name="category" value={formData.category} onChange={handleInputChange}>
+                                            <label className="form-label text-white-50">Categoría</label>
+                                            <select className="form-select bg-dark text-white border-secondary" name="category" value={formData.category} onChange={handleInputChange}>
                                                 <option value="Muebles y Enseres">Muebles y Enseres</option>
                                                 <option value="Equipos de Computación">Equipos de Computación</option>
                                                 <option value="Vehículos">Vehículos</option>
@@ -217,31 +217,31 @@ export default function FixedAssets() {
                                         </div>
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Nombre del Activo</label>
-                                        <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required />
+                                        <label className="form-label text-white-50">Nombre del Activo</label>
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" name="name" value={formData.name} onChange={handleInputChange} required />
                                     </div>
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Fecha de Adquisición</label>
-                                            <input type="date" className="form-control" name="acquisition_date" value={formData.acquisition_date} onChange={handleInputChange} required />
+                                            <label className="form-label text-white-50">Fecha de Adquisición</label>
+                                            <input type="date" className="form-control bg-dark text-white border-secondary" name="acquisition_date" value={formData.acquisition_date} onChange={handleInputChange} required />
                                         </div>
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Costo de Adquisición (Bs)</label>
-                                            <input type="number" step="0.01" className="form-control" name="acquisition_cost" value={formData.acquisition_cost} onChange={handleInputChange} required />
+                                            <label className="form-label text-white-50">Costo de Adquisición (Bs)</label>
+                                            <input type="number" step="0.01" className="form-control bg-dark text-white border-secondary" name="acquisition_cost" value={formData.acquisition_cost} onChange={handleInputChange} required />
                                         </div>
                                     </div>
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Vida Útil (años)</label>
-                                            <input type="number" className="form-control" name="useful_life" value={formData.useful_life} onChange={handleInputChange} required />
+                                            <label className="form-label text-white-50">Vida Útil (años)</label>
+                                            <input type="number" className="form-control bg-dark text-white border-secondary" name="useful_life" value={formData.useful_life} onChange={handleInputChange} required />
                                         </div>
                                         <div className="col-md-6 mb-3">
-                                            <label className="form-label">Valor Residual (Bs)</label>
-                                            <input type="number" step="0.01" className="form-control" name="residual_value" value={formData.residual_value} onChange={handleInputChange} />
+                                            <label className="form-label text-white-50">Valor Residual (Bs)</label>
+                                            <input type="number" step="0.01" className="form-control bg-dark text-white border-secondary" name="residual_value" value={formData.residual_value} onChange={handleInputChange} />
                                         </div>
                                     </div>
-                                    <div className="modal-footer px-0 pb-0">
-                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                                    <div className="modal-footer border-secondary px-0 pb-0 pt-3">
+                                        <button type="button" className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                                         <button type="submit" className="btn btn-primary">Guardar</button>
                                     </div>
                                 </form>
@@ -252,11 +252,11 @@ export default function FixedAssets() {
             )}
 
             {/* Assets Table */}
-            <div className="card shadow-sm border-0">
+            <div className="card glass-panel border-secondary shadow-sm">
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-hover mb-0">
-                            <thead className="table-light">
+                        <table className="table table-dark table-hover mb-0" style={{ backgroundColor: 'transparent' }}>
+                            <thead className="border-secondary text-white-50">
                                 <tr>
                                     <th>Código</th>
                                     <th>Nombre</th>
@@ -268,11 +268,12 @@ export default function FixedAssets() {
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="border-secondary">
                                 {assets.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="text-center py-4 text-muted">
-                                            <i className="bi bi-inbox me-2"></i>No hay activos fijos registrados
+                                        <td colSpan="8" className="text-center py-5 text-white-50">
+                                            <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                                            No hay activos fijos registrados
                                         </td>
                                     </tr>
                                 ) : (
@@ -285,7 +286,7 @@ export default function FixedAssets() {
                                                 <td><span className="badge bg-secondary">{asset.category}</span></td>
                                                 <td className="text-end">Bs {parseFloat(asset.acquisition_cost).toFixed(2)}</td>
                                                 <td className="text-end text-danger">Bs {dep.accumulatedDepreciation.toFixed(2)}</td>
-                                                <td className="text-end fw-bold text-primary">Bs {dep.bookValue.toFixed(2)}</td>
+                                                <td className="text-end fw-bold text-success">Bs {dep.bookValue.toFixed(2)}</td>
                                                 <td className="text-center">{dep.yearsElapsed}</td>
                                                 <td>
                                                     <button className="btn btn-sm btn-outline-primary me-1">

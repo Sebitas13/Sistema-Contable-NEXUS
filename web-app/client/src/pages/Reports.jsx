@@ -103,7 +103,7 @@ export default function Reports() {
         <div>
             <div className="mb-4">
                 <h2 className="mb-2"><i className="bi bi-graph-up me-2"></i>Reportes y Consultas</h2>
-                <p className="text-muted">Acceso rápido a todos los reportes contables del sistema</p>
+                <p className="text-white-50">Acceso rápido a todos los reportes contables del sistema</p>
             </div>
 
             {/* Reportes Principales */}
@@ -113,17 +113,17 @@ export default function Reports() {
                     {reports.map((report, index) => (
                         <div className="col-md-4" key={index}>
                             <Link to={report.path} className="text-decoration-none">
-                                <div className="card shadow-sm border-0 h-100 hover-card" style={{ transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+                                <div className="card glass-panel border-secondary h-100 hover-card" style={{ transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
                                     <div className="card-body">
                                         <div className="d-flex align-items-start">
-                                            <div className={`bg-${report.color} bg-opacity-10 p-3 rounded-3 me-3`}>
+                                            <div className={`bg-${report.color} bg-opacity-25 p-3 rounded-3 me-3`}>
                                                 <i className={`bi ${report.icon} text-${report.color}`} style={{ fontSize: '2rem' }}></i>
                                             </div>
                                             <div className="flex-grow-1">
-                                                <h5 className="card-title mb-2">{report.title}</h5>
-                                                <p className="card-text text-muted small mb-0">{report.description}</p>
+                                                <h5 className="card-title mb-2 text-white">{report.title}</h5>
+                                                <p className="card-text text-white-50 small mb-0">{report.description}</p>
                                             </div>
-                                            <i className="bi bi-arrow-right text-muted"></i>
+                                            <i className="bi bi-arrow-right text-white-50"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -140,17 +140,17 @@ export default function Reports() {
                     {utilities.map((utility, index) => (
                         <div className="col-md-4" key={index}>
                             <Link to={utility.path} className="text-decoration-none">
-                                <div className="card shadow-sm border-0 h-100 hover-card" style={{ transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+                                <div className="card glass-panel border-secondary h-100 hover-card" style={{ transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
                                     <div className="card-body">
                                         <div className="d-flex align-items-start">
-                                            <div className={`bg-${utility.color} bg-opacity-10 p-3 rounded-3 me-3`}>
+                                            <div className={`bg-${utility.color} bg-opacity-25 p-3 rounded-3 me-3`}>
                                                 <i className={`bi ${utility.icon} text-${utility.color}`} style={{ fontSize: '2rem' }}></i>
                                             </div>
                                             <div className="flex-grow-1">
-                                                <h5 className="card-title mb-2">{utility.title}</h5>
-                                                <p className="card-text text-muted small mb-0">{utility.description}</p>
+                                                <h5 className="card-title mb-2 text-white">{utility.title}</h5>
+                                                <p className="card-text text-white-50 small mb-0">{utility.description}</p>
                                             </div>
-                                            <i className="bi bi-arrow-right text-muted"></i>
+                                            <i className="bi bi-arrow-right text-white-50"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -161,38 +161,38 @@ export default function Reports() {
             </div>
 
             {/* Quick Stats */}
-            <div className="card shadow-sm border-0">
-                <div className="card-header bg-white border-bottom">
-                    <h5 className="mb-0"><i className="bi bi-speedometer2 me-2"></i>Estadísticas Rápidas</h5>
+            <div className="card glass-panel border-secondary shadow-sm">
+                <div className="card-header border-secondary border-bottom">
+                    <h5 className="mb-0 text-white"><i className="bi bi-speedometer2 me-2"></i>Estadísticas Rápidas</h5>
                 </div>
                 <div className="card-body">
                     <div className="row g-4">
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-primary mb-2"><i className="bi bi-files"></i></div>
-                                <h4 className="mb-1">{stats.total_transactions || 0}</h4>
-                                <small className="text-muted">Transacciones</small>
+                                <h4 className="mb-1 text-white">{stats.total_transactions || 0}</h4>
+                                <small className="text-white-50">Transacciones</small>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-success mb-2"><i className="bi bi-journal-check"></i></div>
-                                <h4 className="mb-1">{stats.total_accounts || 0}</h4>
-                                <small className="text-muted">Cuentas Activas</small>
+                                <h4 className="mb-1 text-white">{stats.total_accounts || 0}</h4>
+                                <small className="text-white-50">Cuentas Activas</small>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-info mb-2"><i className="bi bi-box"></i></div>
-                                <h4 className="mb-1">{stats.total_inventory_items || 0}</h4>
-                                <small className="text-muted">Items Inventario</small>
+                                <h4 className="mb-1 text-white">{stats.total_inventory_items || 0}</h4>
+                                <small className="text-white-50">Items Inventario</small>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="text-center">
                                 <div className="display-6 text-warning mb-2"><i className="bi bi-buildings"></i></div>
-                                <h4 className="mb-1">{stats.total_fixed_assets || 0}</h4>
-                                <small className="text-muted">Activos Fijos</small>
+                                <h4 className="mb-1 text-white">{stats.total_fixed_assets || 0}</h4>
+                                <small className="text-white-50">Activos Fijos</small>
                             </div>
                         </div>
                     </div>
