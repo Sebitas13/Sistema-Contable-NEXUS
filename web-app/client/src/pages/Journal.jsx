@@ -806,11 +806,11 @@ export default function Journal() {
                         <div key={t.id} className="card glass-panel border-secondary">
                             {/* Encabezado del asiento */}
                             <div
-                                className="card-header d-flex justify-content-between align-items-center border-secondary"
-                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
+                                className="card-header d-flex justify-content-between align-items-center border-secondary flex-nowrap"
+                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer', gap: '1rem' }}
                                 onClick={() => toggleCollapse(t.id)}
                             >
-                                <div className="d-flex align-items-center gap-2 gap-sm-3 flex-wrap flex-grow-1">
+                                <div className="d-flex align-items-center gap-2 gap-sm-3 flex-wrap flex-grow-1" style={{ minWidth: 0 }}>
                                     <i className={`bi bi-chevron-${collapsedEntries[t.id] ? 'right' : 'down'} text-white-50`}></i>
                                     <div>
                                         <i className="bi bi-calendar3 me-2" style={{ color: 'var(--accent-primary)' }}></i>
@@ -837,7 +837,7 @@ export default function Journal() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="btn-group" onClick={(e) => e.stopPropagation()}>
+                                <div className="btn-group flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         className="btn btn-sm btn-outline-primary"
                                         onClick={() => handleEdit(t)}
@@ -1199,7 +1199,7 @@ export default function Journal() {
                             </div>
                             <div className="modal-body p-0">
                                 <div className="row h-100 g-0">
-                                    <div className="col-md-3 border-end p-3 bg-light">
+                                    <div className="col-md-3 border-end border-secondary p-3 glass-panel text-white">
                                         <form onSubmit={(e) => e.preventDefault()}>
                                             <div className="mb-3">
                                                 <label className="form-label fw-bold">Configuración</label>
@@ -1207,7 +1207,7 @@ export default function Journal() {
                                                     <label className="form-label small">Nombre del archivo</label>
                                                     <input
                                                         type="text"
-                                                        className="form-control"
+                                                        className="form-control bg-dark text-white border-secondary"
                                                         value={exportConfig.fileName}
                                                         onChange={(e) => setExportConfig({ ...exportConfig, fileName: e.target.value })}
                                                     />
@@ -1241,15 +1241,15 @@ export default function Journal() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                <div className="alert alert-info py-2 small mb-0">
+                                                <div className="alert alert-info py-2 small mb-0 bg-dark text-info border-info">
                                                     <i className="bi bi-info-circle me-2"></i>
                                                     Se exportarán los asientos filtrados actualmente.
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
-                                    <div className="col-md-9">
-                                        <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
+                                    <div className="col-md-9 bg-dark text-white rounded-end" style={{ borderTopRightRadius: '1.5rem', borderBottomRightRadius: '1.5rem' }}>
+                                        <div className="d-flex justify-content-between align-items-center p-3 border-bottom border-secondary">
                                             <h6 className="mb-0">Vista Previa</h6>
                                             <button
                                                 className="btn btn-primary btn-sm"
@@ -1277,9 +1277,9 @@ export default function Journal() {
 
                                                         if (data && data.length > 0) {
                                                             return (
-                                                                <div className="p-2">
-                                                                    <h6 className="fw-bold border-bottom pb-1 bg-light px-2">Vista Previa - Libro Diario</h6>
-                                                                    <table className="table table-striped table-sm small mb-0">
+                                                                    <div className="p-2">
+                                                                        <h6 className="fw-bold border-bottom border-secondary pb-1 bg-dark text-white px-2">Vista Previa - Libro Diario</h6>
+                                                                        <table className="table table-dark table-striped table-bordered border-secondary table-sm small mb-0">
                                                                         <thead>
                                                                             <tr>
                                                                                 {columns.map(col => (
@@ -1308,10 +1308,10 @@ export default function Journal() {
                                                             );
                                                         }
                                                         return (
-                                                            <div className="alert alert-warning">
-                                                                <i className="bi bi-exclamation-triangle me-2"></i>
-                                                                No hay datos para exportar
-                                                            </div>
+                                                                <div className="alert alert-warning bg-dark text-warning border-warning">
+                                                                    <i className="bi bi-exclamation-triangle me-2"></i>
+                                                                    No hay datos para exportar
+                                                                </div>
                                                         );
                                                     })()}
                                                 </div>

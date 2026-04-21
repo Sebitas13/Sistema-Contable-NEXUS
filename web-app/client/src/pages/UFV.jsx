@@ -520,16 +520,16 @@ export default function UFV() {
             </div>
 
             <div className="card glass-panel border-secondary shadow-sm">
-                <div className="card-header border-secondary border-bottom d-flex justify-content-between align-items-center">
+                <div className="card-header border-secondary border-bottom d-flex flex-wrap justify-content-between align-items-center" style={{ position: 'relative', zIndex: 1050 }}>
                     <h5 className="mb-0 text-white"><i className="bi bi-calendar-month me-2"></i>Matriz de UFV</h5>
-                    <div className="d-flex align-items-center gap-2" style={{ position: 'relative', zIndex: 1050 }}>
+                    <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
                         <label className="form-label mb-0 small text-white-50">Gestión:</label>
                         <input
                             type="number"
                             className="form-control form-control-sm bg-dark text-white border-secondary"
                             value={year}
                             onChange={e => handleYearChange(e.target.value)}
-                            style={{ width: '100px', cursor: 'text' }}
+                            style={{ width: '100px', cursor: 'text', position: 'relative', zIndex: 1060 }}
                         />
                     </div>
                 </div>

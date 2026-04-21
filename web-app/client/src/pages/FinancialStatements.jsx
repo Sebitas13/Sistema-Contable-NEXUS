@@ -428,12 +428,12 @@ export default function FinancialStatements() {
                 {activeTab === 'balance' && balanceGeneral && (
                     <div className="row g-4">
                         <div className="col-lg-6">
-                            <div className="card shadow h-100 border-top-primary">
-                                <div className="card-header bg-white py-3">
-                                    <h5 className="text-primary mb-0 fw-bold">ACTIVO</h5>
+                            <div className="card glass-panel border-primary h-100">
+                                <div className="card-header border-secondary py-3">
+                                    <h5 className="text-info mb-0 fw-bold">ACTIVO</h5>
                                 </div>
                                 <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                                    <table className="table table-hover table-sm mb-0 align-middle">
+                                    <table className="table table-dark table-hover table-sm mb-0 align-middle border-secondary" style={{ backgroundColor: 'transparent' }}>
                                         <tbody>
                                             {balanceGeneral.activos.length > 0 ? (
                                                 balanceGeneral.activos.map(node => <TreeRow key={node.id} node={node} />)
@@ -443,30 +443,30 @@ export default function FinancialStatements() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <div className="card-footer bg-light mt-auto py-3">
+                                <div className="card-footer border-secondary mt-auto py-3">
                                     <div className="d-flex justify-content-between fw-bold fs-5">
                                         <span>Total Activo</span>
-                                        <span className="text-primary">{formatearMonto(balanceGeneral.totales.activo)}</span>
+                                        <span className="text-info">{formatearMonto(balanceGeneral.totales.activo)}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div className="col-lg-6">
-                            <div className="card shadow h-100 border-top-danger">
-                                <div className="card-header bg-white py-3">
+                            <div className="card glass-panel border-danger h-100">
+                                <div className="card-header border-secondary py-3">
                                     <h5 className="text-danger mb-0 fw-bold">PASIVO Y PATRIMONIO</h5>
                                 </div>
                                 <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                                    <table className="table table-hover table-sm mb-0 align-middle">
+                                    <table className="table table-dark table-hover table-sm mb-0 align-middle border-secondary" style={{ backgroundColor: 'transparent' }}>
                                         <tbody>
-                                            <tr className="bg-light fw-bold text-secondary"><td colSpan="2" className="py-2 ps-3">PASIVO</td></tr>
+                                            <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="fw-bold text-white-50"><td colSpan="2" className="py-2 ps-3 border-secondary">PASIVO</td></tr>
                                             {balanceGeneral.pasivos.map(node => <TreeRow key={node.id} node={node} />)}
-                                            <tr className="bg-light fw-bold text-secondary"><td colSpan="2" className="py-2 ps-3 mt-2">PATRIMONIO</td></tr>
+                                            <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="fw-bold text-white-50"><td colSpan="2" className="py-2 ps-3 mt-2 border-secondary">PATRIMONIO</td></tr>
                                             {balanceGeneral.patrimonio.map(node => <TreeRow key={node.id} node={node} />)}
                                         </tbody>
                                     </table>
                                 </div>
-                                <div className="card-footer bg-light mt-auto py-3">
+                                <div className="card-footer border-secondary mt-auto py-3">
                                     <div className="d-flex justify-content-between fw-bold fs-5 mb-2">
                                         <span>Total Pasivo + Patrimonio</span>
                                         <span className="text-danger">{formatearMonto(balanceGeneral.totales.pasivo + balanceGeneral.totales.patrimonio)}</span>
@@ -487,14 +487,14 @@ export default function FinancialStatements() {
                 {activeTab === 'resultados' && estadoResultados && (
                     <div className="row justify-content-center">
                         <div className="col-lg-10">
-                            <div className="card shadow border-top-info">
-                                <div className="card-header bg-white py-3">
+                            <div className="card glass-panel border-info">
+                                <div className="card-header border-secondary py-3">
                                     <h5 className="text-info mb-0 fw-bold">Estado de Resultados</h5>
-                                    <small className="text-muted">Generado por Motor V5 (Armonizado)</small>
+                                    <small className="text-white-50">Generado por Motor V5 (Armonizado)</small>
                                 </div>
                                 <div className="card-body p-0">
                                     <div className="table-responsive">
-                                        <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.9rem' }}>
+                                        <table className="table table-dark table-hover align-middle mb-0 border-secondary" style={{ fontSize: '0.9rem', backgroundColor: 'transparent' }}>
                                             <tbody>
                                                 {/* 1. INGRESOS */}
                                                 <RenderList list={estadoResultados.secciones.ingresos} title="INGRESOS OPERATIVOS" />
@@ -582,17 +582,17 @@ export default function FinancialStatements() {
             {showExportModal && (
                 <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                     <div className="modal-dialog modal-dialog-centered modal-xl">
-                        <div className="modal-content shadow" style={{ maxHeight: '90vh' }}>
-                            <div className="modal-header">
+                        <div className="modal-content glass-panel border-secondary shadow" style={{ maxHeight: '90vh' }}>
+                            <div className="modal-header border-secondary text-white">
                                 <h5 className="modal-title">
                                     <i className={`bi bi-file-earmark-${exportConfig.format === 'excel' ? 'excel text-success' : 'pdf text-danger'} me-2`}></i>
                                     Exportar a {exportConfig.format === 'excel' ? 'Excel' : 'PDF'}
                                 </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowExportModal(false)}></button>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowExportModal(false)}></button>
                             </div>
-                            <div className="modal-body p-0">
+                            <div className="modal-body p-0 text-white">
                                 <div className="row h-100 g-0">
-                                    <div className="col-md-3 border-end p-3 bg-light">
+                                    <div className="col-md-3 border-end border-secondary p-3 glass-panel">
                                         <form onSubmit={(e) => e.preventDefault()}>
                                             <div className="mb-3">
                                                 <label className="form-label fw-bold">Configuración</label>
@@ -600,7 +600,7 @@ export default function FinancialStatements() {
                                                     <label className="form-label small">Nombre del archivo</label>
                                                     <input
                                                         type="text"
-                                                        className="form-control"
+                                                        className="form-control bg-dark text-white border-secondary"
                                                         value={exportConfig.fileName}
                                                         onChange={(e) => setExportConfig({ ...exportConfig, fileName: e.target.value })}
                                                     />
@@ -634,16 +634,16 @@ export default function FinancialStatements() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                <div className="alert alert-info py-2 small mb-0">
+                                                <div className="alert alert-info py-2 small mb-0 bg-dark border-info text-info">
                                                     <i className="bi bi-info-circle me-2"></i>
                                                     Datos listos para exportar.
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
-                                    <div className="col-md-9 p-3 bg-secondary bg-opacity-10 d-flex flex-column">
-                                        <h6 className="text-muted mb-2 small text-uppercase fw-bold">Vista Previa</h6>
-                                        <div className="flex-grow-1 bg-white shadow-sm border rounded overflow-hidden position-relative" style={{ minHeight: '400px', maxHeight: '60vh', overflowY: 'auto' }}>
+                                    <div className="col-md-9 p-3 bg-dark d-flex flex-column rounded-end" style={{ borderTopRightRadius: '1.5rem', borderBottomRightRadius: '1.5rem' }}>
+                                        <h6 className="text-white-50 mb-2 small text-uppercase fw-bold">Vista Previa</h6>
+                                        <div className="flex-grow-1 glass-panel shadow-sm border border-secondary rounded overflow-hidden position-relative" style={{ minHeight: '400px', maxHeight: '60vh', overflowY: 'auto' }}>
                                             {exportConfig.format === 'pdf' ? (
                                                 previewUrl ? (
                                                     <iframe src={previewUrl} title="PDF Preview" style={{ width: '100%', height: '100%', minHeight: '500px', border: 'none' }} />
@@ -659,8 +659,8 @@ export default function FinancialStatements() {
                                                         const { data, columns } = getExportData();
                                                         return (
                                                             <>
-                                                                <table className="table table-striped table-bordered table-sm small mb-0">
-                                                                    <thead className="table-light sticky-top">
+                                                                <table className="table table-dark table-striped table-bordered border-secondary table-sm small mb-0">
+                                                                    <thead className="table-dark sticky-top border-secondary">
                                                                         <tr>
                                                                             {columns.map((col, i) => (
                                                                                 <th key={i} className="text-nowrap px-2 py-1">{col.header}</th>
@@ -691,7 +691,7 @@ export default function FinancialStatements() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer bg-light">
+                            <div className="modal-footer border-secondary">
                                 <button type="button" className="btn btn-outline-secondary" onClick={() => setShowExportModal(false)}>
                                     Cancelar
                                 </button>

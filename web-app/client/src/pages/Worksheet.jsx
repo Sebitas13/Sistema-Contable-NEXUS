@@ -891,7 +891,7 @@ export default function Worksheet() {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-file-earmark-spreadsheet me-2"></i>Hoja de Trabajo</h2>
-                    <p className="text-muted mb-0">Formato completo - Balance de Comprobación, Ajustes, Balance Ajustado, Estado de Resultados, Balance General, Cierre y Cuentas de Orden</p>
+                    <p className="text-light opacity-75 mb-0">Formato completo - Balance de Comprobación, Ajustes, Balance Ajustado, Estado de Resultados, Balance General, Cierre y Cuentas de Orden</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     <button className="btn btn-outline-primary btn-sm" onClick={fetchWorksheetData} disabled={loading}>
@@ -910,33 +910,33 @@ export default function Worksheet() {
             {/* Summary Cards */}
             <div className="row g-3 mb-4" style={{ position: 'relative', zIndex: 1050 }}>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                        <div className="card-body text-white">
-                            <small className="opacity-75">Total Activos</small>
+                    <div className="card glass-panel border-primary text-white h-100">
+                        <div className="card-body">
+                            <small className="text-info opacity-75 d-flex align-items-center mb-1"><i className="bi bi-wallet2 me-2"></i>Total Activos</small>
                             <h4 className="mb-0 fw-bold">Bs {totalActivosDyn.toFixed(2)}</h4>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-                        <div className="card-body text-white">
-                            <small className="opacity-75">Pasivos + Patrimonio</small>
+                    <div className="card glass-panel border-danger text-white h-100">
+                        <div className="card-body">
+                            <small className="text-danger opacity-75 d-flex align-items-center mb-1"><i className="bi bi-bank me-2"></i>Pasivos + Patrimonio</small>
                             <h4 className="mb-0 fw-bold">Bs {totalPasivosPatrimonioDyn.toFixed(2)}</h4>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }}>
-                        <div className="card-body text-white">
+                    <div className="card glass-panel border-success text-white h-100">
+                        <div className="card-body">
                             <div className="d-flex justify-content-between align-items-start">
-                                <small className="opacity-75">RESERVA LEGAL ({reservaLegalPct}%)</small>
+                                <small className="text-success opacity-75"><i className="bi bi-shield-check me-2"></i>RESERVA LEGAL ({reservaLegalPct}%)</small>
                                 <div className="dropdown">
                                     <button className="btn btn-sm text-white p-0 opacity-75" data-bs-toggle="dropdown" title="Configurar Reserva">
                                         <i className="bi bi-gear-fill"></i>
                                     </button>
                                     <div className="dropdown-menu dropdown-menu-end dropdown-menu-dark p-3 glass-panel border-secondary" style={{ minWidth: '200px' }}>
                                         <div className="mb-2">
-                                            <label className="form-label small fw-bold">Porcentaje:</label>
+                                            <label className="form-label small fw-bold text-white">Porcentaje:</label>
                                             <div className="input-group input-group-sm">
                                                 <input
                                                     type="number"
@@ -955,19 +955,22 @@ export default function Worksheet() {
                                                 checked={overrideReservaLegal}
                                                 onChange={e => setOverrideReservaLegal(e.target.checked)}
                                             />
-                                            <label className="form-check-label">Forzar Reserva</label>
+                                            <label className="form-check-label text-white">Forzar Reserva</label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <h4 className="mb-0 fw-bold">Bs {auto.reservaLegal.toFixed(2)}</h4>
+                            <h4 className="mb-0 fw-bold mt-1">Bs {auto.reservaLegal.toFixed(2)}</h4>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card shadow-sm border-0" style={{ background: utilidadLiquidaDyn >= 0 ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' : 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)' }}>
-                        <div className="card-body text-white">
-                            <small className="opacity-75">{utilidadLiquidaDyn >= 0 ? 'Utilidad Líquida' : 'Pérdida Líquida'}</small>
+                    <div className={`card glass-panel border-${utilidadLiquidaDyn >= 0 ? 'info' : 'warning'} text-white h-100`}>
+                        <div className="card-body">
+                            <small className={`text-${utilidadLiquidaDyn >= 0 ? 'info' : 'warning'} opacity-75 d-flex align-items-center mb-1`}>
+                                <i className={`bi bi-${utilidadLiquidaDyn >= 0 ? 'graph-up-arrow' : 'graph-down-arrow'} me-2`}></i>
+                                {utilidadLiquidaDyn >= 0 ? 'Utilidad Líquida' : 'Pérdida Líquida'}
+                            </small>
                             <h4 className="mb-0 fw-bold">Bs {utilidadLiquidaDyn.toFixed(2)}</h4>
                         </div>
                     </div>
