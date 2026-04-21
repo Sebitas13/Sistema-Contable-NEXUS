@@ -43,6 +43,38 @@ const aiHealthCache = {
   expiresAt: 0
 };
 
+// Circuit breaker simple (en memoria) por baseUrl para evitar golpear un upstream caído
+// y amortiguar cold-starts (por ejemplo Render).
+const aiEngineBreaker = new Map();
+const BREAKER_FAILURE_THRESHOLD = Number(process.env.AI_ENGINE_BREAKER_FAILURE_THRESHOLD || 2);
+const BREAKER_COOLDOWN_MS = Number(process.env.AI_ENGINE_BREAKER_COOLDOWN_MS || 20000);
+
+const getBreakerState = (baseUrl) => {
+  const state = aiEngineBreaker.get(baseUrl);
+  if (!state) return { failures: 0, cooldownUntil: 0 };
+  if (state.cooldownUntil && state.cooldownUntil <= Date.now()) {
+    const refreshed = { failures: 0, cooldownUntil: 0 };
+    aiEngineBreaker.set(baseUrl, refreshed);
+    return refreshed;
+  }
+  return state;
+};
+
+const markBreakerSuccess = (baseUrl) => {
+  if (!baseUrl) return;
+  aiEngineBreaker.set(baseUrl, { failures: 0, cooldownUntil: 0 });
+};
+
+const markBreakerFailure = (baseUrl) => {
+  if (!baseUrl) return;
+  const state = getBreakerState(baseUrl);
+  const failures = (state.failures || 0) + 1;
+  const cooled = failures >= BREAKER_FAILURE_THRESHOLD
+    ? Date.now() + BREAKER_COOLDOWN_MS
+    : (state.cooldownUntil || 0);
+  aiEngineBreaker.set(baseUrl, { failures, cooldownUntil: cooled });
+};
+
 const normalizeBaseUrl = normalizeServiceBaseUrl;
 
 const resolveRequestBaseUrl = (req) => {
@@ -98,6 +130,14 @@ const buildApiBaseUrlCandidates = (req, runtimeBaseUrl, explicitBaseUrl = '') =>
 };
 
 const RETRYABLE_AI_STATUSES = new Set([429, 502, 503, 504]);
+const RETRYABLE_AI_ERROR_CODES = new Set([
+  'ECONNABORTED',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EAI_AGAIN',
+  'ENOTFOUND',
+  'ETIMEDOUT'
+]);
 
 const resolveAiEngineTargets = (req) => {
   return buildAiEngineUrlCandidates({
@@ -130,6 +170,18 @@ const callAiEngine = async (req, method, endpointPath, {
   }
 
   for (const baseUrl of candidates) {
+    const breaker = getBreakerState(baseUrl);
+    if (breaker.cooldownUntil && breaker.cooldownUntil > Date.now()) {
+      attempts.push({
+        base_url: baseUrl,
+        attempt: 0,
+        status: null,
+        code: 'BREAKER_OPEN',
+        message: `Circuit breaker activo hasta ${new Date(breaker.cooldownUntil).toISOString()}`
+      });
+      continue;
+    }
+
     for (let attempt = 0; attempt <= maxRetriesPerCandidate; attempt += 1) {
       try {
         const response = await axios({
@@ -140,6 +192,7 @@ const callAiEngine = async (req, method, endpointPath, {
           headers
         });
 
+        markBreakerSuccess(baseUrl);
         return {
           response,
           baseUrl,
@@ -157,8 +210,10 @@ const callAiEngine = async (req, method, endpointPath, {
           message: error.message
         });
 
+        markBreakerFailure(baseUrl);
+
         const shouldRetry =
-          (RETRYABLE_AI_STATUSES.has(status) || error.code === 'ECONNABORTED') &&
+          (RETRYABLE_AI_STATUSES.has(status) || RETRYABLE_AI_ERROR_CODES.has(error.code)) &&
           attempt < maxRetriesPerCandidate;
 
         if (shouldRetry) {
@@ -182,6 +237,27 @@ const callAiEngine = async (req, method, endpointPath, {
   }
 
   throw lastError || new Error('No se pudo completar la llamada al motor AI.');
+};
+
+// Warmup: útil para motores remotos con cold-start. No bloquea el flujo si falla,
+// pero deja trazas en ai_engine_attempts para diagnóstico.
+const warmupAiEngine = async (req) => {
+  try {
+    await callAiEngine(req, 'get', '/api/ai/health', {
+      timeout: 8000,
+      maxRetriesPerCandidate: 1
+    });
+  } catch (error) {
+    // Silencioso: la ruta principal manejará fallback. Guardamos para diagnóstico si alguien lo usa.
+    return {
+      success: false,
+      error: error.message,
+      ai_engine_attempts: error.aiEngineAttempts || [],
+      ai_engine_diagnostics: error.aiEngineDiagnostics || null,
+      ai_engine_candidates: error.aiEngineCandidates || []
+    };
+  }
+  return { success: true };
 };
 
 const postToInternalApiCandidates = async (baseCandidates, endpointPath, payload, timeout = 45000) => {
@@ -269,7 +345,7 @@ const determineFiscalRange = async (companyId, parameters = {}) => {
   }
 };
 
-const normalizeReportsFallbackResponse = (fallbackData, reasonLabel) => {
+const normalizeReportsFallbackResponse = (fallbackData, reasonLabel, aiMeta = null) => {
   const payload = fallbackData?.data || {};
   const warning = payload.warning || `Modo contingencia activado: ${reasonLabel}`;
   return {
@@ -289,6 +365,9 @@ const normalizeReportsFallbackResponse = (fallbackData, reasonLabel) => {
     ccFactor: payload.ccFactor,
     summary: payload.summary,
     diagnostics: payload.diagnostics,
+    ai_engine_attempts: aiMeta?.ai_engine_attempts || payload.ai_engine_attempts,
+    ai_engine_candidates: aiMeta?.ai_engine_candidates || payload.ai_engine_candidates,
+    ai_engine_diagnostics: aiMeta?.ai_engine_diagnostics || payload.ai_engine_diagnostics,
     cycleStatus: payload.cycleStatus || 'OPEN'
   };
 };
@@ -383,7 +462,7 @@ const getProfile = async (companyId) => {
   });
 };
 
-// V6.0: Helper para deduplicar reglas por pattern (mantiene la primera = mÃ¡s reciente)
+// V6.0: Helper para deduplicar reglas por pattern (mantiene la primera = más reciente)
 const deduplicateRules = (rules) => {
   if (!Array.isArray(rules)) return [];
   const seen = new Set();
@@ -554,6 +633,8 @@ router.post('/adjustments/generate', async (req, res) => {
       console.log(`ðŸ”„ Perfil fusionado para empresa ${companyId}: ${(req.body.profile_schema?.monetary_rules?.length || 0)} reglas M, ${(req.body.profile_schema?.non_monetary_rules?.length || 0)} reglas NM`);
     }
 
+    await warmupAiEngine(req);
+
     const { response } = await callAiEngine(req, 'post', '/api/ai/adjustments/generate', {
       data: req.body,
       timeout: 30000,
@@ -573,7 +654,7 @@ router.post('/adjustments/generate', async (req, res) => {
     if (error.code === 'ECONNREFUSED') {
       res.status(503).json({
         success: false,
-        error: 'Motor AI no disponible. Usando lÃ³gica tradicional.',
+        error: 'Motor AI no disponible. Usando lógica tradicional.',
         proposedTransactions: [],
         confidence: 0,
         reasoning: 'AI Engine offline',
@@ -853,6 +934,8 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
       }
     }
 
+    await warmupAiEngine(req);
+
     console.log(`   ðŸ“¡ [LOG] Preparing to send request to AI Engine at: ${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`);
     console.log(`   ðŸ“¦ [LOG] Final payload to be sent:`, JSON.stringify(req.body, null, 2));
 
@@ -916,7 +999,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 
     const upstreamStatus = error.response?.status || null;
     const isTransientOutage =
-      error.code === 'ECONNREFUSED' || [429, 502, 503, 504].includes(upstreamStatus);
+      RETRYABLE_AI_ERROR_CODES.has(error.code) || [429, 502, 503, 504].includes(upstreamStatus);
 
     if (isTransientOutage && runtimeBaseUrl && companyId) {
       try {
@@ -934,7 +1017,12 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
         return res.json(
           normalizeReportsFallbackResponse(
             fallbackResponse.data,
-            `AI no disponible o con lÃ­mite de tasa (${upstreamStatus || error.code})`
+            `AI no disponible o con límite de tasa (${upstreamStatus || error.code})`,
+            {
+              ai_engine_attempts: error.aiEngineAttempts || [],
+              ai_engine_candidates: error.aiEngineCandidates || [],
+              ai_engine_diagnostics: error.aiEngineDiagnostics || null
+            }
           )
         );
       } catch (fallbackError) {
@@ -945,7 +1033,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     if (error.code === 'ECONNREFUSED') {
       res.status(503).json({
         success: false,
-        error: 'Motor AI no disponible. Verifique que el servidor Python estÃ© corriendo.',
+        error: 'Motor AI no disponible. Verifique que el servidor Python esté corriendo.',
         proposedTransactions: [],
         confidence: 0,
       });
@@ -1046,7 +1134,7 @@ router.post('/adjustments/feedback', async (req, res) => {
 // GET /api/ai/adjustments/chronology/:companyId
 router.get('/adjustments/chronology/:companyId', async (req, res) => {
   try {
-    // Retornar eventos ÃšNICOS por account_name (el mÃ¡s reciente de cada cuenta)
+    // Retornar eventos ÚNICOS por account_name (el más reciente de cada cuenta)
     const events = await new Promise((resolve, reject) => {
       db.all(
         `SELECT * FROM mahoraga_adaptation_events 
@@ -1073,7 +1161,7 @@ router.get('/adjustments/chronology/:companyId', async (req, res) => {
 // DELETE /api/ai/adjustments/chronology/:companyId/cleanup - Limpiar duplicados - LIBSQL PROMISES VERSION
 router.delete('/adjustments/chronology/:companyId/cleanup', async (req, res) => {
   try {
-    // Eliminar duplicados, mantener solo el mÃ¡s reciente por account_name
+    // Eliminar duplicados, mantener solo el más reciente por account_name
     const result = await db.run(
       `DELETE FROM mahoraga_adaptation_events
        WHERE company_id = ?
@@ -1085,7 +1173,7 @@ router.delete('/adjustments/chronology/:companyId/cleanup', async (req, res) => 
       [req.params.companyId, req.params.companyId]
     );
 
-    console.log(`ðŸ§¹ Limpiados ${result.changes} eventos duplicados de cronologÃ­a`);
+    console.log(`ðŸ§¹ Limpiados ${result.changes} eventos duplicados de cronología`);
     res.json({ success: true, message: 'Duplicados eliminados', cleaned: result.changes });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1255,7 +1343,7 @@ router.post('/mahoraga/activate', async (req, res) => {
   }
 });
 
-// POST /api/ai/mahoraga/confirm - Confirmar activaciÃ³n pendiente
+// POST /api/ai/mahoraga/confirm - Confirmar activación pendiente
 router.post('/mahoraga/confirm', async (req, res) => {
   try {
     const { activationId, userId } = req.body;
@@ -1278,7 +1366,7 @@ router.post('/mahoraga/confirm', async (req, res) => {
   }
 });
 
-// POST /api/ai/mahoraga/reject - Rechazar activaciÃ³n
+// POST /api/ai/mahoraga/reject - Rechazar activación
 router.post('/mahoraga/reject', async (req, res) => {
   try {
     const { activationId, userId, reason } = req.body;

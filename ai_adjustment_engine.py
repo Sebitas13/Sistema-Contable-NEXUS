@@ -2794,4 +2794,10 @@ if __name__ == "__main__":
     else:
         # Iniciar servidor FastAPI normalmente
         import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8003)
+        # Compatibilidad hosting (Render, etc.): usar el puerto asignado por el entorno.
+        raw_port = os.getenv("PORT") or os.getenv("AI_ENGINE_PORT") or "8003"
+        try:
+            port = int(raw_port)
+        except ValueError:
+            port = 8003
+        uvicorn.run(app, host="0.0.0.0", port=port)

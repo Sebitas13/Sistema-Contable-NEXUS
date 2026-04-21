@@ -14,6 +14,39 @@ const DEFAULT_PROD_AI_ENGINE_URLS = [
     'http://127.0.0.1:8000'
 ];
 
+const getPreference = () => {
+    const raw = String(process.env.AI_ENGINE_PREFER || '').trim().toLowerCase();
+    if (raw === 'local' || raw === 'remote' || raw === 'hybrid') return raw;
+    return 'hybrid';
+};
+
+const scoreCandidate = (candidateUrl, prefer) => {
+    const normalized = normalizeServiceBaseUrl(candidateUrl);
+    if (!normalized) return 0;
+
+    const isHttps = normalized.startsWith('https://');
+    const isLocalhost =
+        normalized.startsWith('http://localhost') ||
+        normalized.startsWith('http://127.0.0.1') ||
+        normalized.includes('host.docker.internal');
+
+    // Base score: keep insertion order as a tie-breaker.
+    let score = 0;
+    if (prefer === 'remote') {
+        if (isHttps) score += 200;
+        if (isLocalhost) score -= 50;
+    } else if (prefer === 'local') {
+        if (isLocalhost) score += 200;
+        if (isHttps) score -= 50;
+    } else {
+        // hybrid: prefer https first, but keep locals as secondary.
+        if (isHttps) score += 120;
+        if (isLocalhost) score += 40;
+    }
+
+    return score;
+};
+
 const normalizeServiceBaseUrl = (rawValue) => {
     if (!rawValue || typeof rawValue !== 'string') return '';
 
@@ -46,10 +79,13 @@ const buildAiEngineUrlCandidates = ({
     runtimeBaseUrl = '',
     extraSelfBaseUrls = []
 } = {}) => {
+    const prefer = getPreference();
     const rawCandidates = [
         ...explicitUrls,
         process.env.AI_ENGINE_INTERNAL_URL || '',
         process.env.AI_ENGINE_INTERNAL_URL_ALT || '',
+        process.env.AI_ENGINE_URL || '',
+        process.env.AI_ENGINE_URL_ALT || '',
         ...(isDevelopment ? DEFAULT_DEV_AI_ENGINE_URLS : DEFAULT_PROD_AI_ENGINE_URLS)
     ];
 
@@ -76,7 +112,19 @@ const buildAiEngineUrlCandidates = ({
         excluded_duplicates: []
     };
 
-    for (const rawCandidate of rawCandidates) {
+    // Ordenar por preferencia (remote/local/hybrid) para evitar que un localhost caído
+    // opaque al motor remoto (o viceversa), sin perder fallback.
+    const orderedCandidates = rawCandidates
+        .map((value, index) => ({ value, index }))
+        .sort((a, b) => {
+            const scoreA = scoreCandidate(a.value, prefer);
+            const scoreB = scoreCandidate(b.value, prefer);
+            if (scoreA !== scoreB) return scoreB - scoreA;
+            return a.index - b.index;
+        })
+        .map((item) => item.value);
+
+    for (const rawCandidate of orderedCandidates) {
         const normalizedCandidate = normalizeServiceBaseUrl(rawCandidate);
         if (!normalizedCandidate) continue;
 

@@ -274,6 +274,7 @@ class AIAdjustmentService {
 
         let lastError = null;
         const maxRetries = 2;
+        const retryableCodes = new Set(['ECONNABORTED', 'ECONNREFUSED', 'ECONNRESET', 'EAI_AGAIN', 'ENOTFOUND', 'ETIMEDOUT']);
 
         for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
             try {
@@ -282,7 +283,7 @@ class AIAdjustmentService {
             } catch (error) {
                 lastError = error;
                 const status = error.response?.status;
-                const retryable = [429, 502, 503, 504].includes(status);
+                const retryable = [429, 502, 503, 504].includes(status) || retryableCodes.has(error.code);
                 if (!retryable || attempt >= maxRetries) {
                     break;
                 }
@@ -296,18 +297,33 @@ class AIAdjustmentService {
         }
 
         const status = lastError?.response?.status;
+        const code = lastError?.code;
         const backendError =
             lastError?.response?.data?.error ||
             lastError?.response?.data?.detail ||
             lastError?.message;
 
-        if ([429, 502, 503, 504].includes(status) || lastError?.code === 'ECONNABORTED') {
-            console.warn(`AI temporalmente no disponible (${status || lastError?.code || 'timeout'}). Activando contingencia.`);
+        const shouldFallback =
+            [429, 502, 503, 504].includes(status) ||
+            retryableCodes.has(code);
+
+        const normalizeReason = () => {
+            if (status === 429) return 'AI no disponible por límite de tasa (429)';
+            if ([502, 503, 504].includes(status)) return `AI no disponible (HTTP ${status})`;
+            if (code === 'ECONNREFUSED') return 'No se pudo conectar al motor AI (ECONNREFUSED)';
+            if (code === 'ENOTFOUND') return 'No se pudo resolver el host del motor AI (ENOTFOUND)';
+            if (code === 'ETIMEDOUT' || code === 'ECONNABORTED') return 'Tiempo de espera agotado al conectar con el motor AI';
+            if (code) return `Error de conexión al motor AI (${code})`;
+            return `Motor AI no disponible (${status || 'sin respuesta'})`;
+        };
+
+        if (shouldFallback) {
+            console.warn(`AI temporalmente no disponible (${status || code || 'sin respuesta'}). Activando contingencia.`);
             return this.generateAdjustmentsFallback(
                 companyId,
                 parameters,
                 profileSchema,
-                backendError || `Motor AI no disponible (${status || 'timeout'})`
+                backendError || normalizeReason()
             );
         }
 
