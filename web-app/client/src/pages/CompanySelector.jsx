@@ -3,13 +3,15 @@ import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useCompany } from '../context/CompanyContext';
 import CompanyCard from '../components/CompanyCard';
 import API_URL from '../api';
 
 export default function CompanySelector() {
-    const { companies, loading, deleteCompany, refreshCompanies, createCompany, updateCompany } = useCompany();
+    const navigate = useNavigate();
+    const { companies, loading, deleteCompany, refreshCompanies, createCompany, updateCompany, selectCompany } = useCompany();
 
     // Constantes de Tipos Societarios y Actividades
     const SOCIETAL_TYPES = [
@@ -40,6 +42,7 @@ export default function CompanySelector() {
     const [restoreError, setRestoreError] = useState(null);
     const [restoreDryRunData, setRestoreDryRunData] = useState(null);
     const [restoreSuccess, setRestoreSuccess] = useState(false);
+    const [restoreResult, setRestoreResult] = useState(null);
     const restoreFileRef = useRef(null);
     const [formData, setFormData] = useState({
         name: '',
@@ -165,6 +168,7 @@ export default function CompanySelector() {
         setRestoreError(null);
         setRestoreProgress(0);
         setRestoreSuccess(false);
+        setRestoreResult(null);
         setShowRestoreModal(true);
     };
 
@@ -174,6 +178,7 @@ export default function CompanySelector() {
         setRestoreError(null);
         setRestoreProgress(0);
         setRestoreSuccess(false);
+        setRestoreResult(null);
         if (restoreFileRef.current) restoreFileRef.current.value = '';
     };
 
@@ -189,6 +194,7 @@ export default function CompanySelector() {
         setRestoreLoading(true);
         setRestoreError(null);
         setRestoreDryRunData(null);
+        setRestoreResult(null);
 
         const fd = new FormData();
         fd.append('file', file);
@@ -207,6 +213,7 @@ export default function CompanySelector() {
 
     const handleRestoreImport = async () => {
         if (!restoreFileRef.current?.files[0]) return;
+        if (!restoreDryRunData?.compatibility?.ready || restoreDryRunData?.integrity?.valid === false) return;
 
         if (!window.confirm('¿Estás seguro de restaurar esta empresa? Se creará una nueva empresa con los datos del backup.')) {
             return;
@@ -224,7 +231,8 @@ export default function CompanySelector() {
             const response = await axios.post(`${API_URL}/api/backup/import`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {
-                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    const total = progressEvent.total || progressEvent.loaded || 1;
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
                     setRestoreProgress(30 + (percentCompleted * 0.4));
                 }
             });
@@ -233,12 +241,22 @@ export default function CompanySelector() {
             if (response.data.success) {
                 setRestoreProgress(100);
                 setRestoreSuccess(true);
+                setRestoreResult(response.data);
                 setRestoreDryRunData(null);
                 if (restoreFileRef.current) restoreFileRef.current.value = '';
                 await refreshCompanies();
-                setTimeout(() => {
-                    closeRestoreModal();
-                }, 2500);
+
+                if (response.data.newCompanyId) {
+                    await selectCompany(response.data.newCompanyId);
+                    setTimeout(() => {
+                        closeRestoreModal();
+                        navigate('/app');
+                    }, 1200);
+                } else {
+                    setTimeout(() => {
+                        closeRestoreModal();
+                    }, 2500);
+                }
             }
         } catch (err) {
             setRestoreError(err.response?.data?.error || 'Error durante la restauración.');
@@ -648,7 +666,10 @@ export default function CompanySelector() {
                                             <i className="bi bi-check-lg text-success" style={{ fontSize: '2.5rem' }}></i>
                                         </div>
                                         <h5 className="text-success fw-bold">¡Restauración Completada!</h5>
-                                        <p className="text-white-50 small">La empresa ha sido creada exitosamente desde el backup.</p>
+                                        <p className="text-white-50 small mb-2">
+                                            {restoreResult?.restoredCompanyName || 'La empresa ha sido creada exitosamente desde el backup.'}
+                                        </p>
+                                        <p className="text-info small mb-0">Abriendo empresa restaurada...</p>
                                     </div>
                                 ) : (
                                     <>
@@ -744,12 +765,64 @@ export default function CompanySelector() {
                                                                 {restoreDryRunData.counts?.transactions || 0}
                                                             </div>
                                                         </div>
+                                                        <div className="col-6">
+                                                            <div className="text-white-50">Inventario</div>
+                                                            <div className="fw-bold text-white">
+                                                                <i className="bi bi-box-seam me-1 text-info"></i>
+                                                                {restoreDryRunData.counts?.inventory_items || 0}
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <div className="text-white-50">Activos Fijos</div>
+                                                            <div className="fw-bold text-white">
+                                                                <i className="bi bi-building-gear me-1 text-info"></i>
+                                                                {restoreDryRunData.counts?.fixed_assets || 0}
+                                                            </div>
+                                                        </div>
                                                         <div className="col-12">
                                                             <div className="text-white-50">Fecha Generación</div>
-                                                            <div className="fw-bold text-white small">{new Date(restoreDryRunData.timestamp).toLocaleString()}</div>
+                                                            <div className="fw-bold text-white small">
+                                                                {new Date(restoreDryRunData.createdAt || restoreDryRunData.timestamp).toLocaleString()}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {!restoreDryRunData.compatibility?.ready && (
+                                                    <div className="alert alert-danger border-danger bg-danger bg-opacity-10 text-danger small">
+                                                        <div className="fw-bold mb-1">
+                                                            <i className="bi bi-shield-x me-2"></i>
+                                                            El backup no es restaurable en este entorno.
+                                                        </div>
+                                                        {(restoreDryRunData.compatibility?.errors || []).map((error, index) => (
+                                                            <div key={index}>{error}</div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {restoreDryRunData.integrity?.errors?.length > 0 && (
+                                                    <div className="alert alert-danger border-danger bg-danger bg-opacity-10 text-danger small">
+                                                        <div className="fw-bold mb-1">
+                                                            <i className="bi bi-exclamation-octagon me-2"></i>
+                                                            El backup contiene errores de integridad.
+                                                        </div>
+                                                        {(restoreDryRunData.integrity?.errors || []).map((error, index) => (
+                                                            <div key={index}>{error}</div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {(restoreDryRunData.compatibility?.warnings?.length > 0 || restoreDryRunData.integrity?.warnings?.length > 0) && (
+                                                    <div className="alert alert-warning border-warning bg-warning bg-opacity-10 text-warning small">
+                                                        <div className="fw-bold mb-1">
+                                                            <i className="bi bi-exclamation-triangle me-2"></i>
+                                                            Observaciones del backup
+                                                        </div>
+                                                        {[...(restoreDryRunData.compatibility?.warnings || []), ...(restoreDryRunData.integrity?.warnings || [])].map((warning, index) => (
+                                                            <div key={index}>{warning}</div>
+                                                        ))}
+                                                    </div>
+                                                )}
 
                                                 {/* Progress Bar */}
                                                 {restoreProgress > 0 && (
@@ -766,7 +839,7 @@ export default function CompanySelector() {
                                                     <button
                                                         className="btn btn-premium flex-grow-1"
                                                         onClick={handleRestoreImport}
-                                                        disabled={restoreLoading}
+                                                        disabled={restoreLoading || !restoreDryRunData.compatibility?.ready || restoreDryRunData.integrity?.valid === false}
                                                     >
                                                         {restoreLoading ? (
                                                             <span><span className="spinner-border spinner-border-sm me-2"></span>Restaurando...</span>

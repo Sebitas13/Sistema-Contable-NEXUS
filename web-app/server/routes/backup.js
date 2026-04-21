@@ -6,321 +6,871 @@ const unzipper = require('unzipper');
 const fs = require('fs-extra');
 const path = require('path');
 const multer = require('multer');
-const crypto = require('crypto');
 const axios = require('axios');
 
-const VERSION = "1.0.0";
-const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+const {
+    BACKUP_VERSION,
+    normalizeBackupTables,
+    computeTablesChecksum,
+    validateBackupTables,
+    buildBackupMetadata
+} = require('../utils/backupCore');
 
-// Helper function to format dates
+const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+const UPLOAD_DIR = path.join(__dirname, '../temp/uploads/');
+const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL || `http://127.0.0.1:${process.env.PORT || 3001}`;
+
+const SUPPORTED_TABLES = [
+    'companies',
+    'accounts',
+    'transactions',
+    'transaction_entries',
+    'inventory_items',
+    'inventory_movements',
+    'fixed_assets',
+    'ufv_rates',
+    'exchange_rates',
+    'company_adjustment_profiles',
+    'mahoraga_adaptation_events'
+];
+
+const DIRECT_COMPANY_TABLES = new Set([
+    'accounts',
+    'transactions',
+    'inventory_items',
+    'fixed_assets',
+    'ufv_rates',
+    'exchange_rates',
+    'company_adjustment_profiles',
+    'mahoraga_adaptation_events'
+]);
+
+fs.ensureDirSync(UPLOAD_DIR);
+
+const upload = multer({
+    dest: UPLOAD_DIR,
+    limits: { fileSize: MAX_SIZE }
+});
+
+function escapeIdentifier(identifier) {
+    return `"${String(identifier).replace(/"/g, '""')}"`;
+}
+
+function normalizeValue(value) {
+    if (typeof value === 'bigint') {
+        return Number(value);
+    }
+    return value;
+}
+
+function normalizeRow(row) {
+    if (!row || typeof row !== 'object') {
+        return row;
+    }
+
+    const normalized = {};
+    Object.keys(row).forEach((key) => {
+        normalized[key] = normalizeValue(row[key]);
+    });
+    return normalized;
+}
+
 function formatDate(date) {
     return date.toISOString().split('T')[0];
 }
 
-// Ensure upload directory exists
-fs.ensureDirSync(path.join(__dirname, '../temp/uploads/'));
+function formatRestoreSuffix(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
 
-// Multer setup for temporary file storage during import
-const upload = multer({
-    dest: path.join(__dirname, '../temp/uploads/'),
-    limits: { fileSize: MAX_SIZE }
-});
+function sanitizeFilename(value) {
+    const sanitized = String(value || 'Empresa')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
 
-/**
- * UTILS
- */
+    return sanitized || 'Empresa';
+}
 
-// Helper to wrap db.all in a promise - LIBSQL PROMISES VERSION
-const dbAll = async (sql, params = []) => {
-    try {
-        const rows = await db.all(sql, params);
-        return rows;
-    } catch (err) {
-        throw err;
+function uniqueMessages(messages = []) {
+    return Array.from(new Set(messages.filter(Boolean)));
+}
+
+function incrementCounter(target, key, amount = 1) {
+    target[key] = (target[key] || 0) + amount;
+}
+
+function createDbApi(overrides = {}) {
+    return {
+        all: overrides.all || ((sql, params = []) => new Promise((resolve, reject) => {
+            db.all(sql, params, (err, rows) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve((rows || []).map(normalizeRow));
+            });
+        })),
+        get: overrides.get || ((sql, params = []) => new Promise((resolve, reject) => {
+            db.get(sql, params, (err, row) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(row ? normalizeRow(row) : undefined);
+            });
+        })),
+        run: overrides.run || ((sql, params = []) => new Promise((resolve, reject) => {
+            db.run(sql, params, function runCallback(err) {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve({
+                    lastID: normalizeValue(this?.lastID),
+                    changes: normalizeValue(this?.changes) || 0
+                });
+            });
+        }))
+    };
+}
+
+const rootDbApi = createDbApi();
+
+function createTransactionApi(tx) {
+    return createDbApi({
+        all: async (sql, params = []) => {
+            const result = await tx.execute({ sql, args: params });
+            return (result.rows || []).map(normalizeRow);
+        },
+        get: async (sql, params = []) => {
+            const rows = await tx.execute({ sql, args: params });
+            return rows.rows?.length ? normalizeRow(rows.rows[0]) : undefined;
+        },
+        run: async (sql, params = []) => {
+            const result = await tx.execute({ sql, args: params });
+            return {
+                lastID: normalizeValue(result.lastInsertRowid),
+                changes: normalizeValue(result.rowsAffected) || 0
+            };
+        }
+    });
+}
+
+async function withTransaction(work) {
+    if (typeof db.transaction === 'function') {
+        return db.transaction(async (tx) => work(createTransactionApi(tx)));
     }
-};
 
-// Helper to wrap db.get in a promise - LIBSQL PROMISES VERSION
-const dbGet = async (sql, params = []) => {
+    const fallbackApi = rootDbApi;
+    await fallbackApi.run('BEGIN IMMEDIATE TRANSACTION');
     try {
-        const row = await db.get(sql, params);
-        return row;
-    } catch (err) {
-        throw err;
-    }
-};
-
-// Helper to run a command in a promise - LIBSQL PROMISES VERSION
-const dbRun = async (sql, params = []) => {
-    try {
-        const result = await db.run(sql, params);
+        const result = await work(fallbackApi);
+        await fallbackApi.run('COMMIT');
         return result;
-    } catch (err) {
-        throw err;
+    } catch (error) {
+        try {
+            await fallbackApi.run('ROLLBACK');
+        } catch (rollbackError) {
+            console.warn('Rollback de backup falló:', rollbackError.message);
+        }
+        throw error;
     }
-};
+}
 
-/**
- * EXPORT
- */
+async function safeRemoveFile(filePath) {
+    if (!filePath) {
+        return;
+    }
+
+    try {
+        await fs.remove(filePath);
+    } catch (error) {
+        console.warn('No se pudo limpiar archivo temporal:', error.message);
+    }
+}
+
+async function getTableState(tableName, queryApi = rootDbApi, cache = new Map()) {
+    if (cache.has(tableName)) {
+        return cache.get(tableName);
+    }
+
+    const table = await queryApi.get(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+        [tableName]
+    );
+
+    if (!table) {
+        const missingState = { exists: false, columns: [], columnSet: new Set() };
+        cache.set(tableName, missingState);
+        return missingState;
+    }
+
+    const tableInfo = await queryApi.all(`PRAGMA table_info(${escapeIdentifier(tableName)})`);
+    const columns = tableInfo.map((column) => column.name);
+    const state = {
+        exists: true,
+        columns,
+        columnSet: new Set(columns)
+    };
+
+    cache.set(tableName, state);
+    return state;
+}
+
+function buildOrderClause(state, preferredColumns = []) {
+    const candidates = [...preferredColumns, 'date', 'created_at', 'code', 'id'];
+    const columns = [];
+
+    candidates.forEach((column) => {
+        if (state.columnSet.has(column) && !columns.includes(column)) {
+            columns.push(column);
+        }
+    });
+
+    if (columns.length === 0) {
+        return '';
+    }
+
+    return ` ORDER BY ${columns.map((column) => `${escapeIdentifier(column)} ASC`).join(', ')}`;
+}
+
+async function queryEntireTable(tableName, queryApi = rootDbApi, cache = new Map()) {
+    const state = await getTableState(tableName, queryApi, cache);
+    if (!state.exists) {
+        return [];
+    }
+
+    return queryApi.all(
+        `SELECT * FROM ${escapeIdentifier(tableName)}${buildOrderClause(state)}`,
+        []
+    );
+}
+
+async function queryCompanyScopedTable(tableName, companyId, schemaWarnings, queryApi = rootDbApi, cache = new Map()) {
+    const state = await getTableState(tableName, queryApi, cache);
+    if (!state.exists) {
+        return [];
+    }
+
+    if (state.columnSet.has('company_id')) {
+        return queryApi.all(
+            `SELECT * FROM ${escapeIdentifier(tableName)} WHERE company_id = ?${buildOrderClause(state)}`,
+            [companyId]
+        );
+    }
+
+    schemaWarnings.push(`La tabla ${tableName} no tiene company_id. Se exportaron todos sus registros por compatibilidad legacy.`);
+    return queryEntireTable(tableName, queryApi, cache);
+}
+
+async function queryTransactionEntries(companyId, schemaWarnings, queryApi = rootDbApi, cache = new Map()) {
+    const transactionState = await getTableState('transactions', queryApi, cache);
+    const entryState = await getTableState('transaction_entries', queryApi, cache);
+
+    if (!transactionState.exists || !entryState.exists) {
+        return [];
+    }
+
+    if (transactionState.columnSet.has('company_id')) {
+        return queryApi.all(`
+            SELECT te.*
+            FROM transaction_entries te
+            JOIN transactions t ON te.transaction_id = t.id
+            WHERE t.company_id = ?
+            ORDER BY te.transaction_id ASC, te.id ASC
+        `, [companyId]);
+    }
+
+    schemaWarnings.push('La tabla transactions no tiene company_id. Se exportaron todos los detalles de asientos.');
+    return queryEntireTable('transaction_entries', queryApi, cache);
+}
+
+async function queryInventoryMovements(companyId, schemaWarnings, queryApi = rootDbApi, cache = new Map()) {
+    const itemState = await getTableState('inventory_items', queryApi, cache);
+    const movementState = await getTableState('inventory_movements', queryApi, cache);
+
+    if (!itemState.exists || !movementState.exists) {
+        return [];
+    }
+
+    if (itemState.columnSet.has('company_id')) {
+        return queryApi.all(`
+            SELECT im.*
+            FROM inventory_movements im
+            JOIN inventory_items ii ON im.item_id = ii.id
+            WHERE ii.company_id = ?
+            ORDER BY im.date ASC, im.id ASC
+        `, [companyId]);
+    }
+
+    schemaWarnings.push('La tabla inventory_items no tiene company_id. Se exportaron todos los movimientos de inventario.');
+    return queryEntireTable('inventory_movements', queryApi, cache);
+}
+
+async function exportCompanyData(companyId) {
+    const cache = new Map();
+    const schemaWarnings = [];
+    const sourceCompany = await rootDbApi.get('SELECT * FROM companies WHERE id = ?', [companyId]);
+
+    if (!sourceCompany) {
+        return null;
+    }
+
+    const rawTables = {
+        companies: { rows: [sourceCompany] },
+        accounts: { rows: await queryCompanyScopedTable('accounts', companyId, schemaWarnings, rootDbApi, cache) },
+        transactions: { rows: await queryCompanyScopedTable('transactions', companyId, schemaWarnings, rootDbApi, cache) },
+        transaction_entries: { rows: await queryTransactionEntries(companyId, schemaWarnings, rootDbApi, cache) },
+        inventory_items: { rows: await queryCompanyScopedTable('inventory_items', companyId, schemaWarnings, rootDbApi, cache) },
+        inventory_movements: { rows: await queryInventoryMovements(companyId, schemaWarnings, rootDbApi, cache) },
+        fixed_assets: { rows: await queryCompanyScopedTable('fixed_assets', companyId, schemaWarnings, rootDbApi, cache) },
+        ufv_rates: { rows: await queryCompanyScopedTable('ufv_rates', companyId, schemaWarnings, rootDbApi, cache) },
+        exchange_rates: { rows: await queryCompanyScopedTable('exchange_rates', companyId, schemaWarnings, rootDbApi, cache) },
+        company_adjustment_profiles: { rows: await queryCompanyScopedTable('company_adjustment_profiles', companyId, schemaWarnings, rootDbApi, cache) },
+        mahoraga_adaptation_events: { rows: await queryCompanyScopedTable('mahoraga_adaptation_events', companyId, schemaWarnings, rootDbApi, cache) }
+    };
+
+    const tables = normalizeBackupTables(rawTables);
+    const validation = validateBackupTables(tables, {});
+    const checksum = computeTablesChecksum(tables);
+    const metadata = buildBackupMetadata({
+        sourceCompany,
+        tables,
+        validation,
+        checksum,
+        schemaWarnings: uniqueMessages(schemaWarnings)
+    });
+
+    return {
+        sourceCompany,
+        tables,
+        validation,
+        metadata
+    };
+}
+
+async function readJsonEntry(directory, entryPath) {
+    const entry = directory.files.find((file) => file.path === entryPath);
+    if (!entry) {
+        return null;
+    }
+
+    const content = await entry.buffer();
+    try {
+        return JSON.parse(content.toString('utf8'));
+    } catch (error) {
+        throw new Error(`No se pudo parsear ${entryPath}: ${error.message}`);
+    }
+}
+
+async function readBackupBundle(filePath) {
+    const directory = await unzipper.Open.file(filePath);
+    const metadata = await readJsonEntry(directory, 'metadata.json');
+
+    if (!metadata) {
+        throw new Error('Backup inválido: falta metadata.json.');
+    }
+
+    const rawTables = {};
+    const dataFiles = directory.files.filter(
+        (file) => file.path.startsWith('data/') && file.path.endsWith('.json')
+    );
+
+    for (const file of dataFiles) {
+        const tableName = path.basename(file.path, '.json');
+        rawTables[tableName] = await readJsonEntry(directory, file.path);
+    }
+
+    const tables = normalizeBackupTables(rawTables);
+    const validation = validateBackupTables(tables, metadata);
+
+    return {
+        metadata,
+        tables,
+        validation
+    };
+}
+
+function listDroppedColumns(tablePayload, state) {
+    return (tablePayload.columns || []).filter((column) => (
+        !state.columnSet.has(column) &&
+        column !== 'id' &&
+        column !== 'company_id'
+    ));
+}
+
+async function assessRestoreCompatibility(bundle) {
+    const cache = new Map();
+    const errors = [];
+    const warnings = [];
+
+    const sourceCompany = bundle.validation.sourceCompany || bundle.tables.companies?.rows?.[0];
+    if (sourceCompany?.nit) {
+        const existingNit = await rootDbApi.get('SELECT id, name FROM companies WHERE nit = ?', [sourceCompany.nit]);
+        if (existingNit) {
+            warnings.push(`El NIT ${sourceCompany.nit} ya existe en la empresa "${existingNit.name}". Durante la restauración se dejará el NIT vacío para evitar conflicto.`);
+        }
+    }
+
+    for (const [tableName, tablePayload] of Object.entries(bundle.tables)) {
+        if (!SUPPORTED_TABLES.includes(tableName)) {
+            if ((tablePayload.rows || []).length > 0) {
+                warnings.push(`La tabla ${tableName} no está soportada por esta versión y no se restaurará automáticamente.`);
+            }
+            continue;
+        }
+
+        if (tableName === 'companies' || (tablePayload.rows || []).length === 0) {
+            continue;
+        }
+
+        const state = await getTableState(tableName, rootDbApi, cache);
+        if (!state.exists) {
+            errors.push(`La tabla destino ${tableName} no existe en la base de datos actual.`);
+            continue;
+        }
+
+        const droppedColumns = listDroppedColumns(tablePayload, state);
+        if (droppedColumns.length > 0) {
+            warnings.push(`La tabla ${tableName} omitirá columnas no soportadas: ${droppedColumns.join(', ')}.`);
+        }
+
+        if (DIRECT_COMPANY_TABLES.has(tableName) && !state.columnSet.has('company_id')) {
+            errors.push(`La tabla ${tableName} no tiene la columna company_id. Migra la base de datos antes de restaurar.`);
+        }
+
+        if (tableName === 'exchange_rates') {
+            const supportsModernRates = state.columnSet.has('currency') &&
+                state.columnSet.has('buy_rate') &&
+                state.columnSet.has('sell_rate');
+            const supportsLegacyRates = state.columnSet.has('usd_buy') && state.columnSet.has('usd_sell');
+
+            if (!supportsModernRates && !supportsLegacyRates) {
+                errors.push('La tabla exchange_rates no tiene columnas compatibles para restaurar tipos de cambio.');
+            }
+
+            if (supportsLegacyRates) {
+                const nonUsdRows = tablePayload.rows.filter((row) => String(row.currency || 'USD').toUpperCase() !== 'USD');
+                if (nonUsdRows.length > 0) {
+                    errors.push('El destino exchange_rates es legacy y no soporta monedas distintas a USD.');
+                }
+            }
+        }
+
+        if (tableName === 'ufv_rates') {
+            const hasCoreColumns = state.columnSet.has('date') && state.columnSet.has('value');
+            if (!hasCoreColumns) {
+                errors.push('La tabla ufv_rates no tiene las columnas mínimas requeridas (date, value).');
+            }
+        }
+    }
+
+    return {
+        ready: errors.length === 0,
+        errors: uniqueMessages(errors),
+        warnings: uniqueMessages(warnings)
+    };
+}
+
+function buildInsertRow(sourceRow, state, { companyId, includeId = false, omitColumns = [], overrides = {} } = {}) {
+    const omitted = new Set(includeId ? omitColumns : ['id', ...omitColumns]);
+    const row = {};
+
+    state.columns.forEach((column) => {
+        if (omitted.has(column)) {
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(overrides, column)) {
+            row[column] = overrides[column];
+            return;
+        }
+
+        if (column === 'company_id' && companyId !== undefined) {
+            row[column] = companyId;
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(sourceRow, column)) {
+            row[column] = sourceRow[column];
+        }
+    });
+
+    Object.entries(overrides).forEach(([column, value]) => {
+        if (state.columnSet.has(column) && !omitted.has(column)) {
+            row[column] = value;
+        }
+    });
+
+    return row;
+}
+
+async function insertRow(tableName, row, queryApi, cache) {
+    const state = await getTableState(tableName, queryApi, cache);
+    const columns = state.columns.filter((column) => Object.prototype.hasOwnProperty.call(row, column));
+
+    if (columns.length === 0) {
+        return { lastID: null, changes: 0 };
+    }
+
+    const placeholders = columns.map(() => '?').join(', ');
+    const sql = `INSERT INTO ${escapeIdentifier(tableName)} (${columns.map(escapeIdentifier).join(', ')}) VALUES (${placeholders})`;
+
+    return queryApi.run(sql, columns.map((column) => row[column]));
+}
+
+async function buildUniqueEventId(queryApi, baseId, sequence) {
+    const root = String(baseId || `event-${sequence}`);
+    let candidate = root;
+    let suffix = 0;
+
+    while (await queryApi.get('SELECT id FROM mahoraga_adaptation_events WHERE id = ?', [candidate])) {
+        suffix += 1;
+        candidate = `${root}::restored::${sequence}${suffix > 1 ? `-${suffix}` : ''}`;
+    }
+
+    return candidate;
+}
+
+function buildExchangeRateRow(sourceRow, state, companyId, restoreWarnings) {
+    const currency = String(sourceRow.currency || 'USD').toUpperCase();
+    const buyRate = sourceRow.buy_rate ?? sourceRow.usd_buy;
+    const sellRate = sourceRow.sell_rate ?? sourceRow.usd_sell;
+
+    if (buyRate === undefined || sellRate === undefined) {
+        restoreWarnings.push(`Se omitió un tipo de cambio sin tasas válidas para la fecha ${sourceRow.date || 'desconocida'}.`);
+        return null;
+    }
+
+    const supportsModernRates = state.columnSet.has('currency') &&
+        state.columnSet.has('buy_rate') &&
+        state.columnSet.has('sell_rate');
+
+    if (supportsModernRates) {
+        return buildInsertRow(sourceRow, state, {
+            companyId,
+            overrides: {
+                currency,
+                buy_rate: buyRate,
+                sell_rate: sellRate
+            }
+        });
+    }
+
+    if (currency !== 'USD') {
+        restoreWarnings.push(`Se omitió un tipo de cambio ${currency} porque el esquema destino solo soporta USD.`);
+        return null;
+    }
+
+    return buildInsertRow(sourceRow, state, {
+        companyId,
+        overrides: {
+            usd_buy: buyRate,
+            usd_sell: sellRate
+        }
+    });
+}
+
+async function restoreBackupBundle(bundle) {
+    const compatibility = await assessRestoreCompatibility(bundle);
+    if (!bundle.validation.valid) {
+        const reason = bundle.validation.errors[0] || 'El backup no pasó la validación.';
+        throw new Error(reason);
+    }
+
+    if (!compatibility.ready) {
+        const reason = compatibility.errors[0] || 'El entorno actual no es compatible con este backup.';
+        throw new Error(reason);
+    }
+
+    const sourceCompany = bundle.validation.sourceCompany || bundle.tables.companies?.rows?.[0];
+    if (!sourceCompany) {
+        throw new Error('No se encontró la empresa origen dentro del backup.');
+    }
+
+    return withTransaction(async (queryApi) => {
+        const cache = new Map();
+        const restoreWarnings = [...compatibility.warnings];
+        const stats = {
+            imported: {},
+            skipped: {}
+        };
+        let eventSequence = 0;
+
+        const companyState = await getTableState('companies', queryApi, cache);
+        if (!companyState.exists) {
+            throw new Error('La tabla companies no existe en la base de datos.');
+        }
+
+        const existingNit = sourceCompany.nit
+            ? await queryApi.get('SELECT id, name FROM companies WHERE nit = ?', [sourceCompany.nit])
+            : null;
+
+        const restoredCompanyName = `${sourceCompany.name || 'Empresa'} (Restaurado ${formatRestoreSuffix()})`;
+        const companyRow = buildInsertRow(sourceCompany, companyState, {
+            omitColumns: ['created_at', 'updated_at'],
+            overrides: {
+                name: restoredCompanyName,
+                nit: existingNit ? null : (sourceCompany.nit || null),
+                legal_name: sourceCompany.legal_name || sourceCompany.name || restoredCompanyName
+            }
+        });
+
+        const companyInsert = await insertRow('companies', companyRow, queryApi, cache);
+        const newCompanyId = companyInsert.lastID;
+
+        if (!newCompanyId) {
+            throw new Error('No se pudo crear la empresa restaurada.');
+        }
+
+        if (existingNit) {
+            restoreWarnings.push(`Se creó la empresa sin NIT porque ${sourceCompany.nit} ya estaba registrado en "${existingNit.name}".`);
+        }
+
+        const accountIdMap = new Map();
+        const transactionIdMap = new Map();
+        const inventoryItemIdMap = new Map();
+
+        const restoreSimpleScopedRows = async (tableName, idMap = null, rowBuilder = null) => {
+            const rows = bundle.tables[tableName]?.rows || [];
+            if (rows.length === 0) {
+                return;
+            }
+
+            const state = await getTableState(tableName, queryApi, cache);
+            for (const sourceRow of rows) {
+                const insertPayload = rowBuilder
+                    ? await rowBuilder(sourceRow, state)
+                    : buildInsertRow(sourceRow, state, { companyId: newCompanyId });
+
+                if (!insertPayload) {
+                    incrementCounter(stats.skipped, tableName);
+                    continue;
+                }
+
+                const result = await insertRow(tableName, insertPayload, queryApi, cache);
+                incrementCounter(stats.imported, tableName);
+
+                if (idMap && sourceRow.id !== undefined && sourceRow.id !== null && result.lastID !== null && result.lastID !== undefined) {
+                    idMap.set(String(sourceRow.id), result.lastID);
+                }
+            }
+        };
+
+        await restoreSimpleScopedRows('accounts', accountIdMap);
+        await restoreSimpleScopedRows('inventory_items', inventoryItemIdMap);
+        await restoreSimpleScopedRows('fixed_assets');
+        await restoreSimpleScopedRows('ufv_rates');
+        await restoreSimpleScopedRows('exchange_rates', null, async (sourceRow, state) => (
+            buildExchangeRateRow(sourceRow, state, newCompanyId, restoreWarnings)
+        ));
+        await restoreSimpleScopedRows('company_adjustment_profiles');
+        await restoreSimpleScopedRows('mahoraga_adaptation_events', null, async (sourceRow, state) => {
+            eventSequence += 1;
+            const eventId = await buildUniqueEventId(queryApi, sourceRow.id, eventSequence);
+            return buildInsertRow(sourceRow, state, {
+                companyId: newCompanyId,
+                includeId: true,
+                overrides: { id: eventId }
+            });
+        });
+
+        const transactionState = await getTableState('transactions', queryApi, cache);
+        const transactions = bundle.tables.transactions?.rows || [];
+        for (const sourceRow of transactions) {
+            const result = await insertRow(
+                'transactions',
+                buildInsertRow(sourceRow, transactionState, { companyId: newCompanyId }),
+                queryApi,
+                cache
+            );
+            incrementCounter(stats.imported, 'transactions');
+
+            if (sourceRow.id !== undefined && sourceRow.id !== null && result.lastID !== null && result.lastID !== undefined) {
+                transactionIdMap.set(String(sourceRow.id), result.lastID);
+            }
+        }
+
+        const entryState = await getTableState('transaction_entries', queryApi, cache);
+        const entries = bundle.tables.transaction_entries?.rows || [];
+        for (const sourceRow of entries) {
+            const newTransactionId = transactionIdMap.get(String(sourceRow.transaction_id));
+            const newAccountId = accountIdMap.get(String(sourceRow.account_id));
+
+            if (!newTransactionId || !newAccountId) {
+                incrementCounter(stats.skipped, 'transaction_entries');
+                restoreWarnings.push(`Se omitió un detalle de asiento por referencias faltantes (transaction_id=${sourceRow.transaction_id}, account_id=${sourceRow.account_id}).`);
+                continue;
+            }
+
+            await insertRow(
+                'transaction_entries',
+                buildInsertRow(sourceRow, entryState, {
+                    overrides: {
+                        transaction_id: newTransactionId,
+                        account_id: newAccountId
+                    }
+                }),
+                queryApi,
+                cache
+            );
+            incrementCounter(stats.imported, 'transaction_entries');
+        }
+
+        const movementState = await getTableState('inventory_movements', queryApi, cache);
+        const movements = bundle.tables.inventory_movements?.rows || [];
+        for (const sourceRow of movements) {
+            const newItemId = inventoryItemIdMap.get(String(sourceRow.item_id));
+
+            if (!newItemId) {
+                incrementCounter(stats.skipped, 'inventory_movements');
+                restoreWarnings.push(`Se omitió un movimiento de inventario por item faltante (item_id=${sourceRow.item_id}).`);
+                continue;
+            }
+
+            await insertRow(
+                'inventory_movements',
+                buildInsertRow(sourceRow, movementState, {
+                    overrides: { item_id: newItemId }
+                }),
+                queryApi,
+                cache
+            );
+            incrementCounter(stats.imported, 'inventory_movements');
+        }
+
+        return {
+            newCompanyId,
+            restoredCompanyName,
+            sourceCompanyName: sourceCompany.name,
+            stats,
+            warnings: uniqueMessages(restoreWarnings)
+        };
+    });
+}
+
+async function notifyAiProfileReload(companyId) {
+    try {
+        await axios.post(
+            `${INTERNAL_API_BASE_URL}/api/ai/reload-profiles`,
+            { companyId },
+            { timeout: 4000 }
+        );
+    } catch (error) {
+        console.warn('No se pudo refrescar caché de perfiles AI tras restauración:', error.message);
+    }
+}
+
 router.get('/export/:companyId', async (req, res) => {
     const { companyId } = req.params;
 
     try {
-        // 1. Verify company exists
-        const company = await dbGet('SELECT * FROM companies WHERE id = ?', [companyId]);
-        if (!company) {
+        const bundle = await exportCompanyData(companyId);
+        if (!bundle) {
             return res.status(404).json({ error: 'Company not found' });
         }
 
-        // 2. Setup ZIP stream
+        const fileName = `Backup_${sanitizeFilename(bundle.sourceCompany.name)}_${formatDate(new Date())}.zip`;
+        res.setHeader('X-Backup-Version', BACKUP_VERSION);
+        res.attachment(fileName);
+
         const archive = archiver('zip', { zlib: { level: 9 } });
-        res.attachment(`Backup_${company.name.replace(/\s+/g, '_')}_${formatDate(new Date())}.zip`);
-        archive.pipe(res);
-
-        // 3. Fetch all data sets
-        const tables = [
-            { name: 'companies', sql: 'SELECT * FROM companies WHERE id = ?', params: [companyId] },
-            { name: 'accounts', sql: 'SELECT * FROM accounts WHERE company_id = ?', params: [companyId] },
-            { name: 'transactions', sql: 'SELECT * FROM transactions WHERE company_id = ?', params: [companyId] },
-            {
-                name: 'transaction_entries', sql: `
-                SELECT te.* FROM transaction_entries te 
-                JOIN transactions t ON te.transaction_id = t.id 
-                WHERE t.company_id = ?`, params: [companyId]
-            },
-            { name: 'ufv_rates', sql: 'SELECT * FROM ufv_rates WHERE company_id = ?', params: [companyId] },
-            { name: 'exchange_rates', sql: 'SELECT * FROM exchange_rates WHERE company_id = ?', params: [companyId] },
-            { name: 'mahoraga_adaptation_events', sql: 'SELECT * FROM mahoraga_adaptation_events WHERE company_id = ?', params: [companyId] },
-            { name: 'company_adjustment_profiles', sql: 'SELECT * FROM company_adjustment_profiles WHERE company_id = ?', params: [companyId] }
-        ];
-
-        let combinedData = {};
-        for (const table of tables) {
-            const rows = await dbAll(table.sql, table.params);
-            combinedData[table.name] = rows;
-            archive.append(JSON.stringify(rows, null, 2), { name: `data/${table.name}.json` });
-        }
-
-        // 4. Generate Metadata & Hash
-        const dataString = JSON.stringify(combinedData);
-        const hash = crypto.createHash('sha256').update(dataString).digest('hex');
-
-        const metadata = {
-            version: VERSION,
-            timestamp: new Date().toISOString(),
-            companyName: company.name,
-            nit: company.nit,
-            counts: {
-                accounts: combinedData.accounts.length,
-                transactions: combinedData.transactions.length
-            },
-            hash: hash
-        };
-
-        archive.append(JSON.stringify(metadata, null, 2), { name: 'metadata.json' });
-
-        // 5. Finalize
-        await archive.finalize();
-
-    } catch (err) {
-        console.error('Export error:', err);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Failed to generate backup: ' + err.message });
-        }
-    }
-});
-
-/**
- * DRY RUN (PREVIEW)
- */
-router.post('/dry-run', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-    try {
-        const directory = await unzipper.Open.file(req.file.path);
-        const metadataFile = directory.files.find(d => d.path === 'metadata.json');
-
-        if (!metadataFile) {
-            await fs.remove(req.file.path);
-            return res.status(400).json({ error: 'Invalid backup: metadata.json missing' });
-        }
-
-        const metadataContent = await metadataFile.buffer();
-        const metadata = JSON.parse(metadataContent.toString());
-
-        // Basic version check
-        if (metadata.version !== VERSION) {
-            // We could handle migrations here in the future
-        }
-
-        await fs.remove(req.file.path);
-        res.json({ success: true, metadata });
-
-    } catch (err) {
-        if (req.file) await fs.remove(req.file.path);
-        res.status(500).json({ error: 'Failed to read backup: ' + err.message });
-    }
-});
-
-/**
- * IMPORT
- */
-router.post('/import', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-    // Helper to run commands within a transaction - LIBSQL COMPATIBLE VERSION
-    const txRun = async (tx, sql, params = []) => {
-        // Helper to convert BigInt to Number for JSON serialization
-        function normalizeValue(value) {
-            if (typeof value === 'bigint') {
-                return Number(value);
-            }
-            return value;
-        }
-        
-        try {
-            const result = await db.run(sql, params);
-            return {
-                lastID: normalizeValue(result.lastID),
-                changes: normalizeValue(result.changes),
-            };
-        } catch (err) {
-            throw err;
-        }
-    };
-
-    try {
-        const directory = await unzipper.Open.file(req.file.path);
-
-        const loadJson = async (filename) => {
-            const file = directory.files.find(d => d.path === filename);
-            if (!file) return [];
-            const buffer = await file.buffer();
-            return JSON.parse(buffer.toString());
-        };
-
-        const companies = await loadJson('data/companies.json');
-        if (companies.length === 0) throw new Error('No company data found in backup');
-
-        const accounts = await loadJson('data/accounts.json');
-        const transactions = await loadJson('data/transactions.json');
-        const transaction_entries = await loadJson('data/transaction_entries.json');
-        const ufv_rates = await loadJson('data/ufv_rates.json');
-        const exchange_rates = await loadJson('data/exchange_rates.json');
-        const mahoraga_events = await loadJson('data/mahoraga_adaptation_events.json');
-        const profiles = await loadJson('data/company_adjustment_profiles.json');
-
-        let NEW_COMPANY_ID;
-
-        // Use LibSQL transaction handling
-        await db.run('BEGIN TRANSACTION');
-        
-        try {
-            const sourceCompany = companies[0];
-
-            const insertCompSql = `
-                INSERT INTO companies (
-                    name, nit, legal_name, address, city, country, phone, email, website, 
-                    logo_url, fiscal_year_start, currency, code_mask, plan_structure, 
-                    societal_type, activity_type, operation_start_date, current_year
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-            const compResult = await txRun(null, insertCompSql, [
-                sourceCompany.name + " (Restaurado)",
-                sourceCompany.nit,
-                sourceCompany.legal_name,
-                sourceCompany.address,
-                sourceCompany.city,
-                sourceCompany.country,
-                sourceCompany.phone,
-                sourceCompany.email,
-                sourceCompany.website,
-                sourceCompany.logo_url,
-                sourceCompany.fiscal_year_start,
-                sourceCompany.currency,
-                sourceCompany.code_mask,
-                sourceCompany.plan_structure,
-                sourceCompany.societal_type,
-                sourceCompany.activity_type,
-                sourceCompany.operation_start_date,
-                sourceCompany.current_year
-            ]);
-            NEW_COMPANY_ID = compResult.lastID;
-
-            const accountIdMap = new Map();
-            for (const acc of accounts) {
-                const accRes = await txRun(null,
-                    `INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)`,
-                    [NEW_COMPANY_ID, acc.code, acc.name, acc.type, acc.level, acc.parent_code]
-                );
-                accountIdMap.set(acc.id, accRes.lastID);
-            }
-
-            for (const transaction of transactions) {
-                const txRes = await txRun(null,
-                    `INSERT INTO transactions (company_id, date, gloss, type, created_at) VALUES (?, ?, ?, ?, ?)`,
-                    [NEW_COMPANY_ID, transaction.date, transaction.gloss, transaction.type, transaction.created_at]
-                );
-                const NEW_TX_ID = txRes.lastID;
-
-                const entries = transaction_entries.filter(e => e.transaction_id === transaction.id);
-                for (const entry of entries) {
-                    const newAccId = accountIdMap.get(entry.account_id);
-                    if (!newAccId) continue;
-                    await txRun(null,
-                        `INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)`,
-                        [NEW_TX_ID, newAccId, entry.debit, entry.credit, entry.gloss]
-                    );
-                }
-            }
-
-            for (const rate of ufv_rates) {
-                await txRun(null, `INSERT OR IGNORE INTO ufv_rates (company_id, date, value) VALUES (?, ?, ?)`,
-                    [NEW_COMPANY_ID, rate.date, rate.value]);
-            }
-            for (const rate of exchange_rates) {
-                if (rate.currency === 'USD') {
-                    await txRun(null, `INSERT OR IGNORE INTO exchange_rates (company_id, date, usd_buy, usd_sell) VALUES (?, ?, ?, ?)`,
-                        [NEW_COMPANY_ID, rate.date, rate.buy_rate, rate.sell_rate]);
-                }
-            }
-
-            for (const profile of profiles) {
-                await txRun(null, `INSERT OR IGNORE INTO company_adjustment_profiles (company_id, profile_json, version) VALUES (?, ?, ?)`,
-                    [NEW_COMPANY_ID, profile.profile_json, profile.version]);
-            }
-            for (const event of mahoraga_events) {
-                await txRun(null, `INSERT OR IGNORE INTO mahoraga_adaptation_events (id, company_id, user, origin_trans, account_code, account_name, action, event_data, timestamp, reverted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [event.id, NEW_COMPANY_ID, event.user, event.origin_trans, event.account_code, event.account_name, event.action, event.event_data, event.timestamp, event.reverted]);
-            }
-            
-            await db.run('COMMIT');
-            
-        } catch (error) {
-            await db.run('ROLLBACK');
+        archive.on('error', (error) => {
             throw error;
+        });
+
+        archive.pipe(res);
+        archive.append(JSON.stringify(bundle.metadata), { name: 'metadata.json' });
+
+        Object.values(bundle.tables).forEach((tablePayload) => {
+            archive.append(JSON.stringify(tablePayload), {
+                name: `data/${tablePayload.table}.json`
+            });
+        });
+
+        await archive.finalize();
+    } catch (error) {
+        console.error('Export error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to generate backup: ' + error.message });
         }
-
-        // If transaction was successful, proceed
-        try {
-            await axios.post('http://localhost:3001/api/ai/reload-profiles', { companyId: NEW_COMPANY_ID }).catch(e => console.log('AI reload signal skip/fail'));
-        } catch (aiErr) {
-            console.warn('Could not signal AI engine:', aiErr.message);
-        }
-
-        await fs.remove(req.file.path);
-        res.json({ success: true, message: 'Restore completed successfully', newCompanyId: NEW_COMPANY_ID });
-
-    } catch (err) {
-        console.error('Import error:', err);
-        if (req.file) await fs.remove(req.file.path);
-        res.status(500).json({ error: 'Import failed: ' + err.message });
     }
 });
 
-function formatDate(date) {
-    return date.toISOString().split('T')[0];
-}
+router.post('/dry-run', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+        const bundle = await readBackupBundle(req.file.path);
+        const compatibility = await assessRestoreCompatibility(bundle);
+        const metadata = {
+            ...bundle.metadata,
+            version: bundle.metadata.version || BACKUP_VERSION,
+            createdAt: bundle.metadata.createdAt || bundle.metadata.timestamp || null,
+            counts: bundle.validation.counts,
+            checksum: bundle.metadata.checksum || bundle.metadata.hash || bundle.validation.computedChecksum,
+            integrity: {
+                ...(bundle.metadata.integrity || {}),
+                valid: bundle.validation.valid,
+                checksumMatches: bundle.validation.checksumMatches,
+                totalDebit: bundle.validation.totalDebit,
+                totalCredit: bundle.validation.totalCredit,
+                balanceDelta: bundle.validation.balanceDelta,
+                warnings: uniqueMessages([
+                    ...(bundle.metadata.integrity?.warnings || []),
+                    ...bundle.validation.warnings
+                ]),
+                errors: uniqueMessages([
+                    ...(bundle.metadata.integrity?.errors || []),
+                    ...bundle.validation.errors
+                ])
+            },
+            compatibility
+        };
+
+        res.json({
+            success: bundle.validation.valid && compatibility.ready,
+            metadata
+        });
+    } catch (error) {
+        res.status(400).json({ error: 'Failed to read backup: ' + error.message });
+    } finally {
+        await safeRemoveFile(req.file?.path);
+    }
+});
+
+router.post('/import', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+        const bundle = await readBackupBundle(req.file.path);
+        const restoreResult = await restoreBackupBundle(bundle);
+
+        await notifyAiProfileReload(restoreResult.newCompanyId);
+
+        res.json({
+            success: true,
+            message: 'Restore completed successfully',
+            newCompanyId: restoreResult.newCompanyId,
+            restoredCompanyName: restoreResult.restoredCompanyName,
+            sourceCompanyName: restoreResult.sourceCompanyName,
+            counts: restoreResult.stats.imported,
+            skipped: restoreResult.stats.skipped,
+            warnings: restoreResult.warnings
+        });
+    } catch (error) {
+        console.error('Import error:', error);
+        res.status(400).json({ error: 'Import failed: ' + error.message });
+    } finally {
+        await safeRemoveFile(req.file?.path);
+    }
+});
 
 module.exports = router;

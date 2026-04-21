@@ -66,7 +66,7 @@ export default function BackupManager() {
                             Genera un archivo <code className="text-info">.ZIP</code> con toda la información de <strong className="text-white">{selectedCompany?.name || 'la empresa'}</strong>.
                         </p>
                         <p className="text-white-50 small mb-0">
-                            Incluye: Plan de Cuentas, Transacciones, Detalles de Asientos, Valores UFV, Tipos de Cambio y Perfiles de IA (Mahoraga).
+                            Incluye: empresa, cuentas, asientos, detalles, inventario, activos fijos, UFV, tipos de cambio y perfiles/eventos de IA con validación de integridad.
                         </p>
                     </div>
                 </div>
