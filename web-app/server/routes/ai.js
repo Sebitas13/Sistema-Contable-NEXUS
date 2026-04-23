@@ -157,7 +157,8 @@ const callAiEngine = async (req, method, endpointPath, {
   data,
   timeout = 30000,
   maxRetriesPerCandidate = 0,
-  headers = {}
+  headers = {},
+  skipBreaker = false
 } = {}) => {
   const { candidates, diagnostics } = resolveAiEngineTargets(req);
   const attempts = [];
@@ -170,16 +171,18 @@ const callAiEngine = async (req, method, endpointPath, {
   }
 
   for (const baseUrl of candidates) {
-    const breaker = getBreakerState(baseUrl);
-    if (breaker.cooldownUntil && breaker.cooldownUntil > Date.now()) {
-      attempts.push({
-        base_url: baseUrl,
-        attempt: 0,
-        status: null,
-        code: 'BREAKER_OPEN',
-        message: `Circuit breaker activo hasta ${new Date(breaker.cooldownUntil).toISOString()}`
-      });
-      continue;
+    if (!skipBreaker) {
+      const breaker = getBreakerState(baseUrl);
+      if (breaker.cooldownUntil && breaker.cooldownUntil > Date.now()) {
+        attempts.push({
+          base_url: baseUrl,
+          attempt: 0,
+          status: null,
+          code: 'BREAKER_OPEN',
+          message: `Circuit breaker activo hasta ${new Date(breaker.cooldownUntil).toISOString()}`
+        });
+        continue;
+      }
     }
 
     for (let attempt = 0; attempt <= maxRetriesPerCandidate; attempt += 1) {
@@ -192,7 +195,10 @@ const callAiEngine = async (req, method, endpointPath, {
           headers
         });
 
-        markBreakerSuccess(baseUrl);
+        if (!skipBreaker) {
+          markBreakerSuccess(baseUrl);
+        }
+        
         return {
           response,
           baseUrl,
@@ -210,7 +216,9 @@ const callAiEngine = async (req, method, endpointPath, {
           message: error.message
         });
 
-        markBreakerFailure(baseUrl);
+        if (!skipBreaker) {
+          markBreakerFailure(baseUrl);
+        }
 
         const shouldRetry =
           (RETRYABLE_AI_STATUSES.has(status) || RETRYABLE_AI_ERROR_CODES.has(error.code)) &&
@@ -243,9 +251,12 @@ const callAiEngine = async (req, method, endpointPath, {
 // pero deja trazas en ai_engine_attempts para diagnóstico.
 const warmupAiEngine = async (req) => {
   try {
+    // Aumentamos timeout a 65s para cubrir cold-start de Render
+    // Usamos skipBreaker: true para que el intento de warmup no "envenene" el circuit breaker
     await callAiEngine(req, 'get', '/api/ai/health', {
-      timeout: 8000,
-      maxRetriesPerCandidate: 1
+      timeout: 65000,
+      maxRetriesPerCandidate: 0,
+      skipBreaker: true
     });
   } catch (error) {
     // Silencioso: la ruta principal manejará fallback. Guardamos para diagnóstico si alguien lo usa.
@@ -678,7 +689,7 @@ router.get('/health', async (req, res) => {
 
   try {
     const { response, baseUrl, attempts, diagnostics } = await callAiEngine(req, 'get', '/api/ai/health', {
-      timeout: 5000,
+      timeout: 65000, // Aumentado para soportar cold-start en salud
       maxRetriesPerCandidate: 1
     });
     const payload = {
@@ -941,14 +952,13 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 
     const aiEngineTargets = resolveAiEngineTargets(req);
     console.log(`   [LOG] AI Engine candidates: ${JSON.stringify(aiEngineTargets.candidates)}`);
-    console.log(`   [LOG] Excluded self-references: ${JSON.stringify(aiEngineTargets.diagnostics.excluded_self_references)}`);
     const { response, baseUrl: aiEngineBaseUrl, attempts: aiEngineAttempts } = await callAiEngine(
       req,
       'post',
       '/api/ai/adjustments/generate-from-ledger',
       {
         data: req.body,
-        timeout: 60000,
+        timeout: 120000, // Aumentado a 120s para soportar cold-start + procesamiento
         maxRetriesPerCandidate: 1,
         headers: { 'Content-Type': 'application/json' }
       }
@@ -960,19 +970,6 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     console.log(`   [LOG] AI Engine Response Body:`, JSON.stringify(response.data, null, 2));
     console.log("=".repeat(80) + "\n");
     return res.json(response.data);
-    const maxRetries = 0;
-    const waitMs = 0;
-    const retryStatus = 'n/a';
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-      if (false) {
-        console.warn(`Ã¢Å¡Â Ã¯Â¸Â [LOG] Retry ${attempt + 1}/${maxRetries} after ${waitMs}ms (status ${retryStatus})`);
-      }
-    }
-
-    console.log(`   âœ… [LOG] AI Engine responded with HTTP Status: ${response.status}`);
-    console.log(`   ðŸ“„ [LOG] AI Engine Response Body:`, JSON.stringify(response.data, null, 2));
-    console.log("=".repeat(80) + "\n");
-    res.json(response.data);
 
   } catch (error) {
     console.error("\n" + "=".repeat(80));

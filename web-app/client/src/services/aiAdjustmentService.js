@@ -12,7 +12,7 @@ class AIAdjustmentService {
     constructor() {
         this.client = axios.create({
             baseURL: AI_BASE_URL,
-            timeout: 30000, // 30 segundos timeout
+            timeout: 120000, // 120 segundos timeout (soportar cold-start de Render + procesamiento)
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -111,7 +111,8 @@ class AIAdjustmentService {
         const maxAttempts = 2;
         for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
             try {
-                const response = await this.client.get('/api/ai/health', { timeout: 8000 });
+                // Timeout aumentado para despertar al motor en producción (Render cold-start)
+                const response = await this.client.get('/api/ai/health', { timeout: 70000 });
                 const status = String(response.data?.status || '').toLowerCase();
                 const isHealthy =
                     status === 'healthy' ||

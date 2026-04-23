@@ -656,6 +656,26 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                             Activar Smart Engine
                                         </label>
                                     </div>
+                                    <div className="mt-2">
+                                        {aiEngineStatus === 'checking' && (
+                                            <div className="text-info small fade-in">
+                                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                Despertando motor AI (este primer arranque puede tardar 50-60s)...
+                                            </div>
+                                        )}
+                                        {aiEngineStatus === 'available' && (
+                                            <div className="text-success small fade-in">
+                                                <i className="bi bi-check-circle-fill me-2"></i>
+                                                Motor IA listo y optimizado
+                                            </div>
+                                        )}
+                                        {aiEngineStatus === 'unavailable' && (
+                                            <div className="text-warning small fade-in">
+                                                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                                Motor IA fuera de línea - usando modo contingencia
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="d-flex justify-content-between align-items-center">
