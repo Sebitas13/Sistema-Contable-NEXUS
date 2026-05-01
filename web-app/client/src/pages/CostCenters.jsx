@@ -14,6 +14,8 @@ export default function CostCenters() {
     const [showModal, setShowModal] = useState(false);
     const [showModelModal, setShowModelModal] = useState(false);
 
+    const [activeTab, setActiveTab] = useState('kardex');
+
     // Cost Center Form
     const [formData, setFormData] = useState({
         code: '',
@@ -107,8 +109,6 @@ export default function CostCenters() {
         setModelData({ ...modelData, entries: newEntries });
     };
 
-    const [activeTab, setActiveTab] = useState('kardex');
-
     return (
         <div>
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -121,29 +121,40 @@ export default function CostCenters() {
             {/* Tab Navigation */}
             <ul className="nav nav-tabs mb-4 border-secondary">
                 <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'kardex' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} onClick={() => setActiveTab('kardex')} style={activeTab !== 'kardex' ? {background:'transparent',border:'1px solid transparent'} : {}}>
+                    <button 
+                        className={`nav-link ${activeTab === 'kardex' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} 
+                        onClick={() => setActiveTab('kardex')} 
+                        style={activeTab !== 'kardex' ? { background: 'transparent', border: '1px solid transparent' } : {}}
+                    >
                         <i className="bi bi-box-seam me-1"></i>Kardex Físico Valorado
                     </button>
                 </li>
                 <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'centers' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} onClick={() => setActiveTab('centers')} style={activeTab !== 'centers' ? {background:'transparent',border:'1px solid transparent'} : {}}>
+                    <button 
+                        className={`nav-link ${activeTab === 'centers' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} 
+                        onClick={() => setActiveTab('centers')} 
+                        style={activeTab !== 'centers' ? { background: 'transparent', border: '1px solid transparent' } : {}}
+                    >
                         <i className="bi bi-building me-1"></i>Centros de Costo
                     </button>
                 </li>
                 <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'distribution' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} onClick={() => setActiveTab('distribution')} style={activeTab !== 'distribution' ? {background:'transparent',border:'1px solid transparent'} : {}}>
+                    <button 
+                        className={`nav-link ${activeTab === 'distribution' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} 
+                        onClick={() => setActiveTab('distribution')} 
+                        style={activeTab !== 'distribution' ? { background: 'transparent', border: '1px solid transparent' } : {}}
+                    >
                         <i className="bi bi-pie-chart me-1"></i>Modelos de Distribución
                     </button>
                 </li>
             </ul>
 
-            {/* Tab: Kardex */}
-            {activeTab === 'kardex' && <Inventory />}
+            {/* Tab Content */}
+            <div className="tab-content">
+                {activeTab === 'kardex' && <Inventory />}
 
-            {/* Tab: Centros de Costo */}
-            {activeTab === 'centers' && (
-
-                <div className="card glass-panel border-secondary shadow-sm">
+                {activeTab === 'centers' && (
+                    <div className="card glass-panel border-secondary shadow-sm">
                         <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                             <h5 className="mb-0 text-white"><i className="bi bi-building me-2"></i>Centros de Costo</h5>
                             <button className="btn btn-sm btn-primary" onClick={() => setShowModal(true)}>
@@ -175,7 +186,7 @@ export default function CostCenters() {
                                                         <td><span className="badge bg-secondary border border-secondary">{cc.type}</span></td>
                                                         <td className="text-end">
                                                             <button className="btn btn-sm btn-outline-danger" onClick={async () => {
-                                                                if(window.confirm('¿Eliminar centro de costo?')) {
+                                                                if (window.confirm('¿Eliminar centro de costo?')) {
                                                                     await inventoryService.deleteCostCenter(cc.id);
                                                                     fetchData();
                                                                 }
@@ -190,12 +201,10 @@ export default function CostCenters() {
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Tab: Modelos de Distribución */}
-            {activeTab === 'distribution' && (
-                <div className="card glass-panel border-secondary shadow-sm">
+                {activeTab === 'distribution' && (
+                    <div className="card glass-panel border-secondary shadow-sm">
                         <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                             <h5 className="mb-0 text-white"><i className="bi bi-pie-chart me-2"></i>Modelos de Distribución (GIF)</h5>
                             <button className="btn btn-sm btn-primary" onClick={() => setShowModelModal(true)}>
@@ -234,7 +243,7 @@ export default function CostCenters() {
                                                         </td>
                                                         <td className="text-end">
                                                             <button className="btn btn-sm btn-outline-danger" onClick={async () => {
-                                                                if(window.confirm('¿Eliminar modelo de distribución?')) {
+                                                                if (window.confirm('¿Eliminar modelo de distribución?')) {
                                                                     await inventoryService.deleteDistributionModel(dm.id);
                                                                     fetchData();
                                                                 }
@@ -248,10 +257,11 @@ export default function CostCenters() {
                                 </div>
                             )}
                         </div>
-                </div>
-            )}
+                    </div>
+                )}
+            </div>
 
-            {/* Modal CC */}
+            {/* Modals */}
             {showModal && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog">
@@ -264,15 +274,15 @@ export default function CostCenters() {
                                 <form onSubmit={handleCCSubmit}>
                                     <div className="mb-3">
                                         <label className="form-label text-white-50">Código</label>
-                                        <input type="text" className="form-control bg-dark text-white border-secondary" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value})} required />
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} required />
                                     </div>
                                     <div className="mb-3">
                                         <label className="form-label text-white-50">Nombre</label>
-                                        <input type="text" className="form-control bg-dark text-white border-secondary" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                                        <input type="text" className="form-control bg-dark text-white border-secondary" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                                     </div>
                                     <div className="mb-3">
                                         <label className="form-label text-white-50">Tipo</label>
-                                        <select className="form-select bg-dark text-white border-secondary" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
+                                        <select className="form-select bg-dark text-white border-secondary" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
                                             <option value="Analytic">Analítico (Gastos)</option>
                                             <option value="Production">Producción (Plantas)</option>
                                             <option value="Administrative">Administrativo</option>
@@ -289,7 +299,6 @@ export default function CostCenters() {
                 </div>
             )}
 
-            {/* Modal Model */}
             {showModelModal && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
                     <div className="modal-dialog modal-lg">
@@ -303,11 +312,11 @@ export default function CostCenters() {
                                     <div className="row mb-3">
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">Nombre del Modelo</label>
-                                            <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: Energía Eléctrica" value={modelData.name} onChange={(e) => setModelData({...modelData, name: e.target.value})} required />
+                                            <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: Energía Eléctrica" value={modelData.name} onChange={(e) => setModelData({ ...modelData, name: e.target.value })} required />
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">Descripción</label>
-                                            <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: Distribución basada en m2" value={modelData.description} onChange={(e) => setModelData({...modelData, description: e.target.value})} />
+                                            <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: Distribución basada en m2" value={modelData.description} onChange={(e) => setModelData({ ...modelData, description: e.target.value })} />
                                         </div>
                                     </div>
                                     
@@ -347,8 +356,8 @@ export default function CostCenters() {
                                         
                                         {modelData.entries.length > 0 && (
                                             <div className="d-flex justify-content-end mt-3 pt-2 border-top border-secondary">
-                                                <span className={`fw-bold ${modelData.entries.reduce((s,e) => s + parseFloat(e.percentage||0), 0) === 100 ? 'text-success' : 'text-danger'}`}>
-                                                    Total: {modelData.entries.reduce((s,e) => s + parseFloat(e.percentage||0), 0).toFixed(2)}%
+                                                <span className={`fw-bold ${modelData.entries.reduce((s, e) => s + parseFloat(e.percentage || 0), 0) === 100 ? 'text-success' : 'text-danger'}`}>
+                                                    Total: {modelData.entries.reduce((s, e) => s + parseFloat(e.percentage || 0), 0).toFixed(2)}%
                                                 </span>
                                             </div>
                                         )}
