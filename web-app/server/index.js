@@ -39,6 +39,7 @@ const companiesRouter = require('./routes/companies');
 const exchangeRatesRouter = require('./routes/exchange_rates');
 const skillsRouter = require('./routes/skills');
 const backupRouter = require('./routes/backup');
+const inventoryRouter = require('./routes/inventory');
 const skillLoader = require('./services/skillLoader');
 
 // Inicializar Skill System
@@ -58,6 +59,7 @@ app.use('/api/ufv', ufvRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/skills', skillsRouter);
 app.use('/api/backup', backupRouter);
+app.use('/api/inventory', inventoryRouter);
 
 // Optional AI router (opt-in). Enable by setting environment variable ENABLE_AI=1
 // Cambiado a true por defecto para pruebas, o si ENABLE_AI es 1

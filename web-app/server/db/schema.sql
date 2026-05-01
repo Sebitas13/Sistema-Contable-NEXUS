@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS transaction_entries (
     gloss TEXT,
     debit REAL DEFAULT 0,
     credit REAL DEFAULT 0,
+    dimensions TEXT DEFAULT '{}', -- JSON para tags analíticos (Departamento, Proyecto, etc.)
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
@@ -66,6 +67,9 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     code TEXT NOT NULL,
     name TEXT NOT NULL,
     unit TEXT NOT NULL,
+    item_type TEXT DEFAULT 'PT', -- MP: Materia Prima, WIP: Trabajo en Proceso, PT: Producto Terminado, SU: Suministro
+    valuation_method TEXT DEFAULT 'CPP', -- CPP, PEPS, IE, UEPS
+    ias2_compliant INTEGER DEFAULT 1, -- Flag de cumplimiento normativo
     balance_quantity REAL DEFAULT 0,
     balance_cost REAL DEFAULT 0,
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
@@ -162,6 +166,64 @@ CREATE INDEX IF NOT EXISTS idx_transactions_company ON transactions(company_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_inventory_company ON inventory_items(company_id);
 CREATE INDEX IF NOT EXISTS idx_fixed_assets_company ON fixed_assets(company_id);
+
+-- =============================================================================
+-- COST MANAGEMENT & ANALYTIC ACCOUNTING
+-- =============================================================================
+
+-- Cost Centers (Jerárquico)
+CREATE TABLE IF NOT EXISTS cost_centers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    parent_id INTEGER,
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'Analytic', -- Analytic, Group
+    is_active INTEGER DEFAULT 1,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES cost_centers(id),
+    UNIQUE(company_id, code)
+);
+
+-- Cost Distribution Models (Reglas de Reparto)
+CREATE TABLE IF NOT EXISTS cost_distribution_models (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_active INTEGER DEFAULT 1,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- Cost Distribution Entries (Detalle de porcentajes)
+CREATE TABLE IF NOT EXISTS cost_distribution_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_id INTEGER NOT NULL,
+    cost_center_id INTEGER NOT NULL,
+    percentage REAL NOT NULL, -- Ej: 0.60 (60%)
+    FOREIGN KEY (model_id) REFERENCES cost_distribution_models(id) ON DELETE CASCADE,
+    FOREIGN KEY (cost_center_id) REFERENCES cost_centers(id)
+);
+
+-- Production Orders (Tracking de WIP)
+CREATE TABLE IF NOT EXISTS production_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    product_id INTEGER NOT NULL, -- Referencia al Producto Terminado
+    status TEXT DEFAULT 'OPEN', -- OPEN, WIP, CLOSED, CANCELLED
+    start_date TEXT,
+    end_date TEXT,
+    planned_quantity REAL,
+    actual_quantity REAL,
+    total_cost REAL DEFAULT 0,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES inventory_items(id)
+);
+
+-- Indices para Costos
+CREATE INDEX IF NOT EXISTS idx_cost_centers_company ON cost_centers(company_id);
+CREATE INDEX IF NOT EXISTS idx_production_orders_company ON production_orders(company_id);
 
 -- Insert a default company for migration
 INSERT OR IGNORE INTO companies (id, name, nit, legal_name, address, city, country)
