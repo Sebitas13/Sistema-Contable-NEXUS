@@ -8,7 +8,6 @@ import Accounts from './pages/Accounts';
 import Ledger from './pages/Ledger';
 import TrialBalance from './pages/TrialBalance';
 import Worksheet from './pages/Worksheet';
-import Inventory from './pages/Inventory';
 import CostCenters from './pages/CostCenters';
 import FixedAssets from './pages/FixedAssets';
 import UFV from './pages/UFV';
@@ -33,8 +32,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
         { path: '/app/ledger', icon: 'bi-book', label: 'Libro Mayor' },
         { path: '/app/trial-balance', icon: 'bi-calculator', label: 'Balance Comprobación' },
         { path: '/app/worksheet', icon: 'bi-file-earmark-spreadsheet', label: 'Hoja de Trabajo' },
-        { path: '/app/inventory', icon: 'bi-box-seam', label: 'Kardex (Almacén)' },
-        { path: '/app/cost-centers', icon: 'bi-diagram-3', label: 'Contabilidad Analítica' },
+        { path: '/app/cost-centers', icon: 'bi-diagram-3', label: 'Costos y Almacén' },
         { path: '/app/fixed-assets', icon: 'bi-building', label: 'Activos Fijos' },
         { path: '/app/ufv', icon: 'bi-graph-up-arrow', label: 'UFV' },
         { path: '/app/exchange-rate', icon: 'bi-currency-exchange', label: 'Tipo de Cambio' },
@@ -204,7 +202,6 @@ function AppLayout() {
                         <Route path="/ledger" element={<Ledger />} />
                         <Route path="/trial-balance" element={<TrialBalance />} />
                         <Route path="/worksheet" element={<Worksheet />} />
-                        <Route path="/inventory" element={<Inventory />} />
                         <Route path="/cost-centers" element={<CostCenters />} />
                         <Route path="/fixed-assets" element={<FixedAssets />} />
                         <Route path="/ufv" element={<UFV />} />

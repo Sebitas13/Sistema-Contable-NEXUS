@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
+import Inventory from './Inventory';
 
 export default function CostCenters() {
     const { selectedCompany } = useCompany();
@@ -106,19 +107,43 @@ export default function CostCenters() {
         setModelData({ ...modelData, entries: newEntries });
     };
 
+    const [activeTab, setActiveTab] = useState('kardex');
+
     return (
         <div>
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <h2 className="mb-1"><i className="bi bi-diagram-3 me-2"></i>Contabilidad Analítica</h2>
-                    <p className="text-white-50 mb-0">Gestión de Centros de Costo y Modelos de Distribución</p>
+                    <h2 className="mb-1"><i className="bi bi-diagram-3 me-2"></i>Costos y Almacén</h2>
+                    <p className="text-white-50 mb-0">Kardex, Centros de Costo y Distribución Analítica</p>
                 </div>
             </div>
 
-            <div className="row g-4">
-                {/* Panel Centros de Costo */}
-                <div className="col-lg-6">
-                    <div className="card glass-panel border-secondary shadow-sm h-100">
+            {/* Tab Navigation */}
+            <ul className="nav nav-tabs mb-4 border-secondary">
+                <li className="nav-item">
+                    <button className={`nav-link ${activeTab === 'kardex' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} onClick={() => setActiveTab('kardex')} style={activeTab !== 'kardex' ? {background:'transparent',border:'1px solid transparent'} : {}}>
+                        <i className="bi bi-box-seam me-1"></i>Kardex Físico Valorado
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button className={`nav-link ${activeTab === 'centers' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} onClick={() => setActiveTab('centers')} style={activeTab !== 'centers' ? {background:'transparent',border:'1px solid transparent'} : {}}>
+                        <i className="bi bi-building me-1"></i>Centros de Costo
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button className={`nav-link ${activeTab === 'distribution' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} onClick={() => setActiveTab('distribution')} style={activeTab !== 'distribution' ? {background:'transparent',border:'1px solid transparent'} : {}}>
+                        <i className="bi bi-pie-chart me-1"></i>Modelos de Distribución
+                    </button>
+                </li>
+            </ul>
+
+            {/* Tab: Kardex */}
+            {activeTab === 'kardex' && <Inventory />}
+
+            {/* Tab: Centros de Costo */}
+            {activeTab === 'centers' && (
+
+                <div className="card glass-panel border-secondary shadow-sm">
                         <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                             <h5 className="mb-0 text-white"><i className="bi bi-building me-2"></i>Centros de Costo</h5>
                             <button className="btn btn-sm btn-primary" onClick={() => setShowModal(true)}>
@@ -166,10 +191,11 @@ export default function CostCenters() {
                         </div>
                     </div>
                 </div>
+            )}
 
-                {/* Panel Modelos de Distribución */}
-                <div className="col-lg-6">
-                    <div className="card glass-panel border-secondary shadow-sm h-100">
+            {/* Tab: Modelos de Distribución */}
+            {activeTab === 'distribution' && (
+                <div className="card glass-panel border-secondary shadow-sm">
                         <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                             <h5 className="mb-0 text-white"><i className="bi bi-pie-chart me-2"></i>Modelos de Distribución (GIF)</h5>
                             <button className="btn btn-sm btn-primary" onClick={() => setShowModelModal(true)}>
@@ -222,9 +248,8 @@ export default function CostCenters() {
                                 </div>
                             )}
                         </div>
-                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Modal CC */}
             {showModal && (

@@ -207,25 +207,15 @@ export default function Inventory() {
 
     return (
         <div>
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-                <div>
-                    <h2 className="mb-1"><i className="bi bi-box-seam me-2"></i>Kardex Físico Valorado</h2>
-                    <p className="text-white-50 mb-0">Control de existencias, valuación REA y costos</p>
-                </div>
-                <div className="d-flex flex-wrap gap-2 align-items-center">
-                    <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel}>
-                        <i className="bi bi-file-earmark-excel me-1"></i> <span className="d-none d-sm-inline">Exportar </span>
-                    </button>
-                    <button className="btn btn-outline-danger btn-sm" onClick={handleExportPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> PDF
-                    </button>
-                    <button className="btn btn-outline-info btn-sm" onClick={() => fileInputRef.current.click()}>
-                        <i className="bi bi-upload me-1"></i> <span className="d-none d-sm-inline">Importar</span>
-                    </button>
+            {/* Toolbar compacto (componente embebido) */}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <small className="text-white-50"><i className="bi bi-box-seam me-1"></i>Control de existencias y valuación</small>
+                <div className="d-flex flex-wrap gap-2">
+                    <button className="btn btn-outline-success btn-sm" onClick={handleExportExcel}><i className="bi bi-file-earmark-excel me-1"></i>Excel</button>
+                    <button className="btn btn-outline-danger btn-sm" onClick={handleExportPDF}><i className="bi bi-file-earmark-pdf me-1"></i>PDF</button>
+                    <button className="btn btn-outline-info btn-sm" onClick={() => fileInputRef.current.click()}><i className="bi bi-upload me-1"></i>Importar</button>
                     <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls" style={{ display: 'none' }} />
-                    <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
-                        <i className="bi bi-plus-circle me-1"></i> Nuevo <span className="d-none d-sm-inline">Artículo</span>
-                    </button>
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}><i className="bi bi-plus-circle me-1"></i>Nuevo Artículo</button>
                 </div>
             </div>
 
