@@ -83,18 +83,21 @@ app.get('/api/status', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Knowledge Brain Routes (Mahoraga's Understanding)
-try {
-  const knowledgeRouter = require('./routes/knowledge');
-  app.use('/api/knowledge', knowledgeRouter);
-  console.log('Knowledge Brain registered at /api/knowledge');
+// Knowledge Brain Routes remain experimental and are disabled by default.
+if (process.env.ENABLE_MAHORAGA_EXPERIMENTAL === '1') {
+  try {
+    const knowledgeRouter = require('./routes/knowledge');
+    app.use('/api/knowledge', knowledgeRouter);
+    console.log('Knowledge Brain registered at /api/knowledge');
 
-  // AI Knowledge Bridge (for Python engine)
-  const aiKnowledgeRouter = require('./routes/aiKnowledge');
-  app.use('/api/ai/knowledge', aiKnowledgeRouter);
-  console.log('AI Knowledge Bridge registered at /api/ai/knowledge');
-} catch (e) {
-  console.warn('Knowledge router could not be registered:', e.message);
+    const aiKnowledgeRouter = require('./routes/aiKnowledge');
+    app.use('/api/ai/knowledge', aiKnowledgeRouter);
+    console.log('AI Knowledge Bridge registered at /api/ai/knowledge');
+  } catch (e) {
+    console.warn('Knowledge router could not be registered:', e.message);
+  }
+} else {
+  console.log('Knowledge Brain routes disabled (ENABLE_MAHORAGA_EXPERIMENTAL!=1)');
 }
 
 app.listen(PORT, () => {

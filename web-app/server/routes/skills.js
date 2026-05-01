@@ -23,29 +23,28 @@ router.get('/health', (req, res) => {
     res.json({
         success: true,
         loaded: skillLoader.isReady(),
-        stats: skillLoader.getStats()
+        stats: skillLoader.getHealthStats()
     });
 });
 
 // GET /api/skills/search?q=phrase - Buscar skills por keywords
 router.get('/search', requireSkillLoader, (req, res) => {
     try {
-        const { q: query } = req.query;
+        const {
+            q: query = '',
+            limit = 20,
+            offset = 0
+        } = req.query;
 
-        if (!query || query.trim().length < 2) {
-            return res.status(400).json({
-                success: false,
-                error: 'Query parameter "q" is required (minimum 2 characters)'
-            });
-        }
-
-        const results = skillLoader.searchByKeywords(query.trim());
+        const results = skillLoader.searchCatalog(query, { limit, offset });
 
         res.json({
             success: true,
-            query: query.trim(),
-            totalResults: results.length,
-            results: results
+            query: typeof query === 'string' ? query.trim() : '',
+            totalResults: results.totalResults,
+            limit: Math.max(1, parseInt(limit, 10) || 20),
+            offset: Math.max(0, parseInt(offset, 10) || 0),
+            results: results.results
         });
 
     } catch (error) {

@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import axios from 'axios';
 import { useCompany } from '../context/CompanyContext';
-import MahoragaActivationButton from '../components/MahoragaActivationButton';
 import BackupManager from '../components/BackupManager';
 import API_URL from '../api';
 
@@ -15,6 +14,23 @@ const ARS_CONTEXT_PROFILE = {
     correction_history: { entries: [] }
 };
 
+const DEFAULT_LEARNING_STATUS = {
+    success: true,
+    readiness: 0,
+    learning_progress: {
+        percentage: 0,
+        current_phase: 'Genesis contable',
+        next_milestone: 'Crear Plan de Cuentas',
+        details: 'Mahoraga aun no tiene suficiente actividad para medir madurez.',
+        stats: {
+            accounts: 0,
+            operations: 0,
+            adaptations: 0,
+            hasClosing: false
+        }
+    }
+};
+
 // Initial Depreciation Table from CSV
 const INITIAL_DEPRECIATION_RULES = [
     { asset_type_keyword: "Edificaciones", useful_life_years: 40, annual_rate: 0.025 },
@@ -24,28 +40,28 @@ const INITIAL_DEPRECIATION_RULES = [
     { asset_type_keyword: "Barcos y lanchas en general", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Vehiculos automotores", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Aviones", useful_life_years: 5, annual_rate: 0.20 },
-    { asset_type_keyword: "Maquinaria para la construcción", useful_life_years: 5, annual_rate: 0.20 },
-    { asset_type_keyword: "Maquinaria agrícola", useful_life_years: 4, annual_rate: 0.25 },
+    { asset_type_keyword: "Maquinaria para la construcciÃ³n", useful_life_years: 5, annual_rate: 0.20 },
+    { asset_type_keyword: "Maquinaria agrÃ­cola", useful_life_years: 4, annual_rate: 0.25 },
     { asset_type_keyword: "Animales de trabajo", useful_life_years: 4, annual_rate: 0.25 },
     { asset_type_keyword: "Herramientas en general", useful_life_years: 4, annual_rate: 0.25 },
     { asset_type_keyword: "Reproductores y hembras de pedigree o puros por cruza", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Equipos de computacion", useful_life_years: 4, annual_rate: 0.25 },
-    { asset_type_keyword: "Canales de regadío y pozos", useful_life_years: 20, annual_rate: 0.05 },
-    { asset_type_keyword: "Estanques, bañaderos y abrevaderos", useful_life_years: 10, annual_rate: 0.10 },
+    { asset_type_keyword: "Canales de regadÃ­o y pozos", useful_life_years: 20, annual_rate: 0.05 },
+    { asset_type_keyword: "Estanques, baÃ±aderos y abrevaderos", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Alambrados, tranqueras y vallas", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Viviendas para el personal", useful_life_years: 20, annual_rate: 0.05 },
     { asset_type_keyword: "Muebles y enseres en las viviendas para el personal", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Silos, almacenes y galpones", useful_life_years: 20, annual_rate: 0.05 },
     { asset_type_keyword: "Tinglados y cobertizos de madera", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Tinglados y cobertizos de metal", useful_life_years: 10, annual_rate: 0.10 },
-    { asset_type_keyword: "Instalaciones de electrificación y telefonía rurales", useful_life_years: 10, annual_rate: 0.10 },
+    { asset_type_keyword: "Instalaciones de electrificaciÃ³n y telefonÃ­a rurales", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Caminos interiores", useful_life_years: 10, annual_rate: 0.10 },
-    { asset_type_keyword: "Caña de azúcar", useful_life_years: 5, annual_rate: 0.20 },
+    { asset_type_keyword: "CaÃ±a de azÃºcar", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Vides", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Frutales", useful_life_years: 10, annual_rate: 0.10 },
-    { asset_type_keyword: "Otras plantaciones (según experiencia del contribuyente)", useful_life_years: 0, annual_rate: 0.00 },
+    { asset_type_keyword: "Otras plantaciones (segÃºn experiencia del contribuyente)", useful_life_years: 0, annual_rate: 0.00 },
     { asset_type_keyword: "Pozos Petroleros", useful_life_years: 5, annual_rate: 0.20 },
-    { asset_type_keyword: "Líneas de Recolección de la industria petrolera", useful_life_years: 5, annual_rate: 0.20 },
+    { asset_type_keyword: "LÃ­neas de RecolecciÃ³n de la industria petrolera", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Equipos de campo de la industria petrolera", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Plantas de Procesamiento de la industria petrolera", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Ductos de la industria petrolera", useful_life_years: 10, annual_rate: 0.10 }
@@ -72,7 +88,7 @@ export default function Settings() {
     const [searchResults, setSearchResults] = useState([]);
     const [selectedMode, setSelectedMode] = useState('');
     const [modeChangeReason, setModeChangeReason] = useState('');
-    const [activePages, setActivePages] = useState(['dashboard']);
+    const [activePages, setActivePages] = useState([...ARS_CONTEXT_PROFILE.active_pages]);
     const [savingConfig, setSavingConfig] = useState(false);
     const [showModeChange, setShowModeChange] = useState(false);
 
@@ -97,7 +113,7 @@ export default function Settings() {
                         name: data.name || `Perfil #${data.id}`,
                         companyId: data.companyId,
                         config: data.config,
-                        companyName: company?.name || (data.companyId === 'global' ? '🌍 Plantilla Global' : `Empresa ID: ${data.companyId}`)
+                        companyName: company?.name || (data.companyId === 'global' ? 'ðŸŒ Plantilla Global' : `Empresa ID: ${data.companyId}`)
                     });
                 } catch (e) { console.error("Error parsing profile", key); }
             }
@@ -112,7 +128,7 @@ export default function Settings() {
     };
 
     const deleteProfile = (key, name) => {
-        if (window.confirm(`¿Estás seguro de eliminar el perfil "${name}"?`)) {
+        if (window.confirm(`Â¿EstÃ¡s seguro de eliminar el perfil "${name}"?`)) {
             localStorage.removeItem(key);
             setEditingProfile(null);
         }
@@ -156,13 +172,14 @@ export default function Settings() {
 
             if (response.data.success && response.data.profile_json) {
                 setCompanyProfile(response.data.profile_json);
-                console.log('✅ Perfil de IA específico de la empresa cargado.');
+                console.log('âœ… Perfil de IA especÃ­fico de la empresa cargado.');
             } else {
                 setCompanyProfile(ARS_CONTEXT_PROFILE); // Fallback
-                console.log('ℹ️ No se encontró perfil de IA para la empresa, usando perfil por defecto.');
+                console.log('â„¹ï¸ No se encontrÃ³ perfil de IA para la empresa, usando perfil por defecto.');
             }
         } catch (e) {
             console.warn('No se pudo cargar perfil persistente, usando default.', e.message);
+            setCompanyProfile(ARS_CONTEXT_PROFILE);
         }
     };
 
@@ -228,10 +245,10 @@ export default function Settings() {
 
             await axios.post(`${API_URL}/api/ai/profile/${selectedCompany.id}`, { profile_json: updatedProfile });
             setCompanyProfile(updatedProfile); // Optimistic update
-            alert('✅ Configuración de depreciación guardada correctamente.');
+            alert('âœ… ConfiguraciÃ³n de depreciaciÃ³n guardada correctamente.');
         } catch (error) {
             console.error("Error saving depreciation config:", error);
-            alert('Error al guardar configuración.');
+            alert('Error al guardar configuraciÃ³n.');
         } finally {
             setSavingConfig(false);
         }
@@ -282,7 +299,7 @@ export default function Settings() {
             const updates = AccountPlanProfile.calculateHierarchy(accounts);
 
             if (updates.length === 0) {
-                setHealResult({ type: 'success', message: 'La jerarquía ya está correcta. No se requieren cambios.' });
+                setHealResult({ type: 'success', message: 'La jerarquÃ­a ya estÃ¡ correcta. No se requieren cambios.' });
                 setHealing(false);
                 setDiagnosticResult(prev => ({ ...prev, status: 'healthy', withoutParent: 0 }));
                 return;
@@ -296,7 +313,7 @@ export default function Settings() {
 
             setHealResult({
                 type: 'success',
-                message: `Jerarquía regenerada con éxito. Se actualizaron ${updates.length} cuentas.`
+                message: `JerarquÃ­a regenerada con Ã©xito. Se actualizaron ${updates.length} cuentas.`
             });
 
             // Refresh diagnostic
@@ -344,11 +361,11 @@ export default function Settings() {
                 if (typeof pages === 'string') {
                     try { pages = JSON.parse(pages); } catch (e) { pages = []; }
                 }
-                setActivePages(Array.isArray(pages) ? pages : []);
+                setActivePages(Array.isArray(pages) && pages.length > 0 ? pages : [...ARS_CONTEXT_PROFILE.active_pages]);
             }
         } catch (error) {
             console.error("Error fetching page config:", error);
-            setActivePages([]); // Fallback to empty array
+            setActivePages([...ARS_CONTEXT_PROFILE.active_pages]);
         }
     };
 
@@ -363,7 +380,7 @@ export default function Settings() {
             await axios.post(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`, { active_pages: newPages });
         } catch (error) {
             console.error("Error saving page config:", error);
-            alert("Error al guardar configuración de páginas");
+            alert("Error al guardar configuraciÃ³n de pÃ¡ginas");
         } finally {
             setSavingConfig(false);
         }
@@ -416,12 +433,15 @@ export default function Settings() {
         if (!selectedCompany) return;
         try {
             const response = await axios.get(`${API_URL}/api/ai/recognition/status`, { params: { companyId: selectedCompany.id } });
-            setLearningStatus(response.data);
-        } catch (error) { console.error("Error fetching learning status:", error); }
+            setLearningStatus(response.data?.success ? response.data : DEFAULT_LEARNING_STATUS);
+        } catch (error) {
+            console.error("Error fetching learning status:", error);
+            setLearningStatus(DEFAULT_LEARNING_STATUS);
+        }
     };
 
     const handleModeChange = async () => {
-        if (!selectedMode || !modeChangeReason.trim()) return alert('Selecciona un modo y proporciona una razón');
+        if (!selectedMode || !modeChangeReason.trim()) return alert('Selecciona un modo y proporciona una razÃ³n');
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/change-mode`, { newMode: selectedMode, userId: 'admin', reason: modeChangeReason });
             alert(`Modo cambiado exitosamente a ${selectedMode}`);
@@ -431,10 +451,10 @@ export default function Settings() {
     };
 
     const handleEmergencyStop = async () => {
-        if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrá TODAS las operaciones de Mahoraga.')) return;
+        if (!confirm('Â¿EstÃ¡s seguro de activar la PARADA DE EMERGENCIA? Esto detendrÃ¡ TODAS las operaciones de Mahoraga.')) return;
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, { userId: 'admin', reason: 'Emergency stop from dashboard' });
-            alert('🛑 PARADA DE EMERGENCIA ACTIVADA');
+            alert('ðŸ›‘ PARADA DE EMERGENCIA ACTIVADA');
             fetchMahoragaStatus();
         } catch (error) { alert('Error en parada de emergencia: ' + error.response?.data?.error); }
     };
@@ -467,7 +487,7 @@ export default function Settings() {
     return (
         <div className="container-fluid py-4">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-                <h2 className="mb-0"><i className="bi bi-gear me-2"></i>Configuración <span className="d-none d-sm-inline">del Sistema</span></h2>
+                <h2 className="mb-0"><i className="bi bi-gear me-2"></i>ConfiguraciÃ³n <span className="d-none d-sm-inline">del Sistema</span></h2>
                 <div className="d-flex flex-wrap gap-2">
                     <button
                         className={`btn ${activeTab === 'data' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -485,7 +505,7 @@ export default function Settings() {
                         className={`btn ${activeTab === 'mahoraga' ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => setActiveTab('mahoraga')}
                     >
-                        <i className="bi bi-cpu me-1"></i>Asistente AI
+                        <i className="bi bi-cpu me-1"></i>Asistente IA
                     </button>
                 </div>
             </div>
@@ -502,11 +522,11 @@ export default function Settings() {
                                 <h5 className="mb-0"><i className="bi bi-tools me-2"></i>Mantenimiento de Datos</h5>
                             </div>
                             <div className="card-body">
-                                <h6 className="text-white">Regenerar Jerarquía de Cuentas</h6>
+                                <h6 className="text-white">Regenerar JerarquÃ­a de Cuentas</h6>
                                 <p className="text-white-50 small">
-                                    Esta herramienta analiza los códigos de tus cuentas y reconstruye las relaciones
+                                    Esta herramienta analiza los cÃ³digos de tus cuentas y reconstruye las relaciones
                                     padre-hijo (campo <code className="text-info">parent_code</code>). <br />
-                                    <strong className="text-white">Uso recomendado:</strong> Si tus Estados Financieros aparecen vacíos o desordenados.
+                                    <strong className="text-white">Uso recomendado:</strong> Si tus Estados Financieros aparecen vacÃ­os o desordenados.
                                 </p>
 
                                 <div className="d-grid gap-2 mb-3">
@@ -517,15 +537,15 @@ export default function Settings() {
 
                                 {diagnosticResult && (
                                     <div className={`alert alert-${diagnosticResult.status === 'healthy' ? 'success' : 'warning'} mb-3`}>
-                                        <h6 className="alert-heading">Diagnóstico:</h6>
+                                        <h6 className="alert-heading">DiagnÃ³stico:</h6>
                                         <ul className="mb-0 small">
                                             <li>Total Cuentas: <strong>{diagnosticResult.total}</strong></li>
                                             <li>Con Padre Definido: <strong>{diagnosticResult.withParent}</strong></li>
-                                            <li>Sin Padre (Huérfanas): <strong>{diagnosticResult.withoutParent}</strong></li>
+                                            <li>Sin Padre (HuÃ©rfanas): <strong>{diagnosticResult.withoutParent}</strong></li>
                                         </ul>
                                         {diagnosticResult.status === 'critical' && (
                                             <div className="mt-2 text-danger fw-bold">
-                                                ⚠️ Se requiere regeneración.
+                                                âš ï¸ Se requiere regeneraciÃ³n.
                                             </div>
                                         )}
                                     </div>
@@ -546,7 +566,7 @@ export default function Settings() {
                                     {healing ? (
                                         <span><span className="spinner-border spinner-border-sm me-2"></span>Procesando...</span>
                                     ) : (
-                                        <span><i className="bi bi-diagram-3-fill me-2"></i>Regenerar Jerarquía</span>
+                                        <span><i className="bi bi-diagram-3-fill me-2"></i>Regenerar JerarquÃ­a</span>
                                     )}
                                 </button>
                             </div>
@@ -556,7 +576,7 @@ export default function Settings() {
                     <div className="col-md-12 mt-4 mx-auto">
                         <div className="card shadow-sm border-primary glass-panel">
                             <div className="card-header border-primary d-flex justify-content-between align-items-center" style={{ backgroundColor: 'rgba(13, 110, 253, 0.1)' }}>
-                                <h5 className="mb-0 text-primary"><i className="bi bi-table me-2"></i>Tabla de Depreciación Configurable</h5>
+                                <h5 className="mb-0 text-primary"><i className="bi bi-table me-2"></i>Tabla de DepreciaciÃ³n Configurable</h5>
                                 <button className="btn btn-sm btn-outline-primary fw-bold text-white" onClick={saveDepreciationConfig} disabled={savingConfig}>
                                     {savingConfig ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-save me-2"></i>}
                                     Guardar Cambios
@@ -568,7 +588,7 @@ export default function Settings() {
                                         <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="sticky-top">
                                             <tr>
                                                 <th style={{ width: '40%' }} className="text-white-50 border-secondary">Bien / Activo (Palabra Clave)</th>
-                                                <th style={{ width: '20%' }} className="text-white-50 border-secondary">Vida Útil (Años)</th>
+                                                <th style={{ width: '20%' }} className="text-white-50 border-secondary">Vida Ãštil (AÃ±os)</th>
                                                 <th style={{ width: '20%' }} className="text-white-50 border-secondary">Coeficiente %</th>
                                                 <th style={{ width: '20%' }} className="text-end text-white-50 border-secondary">Acciones</th>
                                             </tr>
@@ -620,7 +640,7 @@ export default function Settings() {
                                 </button>
                                 <small className="text-white-50 ms-3">
                                     <i className="bi bi-info-circle me-1"></i>
-                                    El sistema buscará coincidencias inteligentes con estos nombres en tu Plan de Cuentas.
+                                    El sistema buscarÃ¡ coincidencias inteligentes con estos nombres en tu Plan de Cuentas.
                                 </small>
                             </div>
                         </div>
@@ -638,7 +658,7 @@ export default function Settings() {
                             <div className="card-body">
                                 <p className="text-white-50 small">
                                     Gestiona las configuraciones de niveles y longitudes de cuenta guardadas por empresa.
-                                    Estos perfiles se usan en el Asistente de Importación Inteligente.
+                                    Estos perfiles se usan en el Asistente de ImportaciÃ³n Inteligente.
                                 </p>
 
                                 <div className="table-responsive" style={{ maxHeight: '450px' }}>
@@ -646,7 +666,7 @@ export default function Settings() {
                                         <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                             <tr>
                                                 <th className="text-white-50 border-secondary">Empresa</th>
-                                                <th className="text-white-50 border-secondary">Configuración</th>
+                                                <th className="text-white-50 border-secondary">ConfiguraciÃ³n</th>
                                                 <th className="text-end text-white-50 border-secondary">Acciones</th>
                                             </tr>
                                         </thead>
@@ -675,7 +695,7 @@ export default function Settings() {
                                                                 <button className="btn btn-outline-primary" title="Editar con Entrenador" onClick={() => setEditingProfile(p)}>
                                                                     <i className="bi bi-pencil-square"></i>
                                                                 </button>
-                                                                <button className="btn btn-outline-success" title="Clonar / Nueva Versión" onClick={() => setShowCloneModal(p)}>
+                                                                <button className="btn btn-outline-success" title="Clonar / Nueva VersiÃ³n" onClick={() => setShowCloneModal(p)}>
                                                                     <i className="bi bi-copy"></i>
                                                                 </button>
                                                                 <button className="btn btn-outline-danger" title="Eliminar" onClick={() => deleteProfile(p.key, p.name)}>
@@ -713,15 +733,15 @@ export default function Settings() {
                                             </div>
                                         </div>
                                         <p className="lead small opacity-90 mb-4">
-                                            Mahoraga no es una herramienta de consulta; es la inteligencia que supervisa cada fase de tu contabilidad.
-                                            Su madurez es un reflejo directo de la actividad y profundidad de tu gestión.
+                                            Mahoraga opera aqui como capa de gobernanza: observa actividad real, resume madurez,
+                                            muestra insights contables y expone el catalogo tecnico disponible sin intervenir de forma invasiva.
                                         </p>
                                         <div className="row g-3">
                                             {[
-                                                { id: 'GENESIS', label: 'GÉNESIS', sub: 'Cimientos', threshold: 25 },
-                                                { id: 'OPERACION', label: 'OPERACIÓN', sub: 'Hechos Reales', threshold: 50 },
+                                                { id: 'GENESIS', label: 'GÃ‰NESIS', sub: 'Cimientos', threshold: 25 },
+                                                { id: 'OPERACION', label: 'OPERACIÃ“N', sub: 'Hechos Reales', threshold: 50 },
                                                 { id: 'RITUAL', label: 'RITUAL', sub: 'Ajustes/SCL', threshold: 75 },
-                                                { id: 'REVELACION', label: 'REVELACIÓN', sub: 'Juicio Final', threshold: 100 }
+                                                { id: 'REVELACION', label: 'REVELACIÃ“N', sub: 'Juicio Final', threshold: 100 }
                                             ].map(phase => (
                                                 <div key={phase.id} className="col-6 col-md-3">
                                                     <div className={`p-2 rounded text-center border ${learningStatus?.learning_progress?.percentage >= phase.threshold
@@ -738,7 +758,7 @@ export default function Settings() {
                                     </div>
                                     <div className="col-md-4 text-center mt-4 mt-md-0 border-start border-secondary">
                                         <div className="display-4 fw-bold mb-0" style={{ color: '#eab308' }}>{learningStatus?.learning_progress?.percentage || 0}%</div>
-                                        <div className="small text-uppercase opacity-75 mb-3">Madurez de Orquestación</div>
+                                        <div className="small text-uppercase opacity-75 mb-3">Madurez de OrquestaciÃ³n</div>
                                         <div className="badge p-2 border border-secondary w-100" style={{ background: '#1e293b', color: '#eab308' }}>
                                             <i className="bi bi-flag-fill me-2"></i>
                                             {learningStatus?.learning_progress?.next_milestone || 'Pendiente'}
@@ -749,19 +769,19 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {/* Controles de Activación por Página */}
+                    {/* Controles de ActivaciÃ³n por PÃ¡gina */}
                     <div className="col-12">
                         <div className="card shadow-sm border-0 border-top border-4 border-primary glass-panel">
                             <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 className="mb-0 fw-bold text-white"><i className="bi bi-toggle-on me-2"></i>Central de Activación</h5>
+                                    <h5 className="mb-0 fw-bold text-white"><i className="bi bi-toggle-on me-2"></i>Central de ActivaciÃ³n</h5>
                                     {savingConfig && <span className="spinner-border spinner-border-sm text-primary"></span>}
                                 </div>
                                 <div className="row g-2">
                                     {[
                                         { id: 'Journal', name: 'Libro Diario', icon: 'bi-pencil-square' },
                                         { id: 'Accounts', name: 'Plan de Cuentas', icon: 'bi-journal-text' },
-                                        { id: 'TrialBalance', name: 'Balance Comprobación', icon: 'bi-calculator' },
+                                        { id: 'TrialBalance', name: 'Balance ComprobaciÃ³n', icon: 'bi-calculator' },
                                         { id: 'Ledger', name: 'Libro Mayor', icon: 'bi-book' },
                                         { id: 'UFV', name: 'Mantenimiento UFV', icon: 'bi-graph-up-arrow' },
                                         { id: 'ExchangeRate', name: 'Tipo de Cambio', icon: 'bi-currency-exchange' },
@@ -792,7 +812,7 @@ export default function Settings() {
                                     ))}
                                 </div>
                                 <div className="mt-3 small text-white-50">
-                                    <i className="bi bi-info-circle me-1"></i> Mahoraga solo mostrará su rueda y controles en las páginas seleccionadas.
+                                    <i className="bi bi-info-circle me-1"></i> Mahoraga solo mostrarÃ¡ su rueda y controles en las pÃ¡ginas seleccionadas.
                                 </div>
                             </div>
                         </div>
@@ -807,7 +827,7 @@ export default function Settings() {
                                     {mahoragaStatus?.currentMode?.toUpperCase() || 'OFFLINE'}
                                 </h3>
                                 <p className="small opacity-75 mb-4">
-                                    Haz clic para gestionar los permisos de intervención de Mahoraga en el sistema.
+                                    Haz clic para gestionar los permisos de intervenciÃ³n de Mahoraga en el sistema.
                                 </p>
                                 <button className="btn btn-outline-light w-100 mb-2" onClick={() => setShowModeChange(true)}>
                                     <i className="bi bi-shield-lock me-2"></i>Cambiar Seguridad
@@ -822,11 +842,11 @@ export default function Settings() {
                     <div className="col-md-4">
                         <div className="card shadow-sm h-100 border-secondary glass-panel" style={{ background: 'linear-gradient(135deg, rgba(240, 249, 255, 0.05) 0%, rgba(224, 242, 254, 0.05) 100%)' }}>
                             <div className="card-body">
-                                <h6 className="text-primary text-uppercase small fw-bold mb-3">Cognición (Reglas)</h6>
+                                <h6 className="text-primary text-uppercase small fw-bold mb-3">CogniciÃ³n (Reglas)</h6>
                                 <h3 className="fw-bold mb-2 text-white">
                                     {(companyProfile?.monetary_rules?.length || 0) + (companyProfile?.non_monetary_rules?.length || 0)}
                                 </h3>
-                                <p className="small text-white-50 mb-4">Patrones específicos aprendidos de tus correcciones diarias.</p>
+                                <p className="small text-white-50 mb-4">Patrones especÃ­ficos aprendidos de tus correcciones diarias.</p>
                                 <div className="d-flex gap-2">
                                     <span className="badge bg-primary bg-opacity-75">{companyProfile?.monetary_rules?.length || 0} Monetarias</span>
                                     <span className="badge bg-info text-dark bg-opacity-75">{companyProfile?.non_monetary_rules?.length || 0} No Monetarias</span>
@@ -861,17 +881,17 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {/* Habilidades Abstraídas (Paginado y Filtrado en Backend) */}
+                    {/* Catalogo Tecnico de Skills */}
                     <div className="col-12">
                         <div className="card shadow-sm border-secondary glass-panel">
                             <div className="card-header border-secondary d-flex justify-content-between align-items-center" style={{ backgroundColor: 'transparent' }}>
-                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-cpu me-2 text-primary"></i>Habilidades Absorbidas</h5>
+                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-cpu me-2 text-primary"></i>Catalogo Tecnico de Skills</h5>
                                 <div className="input-group input-group-sm w-50">
                                     <span className="input-group-text bg-dark border-secondary text-white-50"><i className="bi bi-search"></i></span>
                                     <input
                                         type="text"
                                         className="form-control border-secondary bg-dark text-white"
-                                        placeholder="Buscar entre 400+ habilidades..."
+                                        placeholder="Buscar por nombre, ID, archivo o tipo..."
                                         value={searchQuery}
                                         onChange={handleSearch}
                                     />
@@ -881,34 +901,32 @@ export default function Settings() {
                                 <table className="table table-dark table-hover align-middle mb-0" style={{ backgroundColor: 'transparent' }}>
                                     <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="sticky-top">
                                         <tr>
-                                            <th className="text-white-50 border-secondary">Habilidad</th>
-                                            <th className="text-white-50 border-secondary">Extensión</th>
-                                            <th className="text-white-50 border-secondary">Confianza</th>
-                                            <th className="text-white-50 border-secondary">Estado</th>
+                                            <th className="text-white-50 border-secondary">Skill</th>
+                                            <th className="text-white-50 border-secondary">Tipo</th>
+                                            <th className="text-white-50 border-secondary">Archivo</th>
+                                            <th className="text-white-50 border-secondary">Indice</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {searchResults.length > 0 ? (
                                             searchResults.map((res, i) => (
                                                 <tr key={i}>
-                                                    <td className="border-secondary"><code className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>{res.skill.name}</code></td>
-                                                    <td className="border-secondary"><span className="badge border border-secondary text-white-50" style={{ background: '#1e293b' }}>{res.skill.type || 'Cognitive'}</span></td>
-                                                    <td className="border-secondary" style={{ width: '150px' }}>
-                                                        <div className="d-flex align-items-center gap-2">
-                                                            <div className="progress flex-grow-1 bg-dark border border-secondary" style={{ height: '4px' }}>
-                                                                <div className="progress-bar bg-success" style={{ width: `${(res.skill.confidence || 0.95) * 100}%` }}></div>
-                                                            </div>
-                                                            <span className="small text-white-50">{(res.skill.confidence || 0.95) * 100}%</span>
+                                                    <td className="border-secondary">
+                                                        <div className="d-flex flex-column">
+                                                            <code className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>{res.skill?.name || res.skill?.id || 'Skill sin nombre'}</code>
+                                                            <small className="text-white-50">{res.skill?.id || 'Sin ID'}</small>
                                                         </div>
                                                     </td>
-                                                    <td className="border-secondary"><span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Activo</span></td>
+                                                    <td className="border-secondary"><span className="badge border border-secondary text-white-50" style={{ background: '#1e293b' }}>{res.skill?.type || 'general'}</span></td>
+                                                    <td className="border-secondary"><code className="text-info small">{res.skill?.file || 'Catalogo unificado'}</code></td>
+                                                    <td className="border-secondary"><span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Indexada</span></td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
                                                 <td colSpan="4" className="text-center py-5 border-secondary">
                                                     <span className="text-white-50">
-                                                        {searchQuery.length > 2 ? 'No se encontraron habilidades que coincidan.' : 'Explora el catálogo de habilidades de Mahoraga.'}
+                                                        {searchQuery.length > 2 ? 'No se encontraron skills que coincidan.' : 'Explora el catalogo tecnico indexado por Mahoraga.'}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -917,7 +935,11 @@ export default function Settings() {
                                 </table>
                             </div>
                             <div className="card-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                                <small className="text-white-50"><i className="bi bi-database-check me-1"></i> Fuente: <code className="text-info">skills_output_combined.json</code> (Sincronizado)</small>
+                                <small className="text-white-50">
+                                    <i className="bi bi-database-check me-1"></i>
+                                    Fuente unificada: <code className="text-info">{skillStats?.sourceFile || 'skillLoader'}</code>
+                                    {' '}| Total indexado: <strong className="text-white">{skillStats?.totalSkills || 0}</strong>
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -944,7 +966,7 @@ export default function Settings() {
                                         <label className="form-label small fw-bold text-white-50">Empresa Asignada</label>
                                         <select className="form-select bg-dark text-white border-secondary" value={editingProfile.companyId}
                                             onChange={e => setEditingProfile({ ...editingProfile, companyId: e.target.value })}>
-                                            <option value="global">🌍 Plantilla Global (Para todos)</option>
+                                            <option value="global">ðŸŒ Plantilla Global (Para todos)</option>
                                             {companies.map(c => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
@@ -952,10 +974,10 @@ export default function Settings() {
                                     </div>
                                 </div>
                                 <div className="p-3 rounded border border-secondary shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                                    <h6 className="border-bottom border-secondary pt-1 pb-2 mb-3 text-white"><i className="bi bi-sliders me-2"></i>Configuración de Estructura</h6>
+                                    <h6 className="border-bottom border-secondary pt-1 pb-2 mb-3 text-white"><i className="bi bi-sliders me-2"></i>ConfiguraciÃ³n de Estructura</h6>
                                     <div className="row g-3 align-items-end">
                                         <div className="col-md-3">
-                                            <label className="form-label small fw-bold text-white-50">Detección</label>
+                                            <label className="form-label small fw-bold text-white-50">DetecciÃ³n</label>
                                             <div className="btn-group btn-group-sm w-100">
                                                 <button className={`btn ${editingProfile.config.hasSeparator ? 'btn-primary' : 'btn-outline-primary text-white'}`}
                                                     onClick={() => setEditingProfile({ ...editingProfile, config: { ...editingProfile.config, hasSeparator: true } })}>Separador</button>
@@ -1038,7 +1060,7 @@ export default function Settings() {
                                     <label className="form-label small fw-bold text-white-50">Empresa Destino</label>
                                     <select className="form-select bg-dark text-white border-secondary" value={targetCompanyId} onChange={e => setTargetCompanyId(e.target.value)}>
                                         <option value="">-- Misma Empresa --</option>
-                                        <option value="global">🌍 Plantilla Global</option>
+                                        <option value="global">ðŸŒ Plantilla Global</option>
                                         {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
@@ -1062,17 +1084,17 @@ export default function Settings() {
                             </div>
                             <div className="modal-body p-4">
                                 <div className="mb-4">
-                                    <label className="form-label fw-bold text-white-50">Modo de Operación</label>
+                                    <label className="form-label fw-bold text-white-50">Modo de OperaciÃ³n</label>
                                     <select className="form-select form-select-lg bg-dark text-white border-secondary" value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
                                         <option value="">Seleccionar...</option>
-                                        <option value="disabled">🚫 Desactivado</option>
-                                        <option value="manual">👆 Manual (Por defecto)</option>
-                                        <option value="assisted">🤖 Asistido (Sugerencias)</option>
-                                        <option value="autonomous">⚡ Autónomo (Experimental)</option>
+                                        <option value="disabled">ðŸš« Desactivado</option>
+                                        <option value="manual">ðŸ‘† Manual (Por defecto)</option>
+                                        <option value="assisted">ðŸ¤– Asistido (Sugerencias)</option>
+                                        <option value="autonomous">âš¡ AutÃ³nomo (Experimental)</option>
                                     </select>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label fw-bold text-white-50">Razón del Cambio</label>
+                                    <label className="form-label fw-bold text-white-50">RazÃ³n del Cambio</label>
                                     <textarea className="form-control bg-dark text-white border-secondary" rows="3" value={modeChangeReason}
                                         onChange={(e) => setModeChangeReason(e.target.value)}
                                         placeholder="Escribe el motivo del cambio..."></textarea>

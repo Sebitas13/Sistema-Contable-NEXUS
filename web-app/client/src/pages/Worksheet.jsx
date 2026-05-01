@@ -8,6 +8,7 @@ import { useCompany } from '../context/CompanyContext';
 // Importar API_URL explícitamente para evitar errores en producción
 import API_URL from '../api';
 import AIAdjustmentPanel from '../components/AIAdjustmentPanel';
+import MahoragaWheel from '../components/MahoragaWheel';
 import { getFiscalYearDetails } from '../utils/fiscalYearUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -37,12 +38,28 @@ export default function Worksheet() {
     const [loading, setLoading] = useState(true);
     const [aiAdjustments, setAiAdjustments] = useState(null); // AI-generated adjustments
     const [showAIPanel, setShowAIPanel] = useState(false);
+    const [mahoragaActive, setMahoragaActive] = useState(false);
 
     useEffect(() => {
         if (selectedCompany?.id) {
             fetchWorksheetData();
+            checkMahoragaStatus();
         }
     }, [selectedCompany?.id]);
+
+    const checkMahoragaStatus = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`);
+            if (response.data.success && Array.isArray(response.data.active_pages)) {
+                setMahoragaActive(response.data.active_pages.includes('Worksheet'));
+            } else {
+                setMahoragaActive(false);
+            }
+        } catch (error) {
+            console.error('Error checking Mahoraga status:', error);
+            setMahoragaActive(false);
+        }
+    };
 
     const fetchWorksheetData = async () => {
         if (!selectedCompany?.id) return;
@@ -894,6 +911,7 @@ export default function Worksheet() {
                     <p className="text-light opacity-75 mb-0">Formato completo - Balance de Comprobación, Ajustes, Balance Ajustado, Estado de Resultados, Balance General, Cierre y Cuentas de Orden</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
+                    {mahoragaActive && <MahoragaWheel size="small" />}
                     <button className="btn btn-outline-primary btn-sm" onClick={fetchWorksheetData} disabled={loading}>
                         <i className="bi bi-arrow-clockwise me-1"></i> Recargar
                     </button>

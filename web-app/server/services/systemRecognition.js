@@ -48,12 +48,13 @@ class SystemRecognition {
                 styling: 'Bootstrap + Tailwind CSS',
                 components: [
                     'Dashboard', 'Accounts', 'Journal', 'Ledger',
-                    'Worksheet', 'Reports', 'Settings', 'MahoragaDashboard'
+                    'TrialBalance', 'UFV', 'ExchangeRate', 'Worksheet',
+                    'FinancialStatements', 'Settings'
                 ]
             },
             backend: {
                 runtime: 'Node.js + Express',
-                database: 'SQLite',
+                database: 'Turso/libsql (SQLite compatible)',
                 apis: ['RESTful API', 'File Upload', 'Export/Import'],
                 services: [
                     'modelServiceAdapter', 'groqMonitor', 'mahoragaController',
@@ -87,12 +88,12 @@ class SystemRecognition {
                 'FASE 4: REVELACIÓN Y CIERRE (Reporting) - Estados Financieros y Cierre de Gestión'
             ],
             ai_integration: [
-                '1. Absorción de skills del sistema',
-                '2. Verificación de permisos (Mahoraga Controller)',
-                '3. Activación manual del usuario',
-                '4. Preview de operaciones a realizar',
-                '5. Ejecución con monitoreo',
-                '6. Auto-aprendizaje de correcciones'
+                '1. Indexación del catálogo técnico de skills',
+                '2. Gobernanza de modo y permisos (Mahoraga Controller)',
+                '3. Activación por página desde Settings',
+                '4. Insights y monitoreo operativo',
+                '5. Generación de ajustes donde ya existe flujo estable',
+                '6. Aprendizaje a partir de feedback y correcciones'
             ],
             user_management: [
                 '1. Selección de empresa',

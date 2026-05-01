@@ -15,7 +15,6 @@ import ExchangeRate from './pages/ExchangeRate';
 import DataForge from './DataForge/DataForge';
 import FinancialStatements from './pages/FinancialStatements';
 import Settings from './pages/Settings';
-import MahoragaDashboard from './pages/MahoragaDashboard';
 import { useState } from 'react';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {

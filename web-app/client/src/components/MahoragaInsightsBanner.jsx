@@ -70,9 +70,9 @@ const MahoragaInsightsBanner = ({ context }) => {
                 </div>
                 <button
                     className="btn btn-sm btn-light text-primary fw-bold"
-                    onClick={() => window.location.href = '/mahoraga-dashboard'}
+                    onClick={() => window.location.href = '/app/settings'}
                 >
-                    Expandir Sugerencias
+                    Abrir Gobernanza
                 </button>
             </div>
         </div>

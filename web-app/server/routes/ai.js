@@ -4,6 +4,7 @@ const { inferWithModel } = require('../services/modelServiceAdapter');
 const groqMonitor = require('../services/groqMonitor');
 const mahoragaController = require('../services/mahoragaController');
 const systemRecognition = require('../services/systemRecognition');
+const skillLoader = require('../services/skillLoader');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -22,6 +23,18 @@ const AI_ENGINE_URL = normalizeServiceBaseUrl(
   (isDev ? 'http://localhost:8003' : 'http://localhost:8003')
 );
 const db = require('../db');
+const ENABLE_MAHORAGA_EXPERIMENTAL = process.env.ENABLE_MAHORAGA_EXPERIMENTAL === '1';
+const MAHORAGA_PAGE_IDS = [
+  'Accounts',
+  'Journal',
+  'Ledger',
+  'TrialBalance',
+  'UFV',
+  'ExchangeRate',
+  'Worksheet',
+  'FinancialStatements'
+];
+const DEFAULT_MAHORAGA_PAGES = ['Journal', 'Ledger', 'FinancialStatements'];
 
 // Helper function to promisify db.all - PROPER CALLBACK WRAPPER
 const dbAll = (sql, params = []) => {
@@ -524,6 +537,137 @@ const saveProfile = (companyId, profileJson) => {
       }
     );
   });
+};
+
+const normalizeMahoragaPages = (rawPages) => {
+  let parsedPages = rawPages;
+
+  if (typeof parsedPages === 'string') {
+    try {
+      parsedPages = JSON.parse(parsedPages);
+    } catch (error) {
+      parsedPages = [];
+    }
+  }
+
+  if (!Array.isArray(parsedPages)) {
+    return [...DEFAULT_MAHORAGA_PAGES];
+  }
+
+  const normalized = Array.from(
+    new Set(
+      parsedPages
+        .map(pageId => String(pageId || '').trim())
+        .filter(pageId => MAHORAGA_PAGE_IDS.includes(pageId))
+    )
+  );
+
+  return normalized.length > 0 ? normalized : [...DEFAULT_MAHORAGA_PAGES];
+};
+
+const getMahoragaPageConfig = async (companyId) => {
+  const profile = await getProfile(companyId);
+  return normalizeMahoragaPages(profile?.mahoraga_settings?.active_pages);
+};
+
+const buildMahoragaLearningProgress = async (companyId) => {
+  if (!companyId) {
+    return {
+      learning_progress: {
+        percentage: 0,
+        current_phase: 'Genesis',
+        next_milestone: 'Crear Plan de Cuentas',
+        details: 'Selecciona una empresa para evaluar la madurez de gobernanza.',
+        stats: {
+          accounts: 0,
+          operations: 0,
+          adaptations: 0,
+          hasClosing: false
+        }
+      },
+      readiness: {
+        learning_complete: false,
+        security_configured: mahoragaController.currentMode !== mahoragaController.modes.DISABLED,
+        company_context: false,
+        ready: false
+      }
+    };
+  }
+
+  const [accountsResult, operationsResult, adaptationResult, adjustmentResult, closingResult] = await Promise.all([
+    dbAll('SELECT COUNT(*) as count FROM accounts WHERE company_id = ?', [companyId]),
+    dbAll('SELECT COUNT(*) as count FROM transactions WHERE company_id = ? AND (type IS NULL OR type != "Ajuste")', [companyId]),
+    dbAll('SELECT COUNT(*) as count FROM mahoraga_adaptation_events WHERE company_id = ?', [companyId]),
+    dbAll('SELECT COUNT(*) as count FROM transactions WHERE company_id = ? AND type = "Ajuste"', [companyId]),
+    dbAll('SELECT COUNT(*) as count FROM transactions WHERE company_id = ? AND (UPPER(type) = "CIERRE" OR gloss LIKE "%Cierre de Gestión%")', [companyId])
+  ]);
+
+  const accounts = Number(accountsResult?.[0]?.count || 0);
+  const operations = Number(operationsResult?.[0]?.count || 0);
+  const adaptations = Number(adaptationResult?.[0]?.count || 0);
+  const adjustments = Number(adjustmentResult?.[0]?.count || 0);
+  const hasClosing = Number(closingResult?.[0]?.count || 0) > 0;
+
+  const hasAccounts = accounts > 0;
+  const isOperating = operations >= 5;
+  const hasRitual = adaptations > 0 || adjustments > 0;
+  const hasRevelation = hasClosing;
+
+  let percentage = 0;
+  let currentPhase = 'Genesis';
+  let nextMilestone = 'Crear Plan de Cuentas';
+  let details = 'Mahoraga esta observando el nacimiento contable de la empresa.';
+
+  if (hasAccounts) {
+    percentage += 25;
+    currentPhase = 'Genesis (Configurado)';
+    nextMilestone = 'Registrar Operaciones (min 5)';
+    details = 'La estructura de cuentas ya existe y la gobernanza puede inspeccionar su base.';
+  }
+
+  if (isOperating) {
+    percentage += 25;
+    currentPhase = 'Operacion Activa';
+    nextMilestone = 'Ejecutar Ritual de Ajustes';
+    details = 'Ya hay movimiento real. Mahoraga puede observar patrones y consistencia operativa.';
+  }
+
+  if (hasRitual) {
+    percentage += 25;
+    currentPhase = 'Ritual de Acondicionamiento';
+    nextMilestone = 'Generar Juicio Final (Cierre)';
+    details = 'La empresa ya entrena reglas mediante ajustes y eventos de adaptacion.';
+  }
+
+  if (hasRevelation) {
+    percentage += 25;
+    currentPhase = 'Revelacion Completa';
+    nextMilestone = 'Mantenimiento de Gobernanza';
+    details = 'El ciclo contable ya llego a cierre y Mahoraga opera como observador de gobernanza.';
+  }
+
+  const readiness = {
+    learning_complete: percentage >= 75,
+    security_configured: mahoragaController.currentMode !== mahoragaController.modes.DISABLED,
+    company_context: true,
+    ready: percentage >= 75 && mahoragaController.currentMode !== mahoragaController.modes.DISABLED
+  };
+
+  return {
+    learning_progress: {
+      percentage,
+      current_phase: currentPhase,
+      next_milestone: nextMilestone,
+      details,
+      stats: {
+        accounts,
+        operations,
+        adaptations,
+        hasClosing
+      }
+    },
+    readiness
+  };
 };
 
 // V6.0: Helper para fusionar perfiles correctamente (arrays se concatenan, objetos se fusionan)
@@ -1222,7 +1366,7 @@ router.get('/monitor/dashboard', async (req, res) => {
       success: true,
       dashboard: report,
       mahoraga_status: {
-        skills_loaded: 446, // De las pruebas anteriores
+        skills_loaded: skillLoader.getHealthStats().totalSkills,
         adaptation_events_today: 0, // TODO: Implementar contador
         companies_with_profiles: 0 // TODO: Implementar contador
       }
@@ -1485,15 +1629,13 @@ router.get('/mahoraga/can-activate', async (req, res) => {
 router.get('/recognition/status', async (req, res) => {
   try {
     const { companyId } = req.query;
-    const progress = systemRecognition.getLearningProgress();
-    const readiness = systemRecognition.isReadyToOperate(companyId);
+    const learningState = await buildMahoragaLearningProgress(companyId);
 
     res.json({
       success: true,
-      learning_progress: progress,
-      readiness,
-      current_phase: systemRecognition.currentPhase,
-      system_knowledge: systemRecognition.systemKnowledge
+      learning_progress: learningState.learning_progress,
+      readiness: learningState.readiness,
+      current_phase: learningState.learning_progress.current_phase
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1633,6 +1775,7 @@ router.get('/mahoraga/insights', async (req, res) => {
 });
 // POST /api/ai/recognition/learn-operation - Mahoraga aprende de una operaciÃ³n completada
 // POST /api/ai/recognition/advance - Avanzar manualmente la fase de madurez de Mahoraga
+if (ENABLE_MAHORAGA_EXPERIMENTAL) {
 router.post('/recognition/advance', async (req, res) => {
   try {
     const { companyId } = req.body;
@@ -1739,25 +1882,13 @@ router.post('/recognition/learn-operation', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
-// --- SKILLS MANAGEMENT (V6.0 Optimized) ---
-const SKILLS_FILE = path.join(__dirname, '../skills_output_combined.json');
+}
 
 router.get('/skills/health', async (req, res) => {
   try {
-    if (!fs.existsSync(SKILLS_FILE)) {
-      return res.json({ success: true, stats: { total: 0, active: 0, degraded: 0 } });
-    }
-    const skillsData = JSON.parse(fs.readFileSync(SKILLS_FILE, 'utf8'));
-    const total = skillsData.length;
     res.json({
       success: true,
-      stats: {
-        total,
-        active: Math.floor(total * 0.95),
-        degraded: Math.floor(total * 0.05),
-        last_update: new Date()
-      }
+      stats: skillLoader.getHealthStats()
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1766,29 +1897,20 @@ router.get('/skills/health', async (req, res) => {
 
 router.get('/skills/search', async (req, res) => {
   try {
-    const { q, page = 1, limit = 20 } = req.query;
-    if (!fs.existsSync(SKILLS_FILE)) return res.json({ success: true, results: [] });
-
-    const skillsData = JSON.parse(fs.readFileSync(SKILLS_FILE, 'utf8'));
-    let filtered = skillsData;
-
-    if (q) {
-      const query = q.toLowerCase();
-      filtered = skillsData.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        (s.type && s.type.toLowerCase().includes(query))
-      );
-    }
-
-    const startIndex = (page - 1) * limit;
-    const resultSkills = filtered.slice(startIndex, startIndex + parseInt(limit));
+    const {
+      q = '',
+      limit = 20,
+      offset = 0
+    } = req.query;
+    const catalog = skillLoader.searchCatalog(q, { limit, offset });
 
     res.json({
       success: true,
-      results: resultSkills.map(s => ({ skill: s })),
-      total: filtered.length,
-      page: parseInt(page),
-      limit: parseInt(limit)
+      query: typeof q === 'string' ? q.trim() : '',
+      totalResults: catalog.totalResults,
+      limit: Math.max(1, parseInt(limit, 10) || 20),
+      offset: Math.max(0, parseInt(offset, 10) || 0),
+      results: catalog.results
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1799,16 +1921,12 @@ router.get('/skills/search', async (req, res) => {
 router.get('/mahoraga/config/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
-    const config = await new Promise((resolve) => {
-      db.get('SELECT profile_json FROM company_adjustment_profiles WHERE company_id = ?', [companyId], (err, row) => {
-        if (err || !row) resolve({ active_pages: ['dashboard'] });
-        else {
-          const profile = JSON.parse(row.profile_json);
-          resolve(profile.mahoraga_settings?.active_pages || ['dashboard']);
-        }
-      });
+    const activePages = await getMahoragaPageConfig(companyId);
+    res.json({
+      success: true,
+      active_pages: activePages,
+      valid_page_ids: MAHORAGA_PAGE_IDS
     });
-    res.json({ success: true, active_pages: config });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1818,22 +1936,27 @@ router.get('/mahoraga/config/:companyId', async (req, res) => {
 router.post('/mahoraga/config/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { active_pages } = req.body;
+    const normalizedPages = normalizeMahoragaPages(req.body?.active_pages);
 
     const dbProfile = await getProfile(companyId) || {};
     dbProfile.mahoraga_settings = {
       ...(dbProfile.mahoraga_settings || {}),
-      active_pages
+      active_pages: normalizedPages
     };
 
     await saveProfile(companyId, dbProfile);
-    res.json({ success: true, active_pages });
+    res.json({
+      success: true,
+      active_pages: normalizedPages,
+      valid_page_ids: MAHORAGA_PAGE_IDS
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // GET /api/ai/mahoraga/config/:companyId - Obtener configuraciÃ³n Mahoraga
+if (ENABLE_MAHORAGA_EXPERIMENTAL) {
 router.get('/mahoraga/config/:companyId', (req, res) => {
   const { companyId } = req.params;
 
@@ -1956,4 +2079,5 @@ router.post('/profile/:companyId', (req, res) => {
   });
 });
 
+}
 module.exports = router;
