@@ -14,7 +14,12 @@ const IMPORT_ORDER = [
     'mahoraga_adaptation_events',
     'transactions',
     'transaction_entries',
-    'inventory_movements'
+    'inventory_movements',
+    // Costos y producción (dependen de companies / inventory_items / entre sí).
+    'cost_centers',
+    'cost_distribution_models',
+    'cost_distribution_entries',
+    'production_orders'
 ];
 
 const LEGACY_HASH_ORDER = [

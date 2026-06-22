@@ -32,7 +32,11 @@ const SUPPORTED_TABLES = [
     'ufv_rates',
     'exchange_rates',
     'company_adjustment_profiles',
-    'mahoraga_adaptation_events'
+    'mahoraga_adaptation_events',
+    'cost_centers',
+    'cost_distribution_models',
+    'cost_distribution_entries',
+    'production_orders'
 ];
 
 const DIRECT_COMPANY_TABLES = new Set([
@@ -43,15 +47,45 @@ const DIRECT_COMPANY_TABLES = new Set([
     'ufv_rates',
     'exchange_rates',
     'company_adjustment_profiles',
-    'mahoraga_adaptation_events'
+    'mahoraga_adaptation_events',
+    'cost_centers',
+    'cost_distribution_models',
+    'production_orders'
 ]);
 
 fs.ensureDirSync(UPLOAD_DIR);
 
 const upload = multer({
     dest: UPLOAD_DIR,
-    limits: { fileSize: MAX_SIZE }
+    limits: { fileSize: MAX_SIZE },
+    fileFilter: (req, file, cb) => {
+        // Aceptar solo .zip (por extensión o mimetype habitual de zips).
+        const okExt = /\.zip$/i.test(file.originalname || '');
+        const okMime = [
+            'application/zip',
+            'application/x-zip-compressed',
+            'application/octet-stream',
+            'multipart/x-zip'
+        ].includes(file.mimetype);
+        if (okExt || okMime) return cb(null, true);
+        cb(new Error('Formato inválido: se espera un archivo .zip de backup.'));
+    }
 });
+
+// Envuelve multer para devolver errores claros (tamaño/tipo) en JSON en vez de un 500 genérico.
+const uploadSingle = (field) => (req, res, next) => {
+    upload.single(field)(req, res, (err) => {
+        if (err) {
+            const isSize = err.code === 'LIMIT_FILE_SIZE';
+            return res.status(isSize ? 413 : 400).json({
+                error: isSize
+                    ? `El archivo supera el tamaño máximo permitido (${Math.round(MAX_SIZE / 1024 / 1024)} MB).`
+                    : 'Error al subir el archivo: ' + err.message
+            });
+        }
+        next();
+    });
+};
 
 function escapeIdentifier(identifier) {
     return `"${String(identifier).replace(/"/g, '""')}"`;
@@ -317,6 +351,28 @@ async function queryInventoryMovements(companyId, schemaWarnings, queryApi = roo
     return queryEntireTable('inventory_movements', queryApi, cache);
 }
 
+async function queryCostDistributionEntries(companyId, schemaWarnings, queryApi = rootDbApi, cache = new Map()) {
+    const modelState = await getTableState('cost_distribution_models', queryApi, cache);
+    const entryState = await getTableState('cost_distribution_entries', queryApi, cache);
+
+    if (!modelState.exists || !entryState.exists) {
+        return [];
+    }
+
+    if (modelState.columnSet.has('company_id')) {
+        return queryApi.all(`
+            SELECT cde.*
+            FROM cost_distribution_entries cde
+            JOIN cost_distribution_models cdm ON cde.model_id = cdm.id
+            WHERE cdm.company_id = ?
+            ORDER BY cde.model_id ASC, cde.id ASC
+        `, [companyId]);
+    }
+
+    schemaWarnings.push('La tabla cost_distribution_models no tiene company_id. Se exportaron todas las entradas de distribución de costos.');
+    return queryEntireTable('cost_distribution_entries', queryApi, cache);
+}
+
 async function exportCompanyData(companyId) {
     const cache = new Map();
     const schemaWarnings = [];
@@ -337,7 +393,11 @@ async function exportCompanyData(companyId) {
         ufv_rates: { rows: await queryCompanyScopedTable('ufv_rates', companyId, schemaWarnings, rootDbApi, cache) },
         exchange_rates: { rows: await queryCompanyScopedTable('exchange_rates', companyId, schemaWarnings, rootDbApi, cache) },
         company_adjustment_profiles: { rows: await queryCompanyScopedTable('company_adjustment_profiles', companyId, schemaWarnings, rootDbApi, cache) },
-        mahoraga_adaptation_events: { rows: await queryCompanyScopedTable('mahoraga_adaptation_events', companyId, schemaWarnings, rootDbApi, cache) }
+        mahoraga_adaptation_events: { rows: await queryCompanyScopedTable('mahoraga_adaptation_events', companyId, schemaWarnings, rootDbApi, cache) },
+        cost_centers: { rows: await queryCompanyScopedTable('cost_centers', companyId, schemaWarnings, rootDbApi, cache) },
+        cost_distribution_models: { rows: await queryCompanyScopedTable('cost_distribution_models', companyId, schemaWarnings, rootDbApi, cache) },
+        cost_distribution_entries: { rows: await queryCostDistributionEntries(companyId, schemaWarnings, rootDbApi, cache) },
+        production_orders: { rows: await queryCompanyScopedTable('production_orders', companyId, schemaWarnings, rootDbApi, cache) }
     };
 
     const tables = normalizeBackupTables(rawTables);
@@ -749,6 +809,113 @@ async function restoreBackupBundle(bundle) {
             incrementCounter(stats.imported, 'inventory_movements');
         }
 
+        // --- Costos y producción ---
+        const costCenterIdMap = new Map();
+        const distributionModelIdMap = new Map();
+
+        // cost_centers: parent_id es auto-referencial → dos pasadas (insertar sin padre, luego re-vincular).
+        const costCenters = bundle.tables.cost_centers?.rows || [];
+        if (costCenters.length > 0) {
+            const ccState = await getTableState('cost_centers', queryApi, cache);
+            if (ccState.exists) {
+                for (const sourceRow of costCenters) {
+                    const result = await insertRow(
+                        'cost_centers',
+                        buildInsertRow(sourceRow, ccState, { companyId: newCompanyId, overrides: { parent_id: null } }),
+                        queryApi,
+                        cache
+                    );
+                    incrementCounter(stats.imported, 'cost_centers');
+                    if (sourceRow.id !== undefined && sourceRow.id !== null && result.lastID !== null && result.lastID !== undefined) {
+                        costCenterIdMap.set(String(sourceRow.id), result.lastID);
+                    }
+                }
+
+                if (ccState.columnSet.has('parent_id')) {
+                    for (const sourceRow of costCenters) {
+                        if (sourceRow.parent_id === undefined || sourceRow.parent_id === null) continue;
+                        const newId = costCenterIdMap.get(String(sourceRow.id));
+                        const newParentId = costCenterIdMap.get(String(sourceRow.parent_id));
+                        if (newId && newParentId) {
+                            await queryApi.run(
+                                `UPDATE ${escapeIdentifier('cost_centers')} SET parent_id = ? WHERE id = ?`,
+                                [newParentId, newId]
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // cost_distribution_models (company-scoped)
+        const distributionModels = bundle.tables.cost_distribution_models?.rows || [];
+        if (distributionModels.length > 0) {
+            const dmState = await getTableState('cost_distribution_models', queryApi, cache);
+            if (dmState.exists) {
+                for (const sourceRow of distributionModels) {
+                    const result = await insertRow(
+                        'cost_distribution_models',
+                        buildInsertRow(sourceRow, dmState, { companyId: newCompanyId }),
+                        queryApi,
+                        cache
+                    );
+                    incrementCounter(stats.imported, 'cost_distribution_models');
+                    if (sourceRow.id !== undefined && sourceRow.id !== null && result.lastID !== null && result.lastID !== undefined) {
+                        distributionModelIdMap.set(String(sourceRow.id), result.lastID);
+                    }
+                }
+            }
+        }
+
+        // cost_distribution_entries (remapea model_id + cost_center_id; no tiene company_id)
+        const distributionEntries = bundle.tables.cost_distribution_entries?.rows || [];
+        if (distributionEntries.length > 0) {
+            const deState = await getTableState('cost_distribution_entries', queryApi, cache);
+            if (deState.exists) {
+                for (const sourceRow of distributionEntries) {
+                    const newModelId = distributionModelIdMap.get(String(sourceRow.model_id));
+                    const newCostCenterId = costCenterIdMap.get(String(sourceRow.cost_center_id));
+                    if (!newModelId || !newCostCenterId) {
+                        incrementCounter(stats.skipped, 'cost_distribution_entries');
+                        restoreWarnings.push(`Se omitió una entrada de distribución por referencias faltantes (model_id=${sourceRow.model_id}, cost_center_id=${sourceRow.cost_center_id}).`);
+                        continue;
+                    }
+                    await insertRow(
+                        'cost_distribution_entries',
+                        buildInsertRow(sourceRow, deState, { overrides: { model_id: newModelId, cost_center_id: newCostCenterId } }),
+                        queryApi,
+                        cache
+                    );
+                    incrementCounter(stats.imported, 'cost_distribution_entries');
+                }
+            }
+        }
+
+        // production_orders (remapea product_id → inventory_items)
+        const productionOrders = bundle.tables.production_orders?.rows || [];
+        if (productionOrders.length > 0) {
+            const poState = await getTableState('production_orders', queryApi, cache);
+            if (poState.exists) {
+                for (const sourceRow of productionOrders) {
+                    const newProductId = inventoryItemIdMap.get(String(sourceRow.product_id));
+                    if ((sourceRow.product_id !== undefined && sourceRow.product_id !== null) && !newProductId) {
+                        incrementCounter(stats.skipped, 'production_orders');
+                        restoreWarnings.push(`Se omitió una orden de producción por producto faltante (product_id=${sourceRow.product_id}).`);
+                        continue;
+                    }
+                    const overrides = {};
+                    if (newProductId) overrides.product_id = newProductId;
+                    await insertRow(
+                        'production_orders',
+                        buildInsertRow(sourceRow, poState, { companyId: newCompanyId, overrides }),
+                        queryApi,
+                        cache
+                    );
+                    incrementCounter(stats.imported, 'production_orders');
+                }
+            }
+        }
+
         return {
             newCompanyId,
             restoredCompanyName,
@@ -786,8 +953,14 @@ router.get('/export/:companyId', async (req, res) => {
         res.attachment(fileName);
 
         const archive = archiver('zip', { zlib: { level: 9 } });
+        // No relanzar dentro del callback (sería una excepción no capturada que tumba Node).
         archive.on('error', (error) => {
-            throw error;
+            console.error('Archiver error durante export:', error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Failed to generate backup: ' + error.message });
+            } else {
+                res.destroy(error);
+            }
         });
 
         archive.pipe(res);
@@ -808,7 +981,7 @@ router.get('/export/:companyId', async (req, res) => {
     }
 });
 
-router.post('/dry-run', upload.single('file'), async (req, res) => {
+router.post('/dry-run', uploadSingle('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -852,7 +1025,7 @@ router.post('/dry-run', upload.single('file'), async (req, res) => {
     }
 });
 
-router.post('/import', upload.single('file'), async (req, res) => {
+router.post('/import', uploadSingle('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
