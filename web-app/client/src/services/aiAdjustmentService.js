@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import { API_URLS } from '../api';
+import { attachAuthToAxiosInstance } from '../auth';
 
 const AI_BASE_URL = API_URLS.MAIN; // Fallback to main API
 
@@ -17,6 +18,8 @@ class AIAdjustmentService {
                 'Content-Type': 'application/json'
             }
         });
+        // Las instancias de axios.create no heredan los interceptores globales: adjuntar auth aquí.
+        attachAuthToAxiosInstance(this.client);
         this.healthCache = { value: null, expiresAt: 0, lastSuccessAt: 0 };
     }
 

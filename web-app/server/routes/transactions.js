@@ -189,41 +189,38 @@ router.post('/batch', async (req, res) => {
 
         const batchStmts = [];
 
-        // Helper to escape strings safely for SQLite manual construction
-        // (Since client.batch(strings) doesn't support parameterized arrays easily in all versions)
-        const escape = (str) => {
-            if (str === null || str === undefined) return 'NULL';
-            return "'" + String(str).replace(/'/g, "''") + "'";
-        };
+        // SEGURIDAD: sentencias parametrizadas con {sql, args}. libSQL client.batch() ejecuta
+        // el array secuencialmente en una transacción implícita, así que last_insert_rowid()
+        // sigue refiriéndose a la cabecera insertada justo antes. Sin concatenar entrada del usuario.
+        const toNull = (v) => (v === undefined ? null : v);
 
         for (const trans of transactions) {
-            // 1. Insert Header
-            // We use standard SQL syntax.
-            const dateVal = escape(trans.date);
-            const glossVal = escape(trans.gloss);
-            const typeVal = escape(trans.type);
-            const companyIdVal = escape(companyId); // Should be numeric or string, safe to escape
+            // 1. Insert Header (parametrizado)
+            batchStmts.push({
+                sql: `INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)`,
+                args: [toNull(trans.date), toNull(trans.gloss), toNull(trans.type), toNull(companyId)]
+            });
 
-            batchStmts.push(
-                `INSERT INTO transactions (date, gloss, type, company_id) VALUES (${dateVal}, ${glossVal}, ${typeVal}, ${companyIdVal})`
-            );
-
-            // 2. Insert Entries (Bulk)
+            // 2. Insert Entries (Bulk parametrizado)
             if (trans.entries && Array.isArray(trans.entries) && trans.entries.length > 0) {
-                const entryValues = trans.entries.map(entry => {
+                const placeholders = [];
+                const args = [];
+                for (const entry of trans.entries) {
                     if (!entry.accountId) throw new Error(`Entry in transaction "${trans.gloss}" is missing an accountId.`);
-                    const accId = escape(entry.accountId);
-                    const debit = parseFloat(entry.debit) || 0;
-                    const credit = parseFloat(entry.credit) || 0;
-                    const entryGloss = escape(entry.gloss || '');
+                    // last_insert_rowid() refiere a la cabecera insertada justo arriba.
+                    placeholders.push(`(last_insert_rowid(), ?, ?, ?, ?)`);
+                    args.push(
+                        entry.accountId,
+                        parseFloat(entry.debit) || 0,
+                        parseFloat(entry.credit) || 0,
+                        entry.gloss || ''
+                    );
+                }
 
-                    // last_insert_rowid() refers to the transaction header inserted just above
-                    return `(last_insert_rowid(), ${accId}, ${debit}, ${credit}, ${entryGloss})`;
-                }).join(", ");
-
-                batchStmts.push(
-                    `INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES ${entryValues}`
-                );
+                batchStmts.push({
+                    sql: `INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES ${placeholders.join(', ')}`,
+                    args
+                });
             }
         }
 

@@ -30,6 +30,30 @@ if (shouldUseDynamicCors()) {
 
 app.use(express.json());
 
+// --- Autenticación (contraseña única compartida) ---
+const authRouter = require('./routes/auth');
+const { requireAuth, isAuthRequired } = require('./utils/auth');
+
+// Rutas públicas de login/config (se montan ANTES del gate).
+app.use('/api/auth', authRouter);
+
+// Gate de autenticación: protege todas las rutas /api salvo la whitelist.
+// Whitelist: /api/status y /api/ai/health (necesarias para los pings de keep-alive
+// y para no romper el monitoreo externo). El callback del motor Python a
+// /api/reports/ledger pasa el token interno, así que no necesita whitelist.
+app.use((req, res, next) => {
+    if (req.method === 'GET' && (req.path === '/api/status' || req.path === '/api/ai/health')) {
+        return next();
+    }
+    return requireAuth(req, res, next);
+});
+
+if (isAuthRequired()) {
+    console.log('🔐 Autenticación ACTIVA (APP_PASSWORD configurada).');
+} else {
+    console.warn('⚠️  Autenticación DESACTIVADA: define APP_PASSWORD para proteger la app.');
+}
+
 // Routes
 const transactionsRouter = require('./routes/transactions');
 const reportsRouter = require('./routes/reports');
@@ -102,4 +126,17 @@ if (process.env.ENABLE_MAHORAGA_EXPERIMENTAL === '1') {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+
+  // Keep-alive interno: mientras el backend Node esté despierto, mantiene caliente al
+  // motor Python (ping cada 14 min). NO basta por sí solo (si Node se duerme, deja de
+  // pinguear): combinar con el cron externo (.github/workflows/keep-warm.yml) que mantiene
+  // despierto también a Node. Desactivable con DISABLE_KEEPALIVE=1.
+  if (process.env.DISABLE_KEEPALIVE !== '1') {
+    try {
+      const { keepAlive } = require('./utils');
+      keepAlive.start();
+    } catch (e) {
+      console.warn('No se pudo iniciar keep-alive:', e.message);
+    }
+  }
 });

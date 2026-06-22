@@ -32,6 +32,11 @@ const getCorsConfig = () => {
         if (process.env.PRODUCTION_URL) {
             allowedOrigins.push(process.env.PRODUCTION_URL);
         }
+
+        // Origen del frontend (Vercel) — configurable por entorno
+        if (process.env.FRONTEND_ORIGIN) {
+            allowedOrigins.push(process.env.FRONTEND_ORIGIN);
+        }
         
         // Fallback for hardcoded production URLs
         allowedOrigins.push(

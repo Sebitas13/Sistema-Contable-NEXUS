@@ -64,7 +64,7 @@ class KeepAliveService {
         try {
             console.log('🔍 Performing health check on AI engine...');
             
-            const response = await axios.get(`${AI_ENGINE_URL}/health`, {
+            const response = await axios.get(`${AI_ENGINE_URL}/api/ai/health`, {
                 timeout: this.requestTimeout,
                 headers: {
                     'User-Agent': 'Sistema-Contable-KeepAlive/1.0'

@@ -7,6 +7,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const multer = require('multer');
 const axios = require('axios');
+const { getExpectedToken } = require('../utils/auth');
 
 const {
     BACKUP_VERSION,
@@ -760,10 +761,11 @@ async function restoreBackupBundle(bundle) {
 
 async function notifyAiProfileReload(companyId) {
     try {
+        const token = getExpectedToken();
         await axios.post(
             `${INTERNAL_API_BASE_URL}/api/ai/reload-profiles`,
             { companyId },
-            { timeout: 4000 }
+            { timeout: 4000, headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
     } catch (error) {
         console.warn('No se pudo refrescar caché de perfiles AI tras restauración:', error.message);

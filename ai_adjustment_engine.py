@@ -118,6 +118,7 @@ class AdjustmentParameters(BaseModel):
     trajectory_end_date: Optional[str] = Field(None, description="Fecha de fin para trayectoria (YYYY-MM-DD)")
     api_base_url: Optional[str] = Field(None, description="Base URL del middleware Node.js")
     api_base_url_candidates: Optional[List[str]] = Field(default_factory=list, description="Lista de base URLs candidatas del middleware Node.js")
+    internal_token: Optional[str] = Field(None, description="Token interno para autenticar el callback al middleware Node.js")
     debug_trace: bool = Field(False, description="Incluir traza diagnóstica por cuenta")
     debug_trace_limit: int = Field(80, description="Máximo de cuentas en traza diagnóstica")
 
@@ -1921,6 +1922,19 @@ async def get_adjustment_config():
 # INTEGRACIÓN CON MIDDLEWARE (Obtención de saldos pre-ajuste)
 # =============================================================================
 
+def _internal_auth_headers(token: str = None):
+    """Cabecera de autenticación para callbacks al middleware Node.js.
+    Usa el token recibido del middleware o, como respaldo, lo deriva de APP_PASSWORD
+    del entorno (sha256). Devuelve {} si la auth está desactivada (sin token ni APP_PASSWORD)."""
+    import hashlib
+    tok = (token or "").strip()
+    if not tok:
+        pw = os.getenv("APP_PASSWORD", "")
+        if pw:
+            tok = hashlib.sha256(pw.encode("utf-8")).hexdigest()
+    return {"Authorization": f"Bearer {tok}"} if tok else {}
+
+
 @app.post("/api/ai/adjustments/generate-from-ledger")
 async def generate_from_ledger(request: AdjustmentRequest):
     """Generar ajustes obteniendo saldos automáticamente desde middleware"""
@@ -1954,6 +1968,9 @@ async def generate_from_ledger(request: AdjustmentRequest):
             api_url_candidates.append(normalized)
         print(f"DEBUG: Middleware base URL candidates: {api_url_candidates}")
         
+        # Token interno para autenticar el callback al middleware (si la auth está activa).
+        auth_headers = _internal_auth_headers(request.parameters.internal_token)
+
         # Obtener saldos pre-ajuste desde middleware Node.js
         middleware_attempts = []
         ledger_response = None
@@ -1968,6 +1985,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
                             "excludeAdjustments": True,
                             "excludeClosing": True
                         },
+                        headers=auth_headers,
                         timeout=30.0
                     )
                     middleware_attempts.append({
@@ -2003,6 +2021,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
                 coa_response = await client.get(
                     f"{api_url}/api/accounts", # Corrected f-string
                     params={"companyId": request.company_id},
+                    headers=auth_headers,
                     timeout=10.0
                 )
                 if coa_response.status_code == 200:
@@ -2075,6 +2094,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
                     detail_response = await client.get(
                         f"{api_url}/api/reports/ledger-details",
                         params=detail_params,
+                        headers=auth_headers,
                         timeout=45.0
                     )
 
@@ -2108,6 +2128,7 @@ async def generate_from_ledger(request: AdjustmentRequest):
                                 ufv_response = await client.post(
                                     f"{api_url}/api/ufv/batch",
                                     json={"companyId": request.company_id, "dates": list(unique_dates)},
+                                    headers=auth_headers,
                                     timeout=30.0
                                 )
                                 if ufv_response.status_code == 200:
@@ -2260,6 +2281,7 @@ class MahoragaEngine(ARSDSPyEngine):
                     "companyId": feedback.company_id,
                     "gestion": getattr(feedback, 'gestion', None) or datetime.now().year - 1
                 },
+                headers=_internal_auth_headers(),
                 timeout=5.0
             )
 

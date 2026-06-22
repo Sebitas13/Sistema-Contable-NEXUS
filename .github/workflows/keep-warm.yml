@@ -1,0 +1,29 @@
+name: Keep services warm
+
+# Mantiene despiertos los dos servicios de Render (plan gratuito, que se duermen tras ~15 min
+# de inactividad) pinguéandolos periódicamente desde afuera.
+#
+# NOTA: el cron de GitHub Actions puede demorarse varios minutos bajo carga, así que esto NO
+# es 100% confiable. Para máxima fiabilidad, configurar además un monitor gratuito tipo
+# UptimeRobot (https://uptimerobot.com) o cron-job.org apuntando a las mismas dos URLs cada 5 min.
+#
+# Si cambian las URLs de Render, editarlas abajo.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # cada 10 minutos
+  workflow_dispatch: {}        # permite ejecutarlo manualmente desde la pestaña Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend Node (/api/status)
+        run: |
+          curl -fsS --max-time 120 --retry 2 --retry-delay 5 \
+            https://sistema-contable-nexus.onrender.com/api/status || true
+
+      - name: Ping motor Python (/api/ai/health)
+        run: |
+          curl -fsS --max-time 120 --retry 2 --retry-delay 5 \
+            https://motor-ai-nexus.onrender.com/api/ai/health || true

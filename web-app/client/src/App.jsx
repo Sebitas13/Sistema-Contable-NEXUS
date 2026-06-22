@@ -1,5 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { CompanyProvider, useCompany } from './context/CompanyContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { isAuthenticated, clearToken } from './auth';
+import Login from './pages/Login';
 import CompanySelector from './pages/CompanySelector';
 import Dashboard from './pages/Dashboard';
 import Journal from './pages/Journal';
@@ -141,9 +144,34 @@ function ProtectedRoute({ children }) {
     return children;
 }
 
+// Auth gate: si la app requiere login y no hay token, redirige a /login.
+function RequireAuth({ children }) {
+    const { authRequired, ready } = useAuth();
+
+    if (!ready) {
+        return <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+            <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando...</span>
+            </div>
+        </div>;
+    }
+
+    if (authRequired && !isAuthenticated()) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children;
+}
+
 function AppLayout() {
     const { selectedCompany } = useCompany();
+    const { authRequired } = useAuth();
     const navigate = useNavigate();
+
+    const handleLogout = () => {
+        clearToken();
+        navigate('/login', { replace: true });
+    };
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -191,6 +219,16 @@ function AppLayout() {
                             <i className="bi bi-building me-1"></i>
                             <span className="d-none d-sm-inline">Cambiar Empresa</span>
                         </button>
+                        {authRequired && (
+                            <button
+                                className="btn btn-outline-danger btn-sm d-flex align-items-center px-2 px-sm-3"
+                                onClick={handleLogout}
+                                title="Cerrar sesión"
+                            >
+                                <i className="bi bi-box-arrow-right me-1"></i>
+                                <span className="d-none d-sm-inline">Salir</span>
+                            </button>
+                        )}
                     </div>
                 </header>
                 <main className="p-3 p-md-4 main-view-area">
@@ -218,16 +256,27 @@ function AppLayout() {
 
 function App() {
     return (
+        <AuthProvider>
         <CompanyProvider>
             <Router>
                 <Routes>
-                    <Route path="/" element={<CompanySelector />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route
+                        path="/"
+                        element={
+                            <RequireAuth>
+                                <CompanySelector />
+                            </RequireAuth>
+                        }
+                    />
                     <Route
                         path="/app/*"
                         element={
-                            <ProtectedRoute>
-                                <AppLayout />
-                            </ProtectedRoute>
+                            <RequireAuth>
+                                <ProtectedRoute>
+                                    <AppLayout />
+                                </ProtectedRoute>
+                            </RequireAuth>
                         }
                     />
                 </Routes>
@@ -379,6 +428,7 @@ function App() {
                 `}</style>
             </Router>
         </CompanyProvider>
+        </AuthProvider>
     );
 }
 

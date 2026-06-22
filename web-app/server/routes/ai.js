@@ -23,6 +23,15 @@ const AI_ENGINE_URL = normalizeServiceBaseUrl(
   (isDev ? 'http://localhost:8003' : 'http://localhost:8003')
 );
 const db = require('../db');
+const { getExpectedToken } = require('../utils/auth');
+
+// Cabeceras para llamadas internas (self-calls al propio backend Node y callback del motor Python).
+// Cuando la auth está activa, incluyen el token interno (= sha256(APP_PASSWORD)) para pasar el gate.
+const internalAuthHeaders = (extra = {}) => {
+  const token = getExpectedToken();
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+};
+
 const ENABLE_MAHORAGA_EXPERIMENTAL = process.env.ENABLE_MAHORAGA_EXPERIMENTAL === '1';
 const MAHORAGA_PAGE_IDS = [
   'Accounts',
@@ -239,9 +248,10 @@ const callAiEngine = async (req, method, endpointPath, {
 
         if (shouldRetry) {
           const retryAfterHeader = Number(error.response?.headers?.['retry-after']);
+          // Backoff exponencial (1.2s, 2.4s, 4.8s, ... tope 8s) para cubrir cold-start de Render.
           const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
             ? retryAfterHeader * 1000
-            : (attempt + 1) * 1200;
+            : Math.min(1200 * Math.pow(2, attempt), 8000);
           await sleep(waitMs);
           continue;
         }
@@ -264,11 +274,11 @@ const callAiEngine = async (req, method, endpointPath, {
 // pero deja trazas en ai_engine_attempts para diagnóstico.
 const warmupAiEngine = async (req) => {
   try {
-    // Aumentamos timeout a 65s para cubrir cold-start de Render
-    // Usamos skipBreaker: true para que el intento de warmup no "envenene" el circuit breaker
+    // Cold-start de Render: varios intentos cortos con backoff hasta que /health responda 200,
+    // en vez de un único timeout largo. skipBreaker: true para no "envenenar" el circuit breaker.
     await callAiEngine(req, 'get', '/api/ai/health', {
-      timeout: 65000,
-      maxRetriesPerCandidate: 0,
+      timeout: 30000,
+      maxRetriesPerCandidate: 3,
       skipBreaker: true
     });
   } catch (error) {
@@ -295,7 +305,7 @@ const postToInternalApiCandidates = async (baseCandidates, endpointPath, payload
         payload,
         {
           timeout,
-          headers: { 'Content-Type': 'application/json' }
+          headers: internalAuthHeaders({ 'Content-Type': 'application/json' })
         }
       );
       attempts.push({ base_url: baseUrl, status: response.status });
@@ -944,6 +954,11 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
       req.body.parameters.api_base_url = explicitApiBaseUrl;
     }
     req.body.parameters.api_base_url_candidates = apiBaseUrlCandidates;
+    // Token interno para que el motor Python autentique su callback a /api/reports/ledger.
+    const internalToken = getExpectedToken();
+    if (internalToken) {
+      req.body.parameters.internal_token = internalToken;
+    }
     console.log(`   ðŸŒ [LOG] Middleware base URL candidates: ${JSON.stringify(apiBaseUrlCandidates)}`);
 
     // V6.0: Inyectar perfil persistente fusionando correctamente arrays de reglas
@@ -998,7 +1013,8 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
           try {
             const candidateResponse = await axios.get(`${baseUrl}/api/reports/ledger-details`, {
               params: ledgerDetailsParams,
-              timeout: 45000
+              timeout: 45000,
+              headers: internalAuthHeaders()
             });
             ledgerAttempts.push({ base_url: baseUrl, status: candidateResponse.status });
             if (candidateResponse.status === 200) {
@@ -1045,7 +1061,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
               { companyId: String(companyId), dates: uniqueDates },
               {
                 timeout: 30000,
-                headers: { 'Content-Type': 'application/json' }
+                headers: internalAuthHeaders({ 'Content-Type': 'application/json' })
               }
             );
             ufvCache = ufvBatchResponse.data?.data || {};
@@ -1151,7 +1167,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
           fallbackPayload,
           {
             timeout: 45000,
-            headers: { 'Content-Type': 'application/json' }
+            headers: internalAuthHeaders({ 'Content-Type': 'application/json' })
           }
         );
 
@@ -1345,7 +1361,7 @@ router.post('/adjustments/confirm', async (req, res) => {
 
     // Make an internal call to the batch transaction endpoint
     const response = await axios.post(`${process.env.API_BASE_URL || 'http://localhost:3001'}/api/transactions/batch`, batchPayload, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: internalAuthHeaders({ 'Content-Type': 'application/json' })
     });
 
     res.status(201).json({ success: true, message: 'Ajustes guardados exitosamente.', data: response.data });
