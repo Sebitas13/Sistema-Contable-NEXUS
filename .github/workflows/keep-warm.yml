@@ -1,17 +1,39 @@
 name: Keep services warm
 
-# Mantiene despiertos los dos servicios de Render (plan gratuito, que se duermen tras ~15 min
-# de inactividad) pinguéandolos periódicamente desde afuera.
+# Mantiene despiertos los servicios de Render durante "horas activas" (no 24/7)
+# para no superar el límite del plan gratuito.
 #
-# NOTA: el cron de GitHub Actions puede demorarse varios minutos bajo carga, así que esto NO
-# es 100% confiable. Para máxima fiabilidad, configurar además un monitor gratuito tipo
-# UptimeRobot (https://uptimerobot.com) o cron-job.org apuntando a las mismas dos URLs cada 5 min.
+# ⚠️ CUOTA DE RENDER FREE: 750 horas/mes COMPARTIDAS entre TODOS los servicios free
+# del workspace. Dos servicios pingados 24/7 = 1440h/mes, se pasa del límite y
+# Render los suspende hasta el mes siguiente.
+#
+# Estrategia: pingar durante ~12 h/día (08:00-19:59 Bolivia / 12-23 UTC).
+#   12 h × 30 días × 2 servicios = 720 h/mes  ✅ cabe en 750 h con margen.
+#
+# Sinergia con el keep-alive interno (web-app/server/utils/keepAlive.js): mientras
+# Node está despierto, pinguea solo a Python cada 14 min. Así la ventana de 12 h
+# mantiene a AMBOS calientes desde un único disparador externo.
+#
+# Fuera de la ventana ambos se duermen → 0 h consumidas. El primer request del día
+# despierta a Node (~30-60 s); luego el warmup endurecido (callAiEngine con reintentos
+# y backoff exponencial) trae a Python en otros ~30-60 s. La app entra en modo
+# contingencia solo si todo el ciclo de despertar falla.
+#
+# ✏️ Si los usuarios trabajan en otro horario, ajustar la franja UTC abajo.
+# 🔧 Si más adelante uno de los servicios pasa a plan starter ($7/mes), poner 24/7
+#    quitando la restricción de horas (`*/10 * * * *`).
+#
+# NOTA: el cron de GitHub Actions puede demorarse varios minutos bajo carga, así que
+# esto NO es 100% confiable. Para máxima fiabilidad, configurar además un monitor
+# gratuito tipo UptimeRobot (https://uptimerobot.com) o cron-job.org apuntando a las
+# mismas dos URLs cada 5 min (también en horario restringido si sigues con free plan).
 #
 # Si cambian las URLs de Render, editarlas abajo.
 
 on:
   schedule:
-    - cron: '*/10 * * * *'   # cada 10 minutos
+    # cada 10 minutos, entre 12:00 y 23:59 UTC (= 08:00-19:59 hora Bolivia, UTC-4)
+    - cron: '*/10 12-23 * * *'
   workflow_dispatch: {}        # permite ejecutarlo manualmente desde la pestaña Actions
 
 jobs:

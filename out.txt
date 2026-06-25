@@ -1,5 +1,0 @@
-================== RESULTS ==================
-Final Adjustment: 63.06
-Audit Trail: [AITB-AoT] 1234: 2 ítems. Total Magnitud: 63.06 Bs.
-Rule: {'source': 'SemanticConcepts', 'concept': 'ActivoFijo', 'matches': ['mueble'], 'aot_atoms': 2, 'aot_mode': True, 'opening_balance_adj': False}
-=============================================
