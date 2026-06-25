@@ -416,7 +416,7 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-card-text me-2"></i>
-                                                NIT
+                                                NIT *
                                             </label>
                                             <input
                                                 type="text"
@@ -424,6 +424,7 @@ export default function CompanySelector() {
                                                 value={formData.nit}
                                                 onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
                                                 placeholder="Ej: 1234567890"
+                                                required
                                             />
                                         </div>
 
@@ -431,7 +432,7 @@ export default function CompanySelector() {
                                         <div className="col-12">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-file-text me-2"></i>
-                                                Razón o Denominación Social
+                                                Razón o Denominación Social *
                                             </label>
                                             <input
                                                 type="text"
@@ -439,6 +440,7 @@ export default function CompanySelector() {
                                                 value={formData.legal_name}
                                                 onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
                                                 placeholder="Nombre legal completo con siglas del tipo de sociedad"
+                                                required
                                             />
                                         </div>
 
@@ -446,12 +448,13 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-people me-2"></i>
-                                                Tipo Societario
+                                                Tipo Societario *
                                             </label>
                                             <select
                                                 className="form-select bg-dark text-white border-secondary"
                                                 value={formData.societal_type}
                                                 onChange={(e) => setFormData({ ...formData, societal_type: e.target.value })}
+                                                required
                                             >
                                                 {SOCIETAL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                             </select>
@@ -462,12 +465,13 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-briefcase me-2"></i>
-                                                Actividad Económica
+                                                Actividad Económica *
                                             </label>
                                             <select
                                                 className="form-select bg-dark text-white border-secondary"
                                                 value={formData.activity_type}
                                                 onChange={handleActivityChange}
+                                                required
                                             >
                                                 {ACTIVITY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                             </select>
@@ -477,7 +481,7 @@ export default function CompanySelector() {
                                         <div className="col-md-8">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-geo-alt me-2"></i>
-                                                Dirección
+                                                Dirección *
                                             </label>
                                             <input
                                                 type="text"
@@ -485,6 +489,7 @@ export default function CompanySelector() {
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                                 placeholder="Calle, número, zona"
+                                                required
                                             />
                                         </div>
 
@@ -492,7 +497,7 @@ export default function CompanySelector() {
                                         <div className="col-md-4">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-pin-map me-2"></i>
-                                                Ciudad
+                                                Ciudad *
                                             </label>
                                             <input
                                                 type="text"
@@ -500,6 +505,7 @@ export default function CompanySelector() {
                                                 value={formData.city}
                                                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                                                 placeholder="Ej: La Paz"
+                                                required
                                             />
                                         </div>
 
@@ -507,7 +513,7 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-telephone me-2"></i>
-                                                Teléfono
+                                                Teléfono *
                                             </label>
                                             <input
                                                 type="tel"
@@ -515,6 +521,7 @@ export default function CompanySelector() {
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                                 placeholder="Ej: +591 2 1234567"
+                                                required
                                             />
                                         </div>
 
@@ -522,7 +529,7 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-envelope me-2"></i>
-                                                Email
+                                                Email *
                                             </label>
                                             <input
                                                 type="email"
@@ -530,6 +537,7 @@ export default function CompanySelector() {
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                                 placeholder="contacto@empresa.com"
+                                                required
                                             />
                                         </div>
 
@@ -552,12 +560,13 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-currency-exchange me-2"></i>
-                                                Moneda
+                                                Moneda *
                                             </label>
                                             <select
                                                 className="form-select bg-dark text-white border-secondary"
                                                 value={formData.currency}
                                                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                                                required
                                             >
                                                 <option value="BOB">BOB - Bolivianos</option>
                                                 <option value="USD">USD - Dólares</option>
@@ -568,7 +577,7 @@ export default function CompanySelector() {
                                         <div className="col-md-6">
                                             <label className="form-label text-white-50">
                                                 <i className="bi bi-calendar-check me-2"></i>
-                                                Año de Gestión Activa
+                                                Año de Gestión Activa *
                                             </label>
                                             <input
                                                 type="number"
@@ -577,6 +586,7 @@ export default function CompanySelector() {
                                                 onChange={(e) => setFormData({ ...formData, current_year: parseInt(e.target.value) || new Date().getFullYear() })}
                                                 min="2000"
                                                 max="2030"
+                                                required
                                             />
                                             <small className="text-white-50 d-block mt-1">
                                                 Determina el periodo contable activo.

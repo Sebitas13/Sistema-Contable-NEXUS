@@ -632,11 +632,11 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                     </div>
                                 </div>
 
-                                <div className="alert border-info d-flex align-items-center" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
-                                    <h6 className="alert-heading mb-0 me-3">
+                                <div className="alert border-info d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2" style={{ backgroundColor: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
+                                    <h6 className="alert-heading mb-0 me-md-3">
                                         <i className="bi bi-robot me-2"></i>Ajustes a Procesar:
                                     </h6>
-                                    <div className="d-flex justify-content-center gap-3">
+                                    <div className="d-flex flex-wrap gap-2">
                                         <span className="badge rounded-pill bg-dark text-white shadow-sm px-3 py-2 border border-secondary">Depreciación</span>
                                         <span className="badge rounded-pill bg-dark text-white shadow-sm px-3 py-2 border border-secondary">Actualización AITB</span>
                                         <span className="badge rounded-pill bg-dark text-white shadow-sm px-3 py-2 border border-secondary">Provisiones</span>
@@ -678,10 +678,12 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                     </div>
                                 </div>
 
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <button className="btn btn-outline-secondary" onClick={onClose}>Cancelar</button>
+                                <div className="d-flex flex-column flex-sm-row justify-content-sm-between gap-2 mt-4">
+                                    <button className="btn btn-outline-secondary w-100 w-sm-auto px-4 py-2 order-2 order-sm-1" onClick={onClose}>
+                                        Cancelar
+                                    </button>
                                     <button
-                                        className="btn btn-primary btn-lg px-5 shadow"
+                                        className="btn btn-primary w-100 w-sm-auto px-4 py-2 shadow order-1 order-sm-2 d-flex align-items-center justify-content-center"
                                         onClick={detectFixedAssets}
                                         disabled={loading || !startDate || !endDate}
                                     >
@@ -768,12 +770,12 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                     </table>
                                 </div>
 
-                                <div className="d-flex justify-content-between mt-4 pt-3 border-top">
-                                    <button className="btn btn-outline-secondary" onClick={() => setStep(1)}>
+                                <div className="d-flex flex-column flex-sm-row justify-content-sm-between gap-2 mt-4 pt-3 border-top">
+                                    <button className="btn btn-outline-secondary w-100 w-sm-auto px-4 py-2 order-2 order-sm-1" onClick={() => setStep(1)}>
                                         <i className="bi bi-arrow-left me-2"></i>Atrás
                                     </button>
                                     <button
-                                        className="btn btn-primary px-4 shadow-sm"
+                                        className="btn btn-primary w-100 w-sm-auto px-4 py-2 shadow-sm order-1 order-sm-2"
                                         onClick={handleSaveAcquisitionsAndGenerate}
                                         disabled={loading}
                                     >
@@ -917,9 +919,19 @@ export default function AdjustmentWizard({ onClose, onSuccess }) {
                                     </table>
                                 </div>
 
-                                <div className="d-flex justify-content-between mt-4">
-                                    <button className="btn btn-secondary btn-lg" onClick={() => setStep(1)} disabled={loading}>Volver</button>
-                                    <button className="btn btn-success btn-lg px-5 shadow" onClick={handleConfirmAndSave} disabled={loading || !isBalanced}>
+                                <div className="d-flex flex-column flex-sm-row justify-content-sm-between gap-2 mt-4">
+                                    <button 
+                                        className="btn btn-secondary w-100 w-sm-auto px-4 py-2 order-2 order-sm-1" 
+                                        onClick={() => setStep(1)} 
+                                        disabled={loading}
+                                    >
+                                        Volver
+                                    </button>
+                                    <button 
+                                        className="btn btn-success w-100 w-sm-auto px-4 py-2 shadow order-1 order-sm-2 d-flex align-items-center justify-content-center" 
+                                        onClick={handleConfirmAndSave} 
+                                        disabled={loading || !isBalanced}
+                                    >
                                         {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-check-circle me-2"></i>}
                                         Confirmar y Guardar Ajustes
                                     </button>

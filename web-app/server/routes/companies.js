@@ -100,8 +100,32 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!name) {
-        return res.status(400).json({ error: 'Company name is required' });
+    const requiredFields = {
+        name: 'Nombre comercial',
+        nit: 'NIT',
+        legal_name: 'Razón o denominación social',
+        address: 'Dirección',
+        city: 'Ciudad',
+        phone: 'Teléfono',
+        email: 'Email',
+        societal_type: 'Tipo societario',
+        activity_type: 'Actividad económica',
+        currency: 'Moneda',
+        current_year: 'Año de gestión activa'
+    };
+
+    const missingFields = [];
+    for (const [key, label] of Object.entries(requiredFields)) {
+        if (req.body[key] === undefined || req.body[key] === null || String(req.body[key]).trim() === '') {
+            missingFields.push(label);
+        }
+    }
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({ 
+            success: false, 
+            error: `Los siguientes campos son obligatorios: ${missingFields.join(', ')}` 
+        });
     }
 
     const sql = `
@@ -172,6 +196,34 @@ router.put('/:id', async (req, res) => {
         operation_start_date,
         current_year
     } = req.body;
+
+    const requiredFields = {
+        name: 'Nombre comercial',
+        nit: 'NIT',
+        legal_name: 'Razón o denominación social',
+        address: 'Dirección',
+        city: 'Ciudad',
+        phone: 'Teléfono',
+        email: 'Email',
+        societal_type: 'Tipo societario',
+        activity_type: 'Actividad económica',
+        currency: 'Moneda',
+        current_year: 'Año de gestión activa'
+    };
+
+    const invalidFields = [];
+    for (const key of Object.keys(requiredFields)) {
+        if (req.body[key] !== undefined && (req.body[key] === null || String(req.body[key]).trim() === '')) {
+            invalidFields.push(requiredFields[key]);
+        }
+    }
+
+    if (invalidFields.length > 0) {
+        return res.status(400).json({ 
+            success: false, 
+            error: `Los siguientes campos no pueden estar vacíos: ${invalidFields.join(', ')}` 
+        });
+    }
 
     const sql = `
         UPDATE companies SET
