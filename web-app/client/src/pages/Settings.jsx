@@ -245,10 +245,10 @@ export default function Settings() {
 
             await axios.post(`${API_URL}/api/ai/profile/${selectedCompany.id}`, { profile_json: updatedProfile });
             setCompanyProfile(updatedProfile); // Optimistic update
-            alert('âœ… ConfiguraciÃ³n de depreciaciÃ³n guardada correctamente.');
+            alert('Configuración de depreciación guardada correctamente.');
         } catch (error) {
             console.error("Error saving depreciation config:", error);
-            alert('Error al guardar configuraciÃ³n.');
+            alert('Error al guardar configuracion.');
         } finally {
             setSavingConfig(false);
         }
@@ -313,7 +313,7 @@ export default function Settings() {
 
             setHealResult({
                 type: 'success',
-                message: `JerarquÃ­a regenerada con Ã©xito. Se actualizaron ${updates.length} cuentas.`
+                message: `Jerarquía regenerada con Éxito. Se actualizaron ${updates.length} cuentas.`
             });
 
             // Refresh diagnostic
@@ -380,7 +380,7 @@ export default function Settings() {
             await axios.post(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`, { active_pages: newPages });
         } catch (error) {
             console.error("Error saving page config:", error);
-            alert("Error al guardar configuraciÃ³n de pÃ¡ginas");
+            alert("Error al guardar configuración de páginas");
         } finally {
             setSavingConfig(false);
         }
@@ -451,10 +451,10 @@ export default function Settings() {
     };
 
     const handleEmergencyStop = async () => {
-        if (!confirm('Â¿EstÃ¡s seguro de activar la PARADA DE EMERGENCIA? Esto detendrÃ¡ TODAS las operaciones de Mahoraga.')) return;
+        if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrÃ¡ TODAS las operaciones de Mahoraga.')) return;
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, { userId: 'admin', reason: 'Emergency stop from dashboard' });
-            alert('ðŸ›‘ PARADA DE EMERGENCIA ACTIVADA');
+            alert('PARADA DE EMERGENCIA ACTIVADA');
             fetchMahoragaStatus();
         } catch (error) { alert('Error en parada de emergencia: ' + error.response?.data?.error); }
     };
@@ -522,9 +522,9 @@ export default function Settings() {
                                 <h5 className="mb-0"><i className="bi bi-tools me-2"></i>Mantenimiento de Datos</h5>
                             </div>
                             <div className="card-body">
-                                <h6 className="text-white">Regenerar JerarquÃ­a de Cuentas</h6>
+                                <h6 className="text-white">Regenerar Jerarquía de Cuentas</h6>
                                 <p className="text-white-50 small">
-                                    Esta herramienta analiza los cÃ³digos de tus cuentas y reconstruye las relaciones
+                                    Esta herramienta analiza los códigos de tus cuentas y reconstruye las relaciones
                                     padre-hijo (campo <code className="text-info">parent_code</code>). <br />
                                     <strong className="text-white">Uso recomendado:</strong> Si tus Estados Financieros aparecen vacÃ­os o desordenados.
                                 </p>
@@ -537,15 +537,15 @@ export default function Settings() {
 
                                 {diagnosticResult && (
                                     <div className={`alert alert-${diagnosticResult.status === 'healthy' ? 'success' : 'warning'} mb-3`}>
-                                        <h6 className="alert-heading">DiagnÃ³stico:</h6>
+                                        <h6 className="alert-heading">Diagnóstico:</h6>
                                         <ul className="mb-0 small">
                                             <li>Total Cuentas: <strong>{diagnosticResult.total}</strong></li>
                                             <li>Con Padre Definido: <strong>{diagnosticResult.withParent}</strong></li>
-                                            <li>Sin Padre (HuÃ©rfanas): <strong>{diagnosticResult.withoutParent}</strong></li>
+                                            <li>Sin Padre (Huérfanas): <strong>{diagnosticResult.withoutParent}</strong></li>
                                         </ul>
                                         {diagnosticResult.status === 'critical' && (
                                             <div className="mt-2 text-danger fw-bold">
-                                                âš ï¸ Se requiere regeneraciÃ³n.
+                                                Se requiere regeneración.
                                             </div>
                                         )}
                                     </div>
@@ -566,7 +566,7 @@ export default function Settings() {
                                     {healing ? (
                                         <span><span className="spinner-border spinner-border-sm me-2"></span>Procesando...</span>
                                     ) : (
-                                        <span><i className="bi bi-diagram-3-fill me-2"></i>Regenerar JerarquÃ­a</span>
+                                        <span><i className="bi bi-diagram-3-fill me-2"></i>Regenerar Jerarquí­a</span>
                                     )}
                                 </button>
                             </div>
@@ -640,7 +640,7 @@ export default function Settings() {
                                 </button>
                                 <small className="text-white-50 ms-3">
                                     <i className="bi bi-info-circle me-1"></i>
-                                    El sistema buscarÃ¡ coincidencias inteligentes con estos nombres en tu Plan de Cuentas.
+                                    El sistema buscará coincidencias inteligentes con estos nombres en tu Plan de Cuentas.
                                 </small>
                             </div>
                         </div>
@@ -658,7 +658,7 @@ export default function Settings() {
                             <div className="card-body">
                                 <p className="text-white-50 small">
                                     Gestiona las configuraciones de niveles y longitudes de cuenta guardadas por empresa.
-                                    Estos perfiles se usan en el Asistente de ImportaciÃ³n Inteligente.
+                                    Estos perfiles se usan en el Asistente de Importación Inteligente.
                                 </p>
 
                                 <div className="table-responsive" style={{ maxHeight: '450px' }}>
@@ -666,7 +666,7 @@ export default function Settings() {
                                         <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                                             <tr>
                                                 <th className="text-white-50 border-secondary">Empresa</th>
-                                                <th className="text-white-50 border-secondary">ConfiguraciÃ³n</th>
+                                                <th className="text-white-50 border-secondary">Configuración</th>
                                                 <th className="text-end text-white-50 border-secondary">Acciones</th>
                                             </tr>
                                         </thead>
@@ -827,7 +827,7 @@ export default function Settings() {
                                     {mahoragaStatus?.currentMode?.toUpperCase() || 'OFFLINE'}
                                 </h3>
                                 <p className="small opacity-75 mb-4">
-                                    Haz clic para gestionar los permisos de intervenciÃ³n de Mahoraga en el sistema.
+                                    Haz clic para gestionar los permisos de intervención de Mahoraga en el sistema.
                                 </p>
                                 <button className="btn btn-outline-light w-100 mb-2" onClick={() => setShowModeChange(true)}>
                                     <i className="bi bi-shield-lock me-2"></i>Cambiar Seguridad
