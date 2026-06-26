@@ -44,7 +44,7 @@ export default function CostCenters() {
                 inventoryService.getCostCenters(companyId),
                 inventoryService.getDistributionModels(companyId)
             ]);
-            
+
             if (ccRes.success) setCostCenters(ccRes.data);
             if (dmRes.success) setDistributionModels(dmRes.data);
         } catch (error) {
@@ -71,7 +71,7 @@ export default function CostCenters() {
 
     const handleModelSubmit = async (e) => {
         e.preventDefault();
-        
+
         const totalPct = modelData.entries.reduce((sum, entry) => sum + parseFloat(entry.percentage || 0), 0);
         if (Math.abs(totalPct - 100) > 0.01) {
             alert(`La suma de los porcentajes debe ser exactamente 100%. Actual: ${totalPct}%`);
@@ -121,27 +121,27 @@ export default function CostCenters() {
             {/* Tab Navigation */}
             <ul className="nav nav-tabs mb-4 border-secondary">
                 <li className="nav-item">
-                    <button 
-                        className={`nav-link ${activeTab === 'kardex' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} 
-                        onClick={() => setActiveTab('kardex')} 
+                    <button
+                        className={`nav-link ${activeTab === 'kardex' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`}
+                        onClick={() => setActiveTab('kardex')}
                         style={activeTab !== 'kardex' ? { background: 'transparent', border: '1px solid transparent' } : {}}
                     >
                         <i className="bi bi-box-seam me-1"></i>Kardex Físico Valorado
                     </button>
                 </li>
                 <li className="nav-item">
-                    <button 
-                        className={`nav-link ${activeTab === 'centers' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} 
-                        onClick={() => setActiveTab('centers')} 
+                    <button
+                        className={`nav-link ${activeTab === 'centers' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`}
+                        onClick={() => setActiveTab('centers')}
                         style={activeTab !== 'centers' ? { background: 'transparent', border: '1px solid transparent' } : {}}
                     >
                         <i className="bi bi-building me-1"></i>Centros de Costo
                     </button>
                 </li>
                 <li className="nav-item">
-                    <button 
-                        className={`nav-link ${activeTab === 'distribution' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`} 
-                        onClick={() => setActiveTab('distribution')} 
+                    <button
+                        className={`nav-link ${activeTab === 'distribution' ? 'active bg-primary text-white border-primary' : 'text-white-50'}`}
+                        onClick={() => setActiveTab('distribution')}
                         style={activeTab !== 'distribution' ? { background: 'transparent', border: '1px solid transparent' } : {}}
                     >
                         <i className="bi bi-pie-chart me-1"></i>Modelos de Distribución
@@ -319,14 +319,14 @@ export default function CostCenters() {
                                             <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: Distribución basada en m2" value={modelData.description} onChange={(e) => setModelData({ ...modelData, description: e.target.value })} />
                                         </div>
                                     </div>
-                                    
+
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <label className="form-label text-white-50 mb-0">Reglas de Distribución</label>
                                         <button type="button" className="btn btn-sm btn-outline-info" onClick={addModelEntry}>
                                             <i className="bi bi-plus"></i> Añadir Centro
                                         </button>
                                     </div>
-                                    
+
                                     <div className="bg-dark p-3 rounded border border-secondary mb-3">
                                         {modelData.entries.length === 0 ? (
                                             <div className="text-center text-white-50 py-2">No se han añadido centros de costo. Usa el botón superior.</div>
@@ -353,7 +353,7 @@ export default function CostCenters() {
                                                 </div>
                                             ))
                                         )}
-                                        
+
                                         {modelData.entries.length > 0 && (
                                             <div className="d-flex justify-content-end mt-3 pt-2 border-top border-secondary">
                                                 <span className={`fw-bold ${modelData.entries.reduce((s, e) => s + parseFloat(e.percentage || 0), 0) === 100 ? 'text-success' : 'text-danger'}`}>
