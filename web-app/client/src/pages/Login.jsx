@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_URL from '../api';
 import { setToken } from '../auth';
+
+// Emblema 3D de Mahoraga, diferido para no pesar en el arranque del login.
+const MahoragaWheel3D = lazy(() => import('../three/MahoragaWheel3D'));
 
 export default function Login() {
     const [password, setPassword] = useState('');
@@ -43,11 +46,14 @@ export default function Login() {
                 style={{ maxWidth: '420px', borderRadius: '1rem' }}
             >
                 <div className="text-center mb-4">
-                    <i
-                        className="bi bi-shield-lock-fill"
-                        style={{ fontSize: '2.5rem', color: 'var(--accent-primary)' }}
-                    ></i>
-                    <h4 className="mt-3 mb-1 fw-bold">Sistema Contable</h4>
+                    <div className="d-flex justify-content-center mb-2" style={{ height: '140px' }}>
+                        <Suspense fallback={
+                            <i className="bi bi-shield-lock-fill" style={{ fontSize: '2.5rem', color: 'var(--accent-primary)' }}></i>
+                        }>
+                            <MahoragaWheel3D size={140} />
+                        </Suspense>
+                    </div>
+                    <h4 className="mt-2 mb-1 fw-bold">Sistema Contable</h4>
                     <small className="text-white-50">Ingresa la contraseña para continuar</small>
                 </div>
 

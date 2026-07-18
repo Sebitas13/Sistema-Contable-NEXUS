@@ -1,10 +1,33 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useCompany } from '../context/CompanyContext';
 
 export default function CompanyCard({ company, onEdit, onDelete }) {
     const navigate = useNavigate();
     const { selectCompany } = useCompany();
+    const cardRef = useRef(null);
+
+    // Tilt 3D sutil siguiendo al puntero: refuerza que la tarjeta es interactiva.
+    const rx = useMotionValue(0);
+    const ry = useMotionValue(0);
+    const rotateX = useSpring(rx, { stiffness: 220, damping: 18 });
+    const rotateY = useSpring(ry, { stiffness: 220, damping: 18 });
+
+    const handlePointerMove = (e) => {
+        const el = cardRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width - 0.5;
+        const py = (e.clientY - rect.top) / rect.height - 0.5;
+        ry.set(px * 12);   // giro horizontal
+        rx.set(-py * 12);  // giro vertical
+    };
+
+    const handlePointerLeave = () => {
+        rx.set(0);
+        ry.set(0);
+    };
 
     const handleEnter = async () => {
         await selectCompany(company.id);
@@ -31,7 +54,21 @@ export default function CompanyCard({ company, onEdit, onDelete }) {
     };
 
     return (
-        <div className="company-card glass-panel border-secondary" style={{ background: 'rgba(11, 14, 20, 0.4)' }}>
+        <motion.div
+            ref={cardRef}
+            className="company-card glass-panel border-secondary"
+            style={{
+                background: 'rgba(11, 14, 20, 0.4)',
+                rotateX,
+                rotateY,
+                transformPerspective: 900,
+                transformStyle: 'preserve-3d',
+            }}
+            onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
+            whileHover={{ y: -6, boxShadow: '0 18px 48px rgba(59,130,246,0.28)' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+        >
             <div className="company-card-gradient opacity-50"></div>
 
             <div className="company-card-content">
@@ -116,6 +153,6 @@ export default function CompanyCard({ company, onEdit, onDelete }) {
                     </button>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

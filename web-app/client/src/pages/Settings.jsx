@@ -78,6 +78,7 @@ export default function Settings() {
     // Mahoraga State
     const [mahoragaStatus, setMahoragaStatus] = useState(null);
     const [learningStatus, setLearningStatus] = useState(null);
+    const [maturity, setMaturity] = useState(null);
     const [loadingMahoraga, setLoadingMahoraga] = useState(false);
     const [loadingSkills, setLoadingSkills] = useState(false);
     const [monitorStats, setMonitorStats] = useState(null);
@@ -340,6 +341,7 @@ export default function Settings() {
             await Promise.all([
                 fetchMahoragaStatus(),
                 fetchLearningStatus(),
+                fetchMaturity(),
                 fetchMonitorData(),
                 fetchCompanyProfile(),
                 fetchInsights(),
@@ -437,6 +439,18 @@ export default function Settings() {
         } catch (error) {
             console.error("Error fetching learning status:", error);
             setLearningStatus(DEFAULT_LEARNING_STATUS);
+        }
+    };
+
+    // Madurez viva: fuente unica para la tarjeta de Gobernanza (fases, % real y Cognicion).
+    const fetchMaturity = async () => {
+        if (!selectedCompany) return;
+        try {
+            const response = await axios.get(`${API_URL}/api/ai/mahoraga/maturity/${selectedCompany.id}`);
+            if (response.data?.success) setMaturity(response.data);
+        } catch (error) {
+            console.error("Error fetching maturity:", error);
+            setMaturity(null);
         }
     };
 
@@ -744,9 +758,9 @@ export default function Settings() {
                                                 { id: 'REVELACION', label: 'REVELACIÃ“N', sub: 'Juicio Final', threshold: 100 }
                                             ].map(phase => (
                                                 <div key={phase.id} className="col-6 col-md-3">
-                                                    <div className={`p-2 rounded text-center border ${learningStatus?.learning_progress?.percentage >= phase.threshold
+                                                    <div className={`p-2 rounded text-center border ${(maturity?.percentage ?? learningStatus?.learning_progress?.percentage) >= phase.threshold
                                                         ? 'border-warning' : 'border-secondary opacity-50'}`}
-                                                        style={learningStatus?.learning_progress?.percentage >= phase.threshold
+                                                        style={(maturity?.percentage ?? learningStatus?.learning_progress?.percentage) >= phase.threshold
                                                             ? { background: '#eab308', color: '#0f172a' }
                                                             : { background: '#1e293b', color: '#94a3b8' }}>
                                                         <div className="small fw-bold">{phase.label}</div>
@@ -757,11 +771,11 @@ export default function Settings() {
                                         </div>
                                     </div>
                                     <div className="col-md-4 text-center mt-4 mt-md-0 border-start border-secondary">
-                                        <div className="display-4 fw-bold mb-0" style={{ color: '#eab308' }}>{learningStatus?.learning_progress?.percentage || 0}%</div>
+                                        <div className="display-4 fw-bold mb-0" style={{ color: '#eab308' }}>{maturity?.percentage ?? learningStatus?.learning_progress?.percentage ?? 0}%</div>
                                         <div className="small text-uppercase opacity-75 mb-3">Madurez de OrquestaciÃ³n</div>
                                         <div className="badge p-2 border border-secondary w-100" style={{ background: '#1e293b', color: '#eab308' }}>
                                             <i className="bi bi-flag-fill me-2"></i>
-                                            {learningStatus?.learning_progress?.next_milestone || 'Pendiente'}
+                                            {maturity?.next_milestone || learningStatus?.learning_progress?.next_milestone || 'Pendiente'}
                                         </div>
                                     </div>
                                 </div>
@@ -844,12 +858,12 @@ export default function Settings() {
                             <div className="card-body">
                                 <h6 className="text-primary text-uppercase small fw-bold mb-3">CogniciÃ³n (Reglas)</h6>
                                 <h3 className="fw-bold mb-2 text-white">
-                                    {(companyProfile?.monetary_rules?.length || 0) + (companyProfile?.non_monetary_rules?.length || 0)}
+                                    {maturity?.cognition?.total ?? ((companyProfile?.monetary_rules?.length || 0) + (companyProfile?.non_monetary_rules?.length || 0))}
                                 </h3>
                                 <p className="small text-white-50 mb-4">Patrones especÃ­ficos aprendidos de tus correcciones diarias.</p>
                                 <div className="d-flex gap-2">
-                                    <span className="badge bg-primary bg-opacity-75">{companyProfile?.monetary_rules?.length || 0} Monetarias</span>
-                                    <span className="badge bg-info text-dark bg-opacity-75">{companyProfile?.non_monetary_rules?.length || 0} No Monetarias</span>
+                                    <span className="badge bg-primary bg-opacity-75">{maturity?.cognition?.monetary_rules ?? (companyProfile?.monetary_rules?.length || 0)} Monetarias</span>
+                                    <span className="badge bg-info text-dark bg-opacity-75">{maturity?.cognition?.non_monetary_rules ?? (companyProfile?.non_monetary_rules?.length || 0)} No Monetarias</span>
                                 </div>
                             </div>
                         </div>

@@ -228,3 +228,28 @@ CREATE INDEX IF NOT EXISTS idx_production_orders_company ON production_orders(co
 -- Insert a default company for migration
 INSERT OR IGNORE INTO companies (id, name, nit, legal_name, address, city, country)
 VALUES (1, 'Mi Empresa', '000000000', 'Mi Empresa S.A.', 'Dirección Principal', 'La Paz', 'Bolivia');
+
+-- =============================================================================
+-- MAHORAGA PERSISTENCE (Stage 1)
+-- =============================================================================
+
+-- Estado de Mahoraga por empresa. company_id = 0 está reservado para el modo GLOBAL
+-- (sin FK para permitir ese centinela) y el resto de filas usa ids reales de companies.
+CREATE TABLE IF NOT EXISTS mahoraga_state (
+    company_id INTEGER PRIMARY KEY,
+    mode TEXT NOT NULL DEFAULT 'manual',
+    page_config TEXT, -- JSON con la configuración de páginas activas
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Bitácora append-only de activaciones y eventos de seguridad de Mahoraga.
+-- Confirmaciones/rechazos se guardan como '<activation_id>#confirm' / '#reject'.
+CREATE TABLE IF NOT EXISTS mahoraga_activations (
+    id TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL DEFAULT 0,
+    user TEXT,
+    action TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_mahoraga_activations_company ON mahoraga_activations(company_id);

@@ -19,27 +19,27 @@ router.get('/items', (req, res) => {
             if (err) return res.status(500).json({ success: false, error: err.message });
 
             try {
-                // Enriquecer con saldos calculados por el motor de valuación
-                const enriched = [];
-                for (const item of (items || [])) {
-                    try {
-                        const balance = await valuationService.calculateBalance(
-                            item.id, 
-                            item.valuation_method || 'CPP', 
-                            companyId
-                        );
-                        enriched.push({ ...item, ...balance });
-                    } catch (calcErr) {
-                        // Si falla el cálculo, devolver item con saldos de tabla
-                        enriched.push({
-                            ...item,
-                            quantity: item.balance_quantity || 0,
-                            total_cost: item.balance_cost || 0,
-                            unit_cost: item.balance_quantity > 0 
-                                ? (item.balance_cost / item.balance_quantity) 
-                                : 0
-                        });
-                    }
+                // Enriquecer con saldos calculados por el motor de valuación.
+                // Bulk: 1 query para todos los ítems (antes: 1 query por ítem => N+1).
+                const tableFallback = (item) => ({
+                    ...item,
+                    quantity: item.balance_quantity || 0,
+                    total_cost: item.balance_cost || 0,
+                    unit_cost: item.balance_quantity > 0
+                        ? (item.balance_cost / item.balance_quantity)
+                        : 0
+                });
+
+                let enriched;
+                try {
+                    const balances = await valuationService.calculateBalances(items || [], companyId);
+                    enriched = (items || []).map(item => {
+                        const balance = balances.get(item.id);
+                        return balance ? { ...item, ...balance } : tableFallback(item);
+                    });
+                } catch (calcErr) {
+                    console.error('Bulk balance calculation failed, usando saldos de tabla:', calcErr.message);
+                    enriched = (items || []).map(tableFallback);
                 }
                 res.json({ success: true, data: enriched });
             } catch (error) {

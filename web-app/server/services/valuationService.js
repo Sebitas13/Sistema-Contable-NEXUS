@@ -38,6 +38,55 @@ class ValuationService {
         });
     }
 
+    /**
+     * Versión bulk de calculateBalance: una sola query para todos los ítems y
+     * agregación en JS. Misma lógica de cálculo (CPP/PEPS), mismos resultados.
+     * @param {Array<{id:number, valuation_method?:string}>} items
+     * @returns {Promise<Map<number, {quantity:number, total_cost:number, unit_cost:number}>>}
+     */
+    async calculateBalances(items, companyId) {
+        const balances = new Map();
+        if (!Array.isArray(items) || items.length === 0) return balances;
+
+        // SQLite/libSQL limita la cantidad de variables por consulta; ir en lotes.
+        const CHUNK = 500;
+        for (let i = 0; i < items.length; i += CHUNK) {
+            const chunk = items.slice(i, i + CHUNK);
+            const ids = chunk.map(it => it.id);
+            const placeholders = ids.map(() => '?').join(', ');
+
+            const movements = await new Promise((resolve, reject) => {
+                db.all(
+                    `SELECT * FROM inventory_movements WHERE item_id IN (${placeholders}) ORDER BY date ASC, id ASC`,
+                    ids,
+                    (err, rows) => (err ? reject(err) : resolve(rows || []))
+                );
+            });
+
+            const byItem = new Map();
+            for (const m of movements) {
+                if (!byItem.has(m.item_id)) byItem.set(m.item_id, []);
+                byItem.get(m.item_id).push(m);
+            }
+
+            for (const item of chunk) {
+                const itemMovements = byItem.get(item.id) || [];
+                let balance;
+                if (itemMovements.length === 0) {
+                    balance = { quantity: 0, total_cost: 0, unit_cost: 0 };
+                } else if (item.valuation_method === 'PEPS') {
+                    balance = this._calculateFIFO(itemMovements);
+                } else {
+                    // CPP por defecto (igual que calculateBalance)
+                    balance = this._calculateCPP(itemMovements);
+                }
+                balances.set(item.id, balance);
+            }
+        }
+
+        return balances;
+    }
+
     _calculateCPP(movements) {
         let totalQty = 0;
         let totalValue = 0;

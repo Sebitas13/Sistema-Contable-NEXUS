@@ -1019,9 +1019,17 @@ body {
     grid-row: span 2; 
 }
 
-.bento-system { 
+.bento-system {
     grid-column: span 1; 
     grid-row: span 1; 
+}
+
+.bento-structure {
+    grid-column: span 4;
+    grid-row: span 1;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
 }
 
 .bento-card.alert-state {
@@ -1042,13 +1050,14 @@ body {
     }
     .bento-activity { grid-column: span 2; grid-row: auto; min-height: 400px; }
     .bento-health, .bento-system { grid-column: span 1; }
+.bento-structure { grid-column: span 2; }
 }
 
 @media (max-width: 768px) {
     .dashboard-bento-grid {
         grid-template-columns: 1fr;
     }
-    .bento-assets, .bento-liabilities, .bento-equity, .bento-transactions, .bento-activity, .bento-health, .bento-system { 
+    .bento-assets, .bento-liabilities, .bento-equity, .bento-transactions, .bento-activity, .bento-health, .bento-system, .bento-structure { 
         grid-column: span 1; 
         grid-row: auto;
     }
@@ -1174,4 +1183,137 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* ===================================
+   Mobile Data Tables (A3)
+   =================================== */
+
+/* Ocultar columnas secundarias en pantallas chicas (se etiquetan en los JSX) */
+@media (max-width: 991.98px) {
+    .col-hide-md { display: none !important; }
+}
+@media (max-width: 575.98px) {
+    .col-hide-sm { display: none !important; }
+}
+
+@media (max-width: 991.98px) {
+    /* Tablas anchas: compresión general + scroll horizontal usable */
+    .table-responsive .table th,
+    .table-responsive .table td {
+        padding: 0.35rem 0.45rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+
+    /* Primera columna de contenido sticky (CUENTAS) para no perder el contexto al scrollear */
+    .table-responsive .sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        background-color: #101624; /* opaco: las demás columnas pasan por debajo */
+        box-shadow: 3px 0 8px rgba(0, 0, 0, 0.4);
+        max-width: 46vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .table-responsive thead .sticky-col {
+        z-index: 5;
+        background-color: rgb(11, 14, 20); /* mismo bg que el thead sticky */
+    }
+
+    /* Los minWidth inline en px se relajan en mobile para reducir el ancho total */
+    .table-responsive .table th[style*="min-width"],
+    .table-responsive .table td[style*="min-width"] {
+        min-width: 0 !important;
+    }
+    .table-responsive .table input[style*="min-width"] {
+        min-width: 3.5rem !important;
+    }
+
+    /* Modales XL (asiento de diario, detalle de mayor) a pantalla completa */
+    .modal-dialog.modal-xl {
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        min-height: 100vh;
+    }
+    .modal-dialog.modal-xl .modal-content {
+        min-height: 100vh;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    .modal-dialog.modal-xl .modal-body {
+        overflow-y: auto;
+    }
+}
+
+/* =========================================================================
+   Command Palette (Ctrl + K)
+   ========================================================================= */
+.command-palette-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+    background: rgba(3, 6, 12, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.command-palette {
+    width: 100%;
+    max-width: 560px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.command-list {
+    max-height: 46vh;
+    overflow-y: auto;
+    padding: 0.4rem;
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    padding: 0.65rem 0.85rem;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.command-item:hover,
+.command-item.active {
+    background: rgba(59, 130, 246, 0.16);
+    color: var(--text-primary);
+}
+
+.command-item .bi:first-child {
+    color: var(--accent-primary);
+}
+
+.command-kbd {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+@media (max-width: 576px) {
+    .command-palette-backdrop { padding-top: 8vh; padding-left: 1rem; padding-right: 1rem; }
 }

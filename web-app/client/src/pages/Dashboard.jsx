@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import axios from 'axios';
 import API_URL from '../api';
@@ -7,6 +7,11 @@ import { es } from 'date-fns/locale';
 import { FinancialStatementEngine } from '../utils/FinancialStatementEngine';
 import { generarEstadoResultadosDesdeWorksheet } from '../utils/IncomeStatementEngine';
 import { motion, AnimatePresence } from 'framer-motion';
+import Sparkline from '../components/Sparkline';
+import CountUp from '../components/CountUp';
+
+// Torres 3D de la ecuación contable, diferidas (no pesan en el bundle principal).
+const BalanceTowers3D = lazy(() => import('../three/BalanceTowers3D'));
 
 export default function Dashboard() {
   const { selectedCompany } = useCompany();
@@ -17,6 +22,7 @@ export default function Dashboard() {
     totalTransactions: 0,
   });
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [activitySeries, setActivitySeries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +32,7 @@ export default function Dashboard() {
       setLoading(false);
       setStats({ totalAssets: 0, totalLiabilities: 0, totalEquity: 0, totalTransactions: 0 });
       setRecentTransactions([]);
+      setActivitySeries([]);
     }
   }, [selectedCompany]);
 
@@ -117,7 +124,9 @@ export default function Dashboard() {
         isClosed: statsRes.data.data?.is_closed || false
       });
 
-      setRecentTransactions((transRes.data.data || []).slice(0, 5));
+      const allTransactions = transRes.data.data || [];
+      setRecentTransactions(allTransactions.slice(0, 5));
+      setActivitySeries(buildActivitySeries(allTransactions, 14));
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -127,6 +136,25 @@ export default function Dashboard() {
 
   const formatCurrency = (value) => {
     return `Bs ${(value || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Serie diaria de asientos de los últimos `days` días (orden cronológico) para el sparkline.
+  const buildActivitySeries = (transactions, days = 14) => {
+    const counts = new Map();
+    for (const tx of transactions) {
+      if (!tx?.date) continue;
+      const key = String(tx.date).slice(0, 10);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const series = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      series.push(counts.get(key) || 0);
+    }
+    return series;
   };
 
   return (
@@ -161,7 +189,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Total Bienes y Derechos</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : formatCurrency(stats.totalAssets)}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalAssets} format={formatCurrency} />}</h3>
             </div>
           </motion.div>
 
@@ -175,7 +203,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Total Obligaciones</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : formatCurrency(stats.totalLiabilities)}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalLiabilities} format={formatCurrency} />}</h3>
             </div>
           </motion.div>
 
@@ -189,7 +217,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Total Patrimonio</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : formatCurrency(stats.totalEquity)}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalEquity} format={formatCurrency} />}</h3>
             </div>
           </motion.div>
 
@@ -203,7 +231,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Asientos Registrados</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : stats.totalTransactions}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalTransactions} format={(v) => Math.round(v).toLocaleString('es-BO')} />}</h3>
             </div>
           </motion.div>
 
@@ -211,6 +239,12 @@ export default function Dashboard() {
           <motion.div layoutId="activity" className="bento-card bento-activity pe-0" style={{ paddingRight: 0 }}>
             <div className="d-flex justify-content-between align-items-center mb-4 pe-4">
               <h5 className="mb-0 fw-bold text-white"><i className="bi bi-clock-history me-2" style={{ color: 'var(--accent-primary)' }}></i>Actividad Reciente</h5>
+              {!loading && activitySeries.some(v => v > 0) && (
+                <div className="d-flex align-items-center gap-2" title="Asientos por día (últimos 14 días)">
+                  <Sparkline data={activitySeries} width={110} height={30} color="#3b82f6" />
+                  <small className="text-white-50 d-none d-sm-inline">14d</small>
+                </div>
+              )}
             </div>
             <div className="flex-grow-1 pe-4" style={{ overflowY: 'auto' }}>
               {loading ? (
@@ -318,6 +352,32 @@ export default function Dashboard() {
              <span className={`badge rounded-pill px-3 py-2 ${stats.isClosed ? 'bg-danger text-white border border-danger' : 'bg-success text-white border border-success'}`}>
                {stats.isClosed ? 'Gestión Cerrada' : 'Totalmente Operativo'}
              </span>
+          </motion.div>
+
+          {/* Estructura Financiera (Torres 3D: Activo = Pasivo + Patrimonio) */}
+          <motion.div layoutId="structure" className="bento-card bento-structure" whileHover={{ scale: 1.005 }}>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <h6 className="fw-bold mb-0 text-white"><i className="bi bi-bar-chart-fill me-2" style={{ color: 'var(--accent-primary)' }}></i>Estructura Financiera</h6>
+              <div className="d-flex gap-3 small">
+                <span className="text-primary"><i className="bi bi-square-fill me-1"></i>Activo</span>
+                <span className="text-danger"><i className="bi bi-square-fill me-1"></i>Pasivo</span>
+                <span className="text-success"><i className="bi bi-square-fill me-1"></i>Patrimonio</span>
+              </div>
+            </div>
+            <div className="flex-grow-1" style={{ minHeight: 200 }}>
+              {loading ? (
+                <div className="d-flex justify-content-center align-items-center h-100">
+                  <div className="spinner-border text-primary"></div>
+                </div>
+              ) : (
+                <Suspense fallback={<div className="d-flex justify-content-center align-items-center h-100 text-white-50"><div className="spinner-border text-primary"></div></div>}>
+                  <BalanceTowers3D
+                    values={{ activo: stats.totalAssets, pasivo: stats.totalLiabilities, patrimonio: stats.totalEquity }}
+                    format={formatCurrency}
+                  />
+                </Suspense>
+              )}
+            </div>
           </motion.div>
 
         </motion.div>

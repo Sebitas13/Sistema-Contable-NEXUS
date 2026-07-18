@@ -135,25 +135,29 @@ router.post('/', async (req, res) => {
     }
 
     try {
-        // Start transaction
-        await db.run('BEGIN TRANSACTION');
+        // Transacción interactiva libSQL: atómica bajo concurrencia y con lastInsertRowid real.
+        // (Antes: BEGIN/COMMIT sueltos sobre la cola compartida, que podían intercalar requests.)
+        const transactionId = await db.transaction(async (tx) => {
+            // Insert transaction header
+            const headerRs = await tx.execute({
+                sql: 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)',
+                args: [date, gloss, type, companyId]
+            });
+            const id = Number(headerRs.lastInsertRowid);
 
-        // Insert transaction header
-        const insertTransaction = 'INSERT INTO transactions (date, gloss, type, company_id) VALUES (?, ?, ?, ?)';
-        const transactionResult = await db.run(insertTransaction, [date, gloss, type, companyId]);
-        const transactionId = transactionResult.lastID;
+            // Insert all entries
+            const insertEntrySql = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
+            for (const entry of entries) {
+                const debit = parseFloat(entry.debit) || 0;
+                const credit = parseFloat(entry.credit) || 0;
+                await tx.execute({
+                    sql: insertEntrySql,
+                    args: [id, entry.accountId, debit, credit, entry.gloss || '']
+                });
+            }
 
-        // Insert all entries
-        const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
-
-        for (const entry of entries) {
-            const debit = parseFloat(entry.debit) || 0;
-            const credit = parseFloat(entry.credit) || 0;
-            await db.run(insertEntry, [transactionId, entry.accountId, debit, credit, entry.gloss || '']);
-        }
-
-        // Commit transaction
-        await db.run('COMMIT');
+            return id;
+        });
 
         res.json({
             message: 'Transaction created',
@@ -161,13 +165,6 @@ router.post('/', async (req, res) => {
             data: req.body
         });
     } catch (error) {
-        // Rollback on any error
-        try {
-            await db.run('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError.message);
-        }
-
         console.error('Error creating transaction:', error.message);
         res.status(400).json({ error: error.message });
     }
@@ -267,37 +264,35 @@ router.put('/:id', async (req, res) => {
     }
 
     try {
-        // Start transaction
-        await db.run('BEGIN TRANSACTION');
+        // Transacción interactiva libSQL (misma razón que en POST /).
+        await db.transaction(async (tx) => {
+            // Update transaction header
+            await tx.execute({
+                sql: 'UPDATE transactions SET date = ?, gloss = ?, type = ? WHERE id = ? AND company_id = ?',
+                args: [date, gloss, type, id, companyId]
+            });
 
-        // Update transaction header
-        await db.run('UPDATE transactions SET date = ?, gloss = ?, type = ? WHERE id = ? AND company_id = ?',
-            [date, gloss, type, id, companyId]);
+            // Delete existing entries
+            await tx.execute({
+                sql: 'DELETE FROM transaction_entries WHERE transaction_id = ?',
+                args: [id]
+            });
 
-        // Delete existing entries
-        await db.run('DELETE FROM transaction_entries WHERE transaction_id = ?', [id]);
+            // Insert new entries
+            const insertEntrySql = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
+            for (const entry of entries) {
+                const debit = parseFloat(entry.debit) || 0;
+                const credit = parseFloat(entry.credit) || 0;
+                await tx.execute({
+                    sql: insertEntrySql,
+                    args: [id, entry.accountId, debit, credit, entry.gloss || '']
+                });
+            }
+        });
 
-        // Insert new entries
-        const insertEntry = 'INSERT INTO transaction_entries (transaction_id, account_id, debit, credit, gloss) VALUES (?, ?, ?, ?, ?)';
-
-        for (const entry of entries) {
-            const debit = parseFloat(entry.debit) || 0;
-            const credit = parseFloat(entry.credit) || 0;
-            await db.run(insertEntry, [id, entry.accountId, debit, credit, entry.gloss || '']);
-        }
-
-        // Commit transaction
-        await db.run('COMMIT');
         res.json({ message: 'Transaction updated successfully' });
 
     } catch (error) {
-        // Rollback on any error
-        try {
-            await db.run('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError.message);
-        }
-
         console.error('Error updating transaction:', error.message);
         res.status(400).json({ error: error.message });
     }
@@ -313,32 +308,30 @@ router.delete('/:id', async (req, res) => {
     }
 
     try {
-        // Start transaction
-        await db.run('BEGIN TRANSACTION');
+        // Transacción interactiva libSQL (misma razón que en POST /).
+        const deleted = await db.transaction(async (tx) => {
+            // Delete entries first (foreign key constraint)
+            await tx.execute({
+                sql: 'DELETE FROM transaction_entries WHERE transaction_id = ?',
+                args: [id]
+            });
 
-        // Delete entries first (foreign key constraint)
-        await db.run('DELETE FROM transaction_entries WHERE transaction_id = ?', [id]);
+            // Delete the transaction, ensuring it belongs to the company
+            const rs = await tx.execute({
+                sql: 'DELETE FROM transactions WHERE id = ? AND company_id = ?',
+                args: [id, companyId]
+            });
 
-        // Delete the transaction, ensuring it belongs to the company
-        const result = await db.run('DELETE FROM transactions WHERE id = ? AND company_id = ?', [id, companyId]);
+            return rs.rowsAffected > 0;
+        });
 
-        if (result.changes === 0) {
-            await db.run('ROLLBACK');
+        if (!deleted) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
 
-        // Commit transaction
-        await db.run('COMMIT');
         res.json({ message: 'Transaction deleted successfully' });
 
     } catch (error) {
-        // Rollback on any error
-        try {
-            await db.run('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError.message);
-        }
-
         console.error('Error deleting transaction:', error.message);
         res.status(400).json({ error: error.message });
     }

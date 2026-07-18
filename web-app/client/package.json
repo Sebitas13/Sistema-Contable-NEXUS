@@ -10,6 +10,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@react-three/fiber": "^8.18.0",
         "axios": "^1.7.0",
         "bootstrap-icons": "^1.13.1",
         "canvas-confetti": "^1.9.4",
@@ -25,6 +26,7 @@
         "react-dom": "^18.2.0",
         "react-router-dom": "^6.23.0",
         "tailwind-merge": "^3.5.0",
+        "three": "^0.169.0",
         "xlsx": "^0.18.5"
     },
     "devDependencies": {

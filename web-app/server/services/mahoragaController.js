@@ -3,6 +3,8 @@
  * Gestiona la activación controlada de Mahoraga durante fase de pruebas
  */
 
+const db = require('../db');
+
 class MahoragaController {
     constructor() {
         this.modes = {
@@ -21,7 +23,13 @@ class MahoragaController {
             userOverride: false
         };
 
+        this._pageConfigCache = new Map();
+        this._hydrated = false;
+
         this.loadPermissions();
+        // Hidratación read-through: la cola serial de db.js garantiza que el schema
+        // (y las tablas mahoraga_*) ya existe cuando estas lecturas se ejecutan.
+        this._hydrate().catch(err => console.warn('⚠️ Mahoraga hydration falló:', err.message));
         this.startSecurityMonitor();
     }
 
@@ -105,6 +113,8 @@ class MahoragaController {
 
         this.activationHistory.push(activation);
 
+        this._persistActivation(activation);
+
         // Log de seguridad
         console.log(`🧠 MAHORAGA ACTIVATION: ${operation} by ${userId} - Mode: ${this.currentMode}`);
 
@@ -129,6 +139,8 @@ class MahoragaController {
         activation.confirmedAt = new Date();
         activation.confirmedBy = userId;
 
+        this._persistActivationEvent(activation, 'confirm', userId);
+
         console.log(`✅ MAHORAGA CONFIRMED: ${activation.operation} by ${userId}`);
 
         return activation;
@@ -148,6 +160,8 @@ class MahoragaController {
         activation.rejectedAt = new Date();
         activation.rejectedBy = userId;
         activation.rejectReason = reason;
+
+        this._persistActivationEvent(activation, 'reject', userId);
 
         console.log(`❌ MAHORAGA REJECTED: ${activation.operation} by ${userId} - ${reason}`);
 
@@ -170,6 +184,9 @@ class MahoragaController {
 
         // Actualizar permisos según el nuevo modo
         this.updateSecurityFlags(newMode);
+
+        this._persistMode(newMode);
+        this._persistSecurityEvent('change-mode', userId, `${oldMode} -> ${newMode}${reason ? ` (${reason})` : ''}`);
 
         return {
             oldMode,
@@ -230,6 +247,9 @@ class MahoragaController {
         this.securityFlags.emergencyStop = true;
         this.currentMode = this.modes.DISABLED;
 
+        this._persistMode(this.modes.DISABLED);
+        this._persistSecurityEvent('emergency-stop', userId, reason);
+
         console.log(`🚨 MAHORAGA EMERGENCY STOP: Activated by ${userId} - ${reason}`);
 
         return {
@@ -284,6 +304,143 @@ class MahoragaController {
     requiresUserIntervention(operation, context = {}) {
         const permission = this.canActivate(operation, context);
         return permission.requiresUserAction || permission.requiresApproval;
+    }
+
+    /**
+     * Config de páginas por empresa (read-through desde mahoraga_state).
+     * Devuelve null si la empresa no tiene config persistida.
+     */
+    getPageConfig(companyId) {
+        const key = Number(companyId) || 0;
+        return this._pageConfigCache.has(key) ? [...this._pageConfigCache.get(key)] : null;
+    }
+
+    /**
+     * Guarda la config de páginas (write-through: cache + upsert en mahoraga_state).
+     * No toca la columna mode si la fila ya existe.
+     */
+    setPageConfig(companyId, pages = []) {
+        const key = Number(companyId) || 0;
+        const safePages = Array.isArray(pages) ? [...pages] : [];
+        this._pageConfigCache.set(key, safePages);
+        this._persist(this._dbRun(
+            `INSERT INTO mahoraga_state (company_id, mode, page_config, updated_at) VALUES (?, ?, ?, datetime('now'))
+             ON CONFLICT(company_id) DO UPDATE SET page_config = excluded.page_config, updated_at = excluded.updated_at`,
+            [key, this.currentMode, JSON.stringify(safePages)]
+        ), 'page-config');
+    }
+
+    // Métodos privados
+
+    /**
+     * Read-through inicial: restaura modo global (company_id = 0), configs de página
+     * y el historial de activaciones desde Turso. Se ejecuta en segundo plano;
+     * mientras tanto el controlador opera con los defaults en memoria.
+     */
+    async _hydrate() {
+        const stateRows = await this._dbAll('SELECT company_id, mode, page_config FROM mahoraga_state');
+        for (const row of stateRows) {
+            const companyId = Number(row.company_id) || 0;
+            if (companyId === 0 && row.mode && Object.values(this.modes).includes(row.mode)) {
+                this.currentMode = row.mode;
+                this.updateSecurityFlags(row.mode);
+            }
+            if (row.page_config) {
+                try {
+                    this._pageConfigCache.set(companyId, JSON.parse(row.page_config));
+                } catch { /* JSON inválido: se ignora esa fila */ }
+            }
+        }
+
+        const rows = await this._dbAll(
+            "SELECT id, company_id, user, action, created_at FROM mahoraga_activations WHERE id LIKE 'ACT_%' ORDER BY created_at ASC, rowid ASC LIMIT 500"
+        );
+        const restored = new Map();
+        for (const row of rows) {
+            const hashIndex = row.id.indexOf('#');
+            if (hashIndex === -1) {
+                restored.set(row.id, {
+                    id: row.id,
+                    operation: row.action,
+                    userId: row.user,
+                    timestamp: new Date(row.created_at),
+                    mode: this.currentMode,
+                    context: { companyId: row.company_id || undefined },
+                    permission: { allowed: true, restored: true },
+                    status: 'ACTIVE',
+                    restoredFromDb: true
+                });
+            } else {
+                const base = restored.get(row.id.slice(0, hashIndex));
+                if (!base) continue;
+                const kind = row.id.slice(hashIndex + 1);
+                if (kind === 'confirm') {
+                    base.status = 'CONFIRMED';
+                    base.confirmedBy = row.user;
+                    base.confirmedAt = new Date(row.created_at);
+                } else if (kind === 'reject') {
+                    base.status = 'REJECTED';
+                    base.rejectedBy = row.user;
+                    base.rejectedAt = new Date(row.created_at);
+                }
+            }
+        }
+        this.activationHistory = [...restored.values()];
+        this._hydrated = true;
+        console.log(`🛡️ Mahoraga state hidratado desde DB (modo=${this.currentMode}, activaciones=${this.activationHistory.length})`);
+    }
+
+    _persistMode(mode) {
+        this._persist(this._dbRun(
+            `INSERT INTO mahoraga_state (company_id, mode, updated_at) VALUES (0, ?, datetime('now'))
+             ON CONFLICT(company_id) DO UPDATE SET mode = excluded.mode, updated_at = excluded.updated_at`,
+            [mode]
+        ), 'mode');
+    }
+
+    _persistActivation(activation) {
+        const companyId = Number(activation.context?.companyId) || 0;
+        this._persist(this._dbRun(
+            'INSERT OR IGNORE INTO mahoraga_activations (id, company_id, user, action, created_at) VALUES (?, ?, ?, ?, ?)',
+            [activation.id, companyId, String(activation.userId ?? ''), activation.operation, activation.timestamp.toISOString()]
+        ), 'activate');
+    }
+
+    _persistActivationEvent(activation, kind, userId) {
+        const companyId = Number(activation.context?.companyId) || 0;
+        this._persist(this._dbRun(
+            'INSERT OR IGNORE INTO mahoraga_activations (id, company_id, user, action, created_at) VALUES (?, ?, ?, ?, ?)',
+            [`${activation.id}#${kind}`, companyId, String(userId ?? ''), kind, new Date().toISOString()]
+        ), kind);
+    }
+
+    _persistSecurityEvent(action, userId, detail = '') {
+        const id = `EVT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this._persist(this._dbRun(
+            'INSERT OR IGNORE INTO mahoraga_activations (id, company_id, user, action, created_at) VALUES (?, ?, ?, ?, ?)',
+            [id, 0, String(userId ?? ''), detail ? `${action}: ${detail}` : action, new Date().toISOString()]
+        ), action);
+    }
+
+    _persist(promise, label) {
+        Promise.resolve(promise).catch(err => {
+            console.warn(`⚠️ Mahoraga persist (${label}) falló:`, err.message);
+        });
+    }
+
+    _dbRun(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            db.run(sql, params, function (err) {
+                if (err) reject(err);
+                else resolve({ lastID: this.lastID, changes: this.changes });
+            });
+        });
+    }
+
+    _dbAll(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        });
     }
 
     // Métodos privados

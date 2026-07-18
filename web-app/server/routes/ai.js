@@ -32,7 +32,6 @@ const internalAuthHeaders = (extra = {}) => {
   return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
 };
 
-const ENABLE_MAHORAGA_EXPERIMENTAL = process.env.ENABLE_MAHORAGA_EXPERIMENTAL === '1';
 const MAHORAGA_PAGE_IDS = [
   'Accounts',
   'Journal',
@@ -481,8 +480,9 @@ const getProfile = async (companyId) => {
   return new Promise((resolve, reject) => {
     db.get('SELECT profile_json FROM company_adjustment_profiles WHERE company_id = ?', [companyId], (err, row) => {
       if (err) {
-        console.error('Error getting profile:', err.message);
-        // Si la tabla no existe o hay otro error, retornar null en lugar de crashear
+        // Si la tabla no existe o hay otro error, retornar null en lugar de crashear,
+        // pero dejar evidencia con contexto (antes se tragaba el error silenciosamente).
+        console.warn(`[WARN] getProfile(companyId=${companyId}): fallo de DB, devolviendo null (${err.message})`);
         resolve(null);
       } else {
         try {
@@ -932,7 +932,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
   const runtimeBaseUrl = resolveRuntimeBaseUrl(req);
 
   try {
-    console.log(`ðŸ“„ [LOG] Received Body:`, JSON.stringify(req.body, null, 2));
+    console.log(`ðŸ“„ [LOG] Body keys: ${Object.keys(req.body || {}).join(', ') || '(empty)'}`);
     console.log(`ðŸ¢ [LOG] Company ID extracted: ${companyId}`);
 
     if (!companyId) {
@@ -1108,7 +1108,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     await warmupAiEngine(req);
 
     console.log(`   ðŸ“¡ [LOG] Preparing to send request to AI Engine at: ${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`);
-    console.log(`   ðŸ“¦ [LOG] Final payload to be sent:`, JSON.stringify(req.body, null, 2));
+    console.log(`   ðŸ“¦ [LOG] Payload listo: parameters keys=[${Object.keys((req.body && req.body.parameters) || {}).join(', ')}]`);
 
     const aiEngineTargets = resolveAiEngineTargets(req);
     console.log(`   [LOG] AI Engine candidates: ${JSON.stringify(aiEngineTargets.candidates)}`);
@@ -1658,6 +1658,53 @@ router.get('/recognition/status', async (req, res) => {
   }
 });
 
+// GET /api/ai/mahoraga/maturity/:companyId - Madurez viva (4 fases con % real + cognicion)
+// Fuente unica para la tarjeta de Gobernanza de Settings: reutiliza el calculo real de
+// buildMahoragaLearningProgress y agrega el conteo de reglas aprendidas (Cognicion).
+router.get('/mahoraga/maturity/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const state = await buildMahoragaLearningProgress(companyId);
+    const lp = state.learning_progress;
+
+    let monetaryRules = 0;
+    let nonMonetaryRules = 0;
+    try {
+      const profile = await getProfile(companyId);
+      monetaryRules = Array.isArray(profile?.monetary_rules) ? profile.monetary_rules.length : 0;
+      nonMonetaryRules = Array.isArray(profile?.non_monetary_rules) ? profile.non_monetary_rules.length : 0;
+    } catch (profileErr) {
+      console.warn(`[WARN] maturity(companyId=${companyId}): perfil no disponible (${profileErr.message})`);
+    }
+
+    const phases = [
+      { id: 'GENESIS', label: 'GENESIS', sub: 'Cimientos', threshold: 25 },
+      { id: 'OPERACION', label: 'OPERACION', sub: 'Hechos Reales', threshold: 50 },
+      { id: 'RITUAL', label: 'RITUAL', sub: 'Ajustes/SCL', threshold: 75 },
+      { id: 'REVELACION', label: 'REVELACION', sub: 'Juicio Final', threshold: 100 }
+    ].map(phase => ({ ...phase, completed: lp.percentage >= phase.threshold }));
+
+    res.json({
+      success: true,
+      companyId: Number(companyId) || companyId,
+      percentage: lp.percentage,
+      current_phase: lp.current_phase,
+      next_milestone: lp.next_milestone,
+      details: lp.details,
+      phases,
+      stats: lp.stats,
+      readiness: state.readiness,
+      cognition: {
+        monetary_rules: monetaryRules,
+        non_monetary_rules: nonMonetaryRules,
+        total: monetaryRules + nonMonetaryRules
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/ai/recognition/teach/:phase - EnseÃ±ar una fase especÃ­fica
 router.get('/recognition/teach/:phase', async (req, res) => {
   try {
@@ -1789,116 +1836,6 @@ router.get('/mahoraga/insights', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-// POST /api/ai/recognition/learn-operation - Mahoraga aprende de una operaciÃ³n completada
-// POST /api/ai/recognition/advance - Avanzar manualmente la fase de madurez de Mahoraga
-if (ENABLE_MAHORAGA_EXPERIMENTAL) {
-router.post('/recognition/advance', async (req, res) => {
-  try {
-    const { companyId } = req.body;
-
-    // Simular avance de fase (en una implementaciÃ³n real esto actualizarÃ­a la DB)
-    console.log(`ðŸš€ MAHORAGA ADVANCE: Incrementando madurez para empresa ${companyId}`);
-
-    res.json({
-      success: true,
-      phase_advanced: true,
-      message: 'Fase de madurez incrementada exitosamente'
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// GET /api/ai/recognition/status - Obtener estado actual de reconocimiento y madurez (DINÃMICO)
-router.get('/recognition/status', async (req, res) => {
-  try {
-    const { companyId } = req.query;
-    if (!companyId) return res.status(400).json({ success: false, error: "companyId is required" });
-
-    // 1. Fase GÃ©nesis: Plan de cuentas
-    const accResult = await dbAll('SELECT COUNT(*) as count FROM accounts WHERE company_id = ?', [companyId]);
-    const hasAccounts = accResult[0].count > 0;
-
-    // 2. Fase OperaciÃ³n: Asientos reales (excluyendo ajustes)
-    const transResult = await dbAll('SELECT COUNT(*) as count FROM transactions WHERE company_id = ? AND (type IS NULL OR type != "Ajuste")', [companyId]);
-    const opCount = transResult[0].count;
-    const isOperating = opCount >= 5;
-
-    // 3. Fase Ritual: Adaptaciones Mahoraga y Ajustes
-    const adaptResult = await dbAll('SELECT COUNT(*) as count FROM mahoraga_adaptation_events WHERE company_id = ?', [companyId]);
-    const adjResult = await dbAll('SELECT COUNT(*) as count FROM transactions WHERE company_id = ? AND type = "Ajuste"', [companyId]);
-    const hasRitual = adaptResult[0].count > 0 || adjResult[0].count > 0;
-
-    // 4. Fase RevelaciÃ³n: Cierres y Reportes
-    const closingResult = await dbAll('SELECT COUNT(*) as count FROM transactions WHERE company_id = ? AND (UPPER(type) = "CIERRE" OR gloss LIKE "%Cierre de GestiÃ³n%")', [companyId]);
-    const hasRevelation = closingResult[0].count > 0;
-
-    // CÃ¡lculo de porcentaje (25% cada fase)
-    let percentage = 0;
-    let currentPhase = 'GÃ©nesis...';
-    let nextMilestone = 'Crear Plan de Cuentas';
-    let details = 'Mahoraga estÃ¡ observando el nacimiento de la entidad.';
-
-    if (hasAccounts) {
-      percentage += 25;
-      currentPhase = 'GÃ©nesis (Configurado)';
-      nextMilestone = 'Registrar Operaciones (min 5)';
-      details = 'Cimientos establecidos. Mahoraga entiende la estructura de cuentas.';
-    }
-    if (isOperating) {
-      percentage += 25;
-      currentPhase = 'OperaciÃ³n Activa';
-      nextMilestone = 'Ejecutar Ritual de Ajustes';
-      details = 'Flujo de datos detectado. Mahoraga aprende patrones de registro.';
-    }
-    if (hasRitual) {
-      percentage += 25;
-      currentPhase = 'Ritual de Acondicionamiento';
-      nextMilestone = 'Generar Juicio Final (Cierre)';
-      details = 'IntervenciÃ³n cognitiva activa. SCL estÃ¡ refinando las reglas.';
-    }
-    if (hasRevelation) {
-      percentage += 25;
-      currentPhase = 'RevelaciÃ³n Completa';
-      nextMilestone = 'Mantenimiento de Gobernanza';
-      details = 'Ciclo completo dominado. Mahoraga actÃºa como capa de gobernanza.';
-    }
-
-    res.json({
-      success: true,
-      learning_progress: {
-        percentage: percentage,
-        current_phase: currentPhase,
-        next_milestone: nextMilestone,
-        details: details,
-        stats: {
-          accounts: accResult[0].count,
-          operations: opCount,
-          adaptations: adaptResult[0].count,
-          hasClosing: hasRevelation
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error en recognition/status:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.post('/recognition/learn-operation', async (req, res) => {
-  try {
-    const { operation, result, userId, companyId } = req.body;
-    console.log(`ðŸ§  MAHORAGA LEARNING: ${operation} by ${userId} for ${companyId}`);
-    res.json({
-      success: true,
-      message: 'OperaciÃ³n aprendida exitosamente',
-      learning_registered: true
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-}
 
 router.get('/skills/health', async (req, res) => {
   try {
@@ -1971,129 +1908,4 @@ router.post('/mahoraga/config/:companyId', async (req, res) => {
   }
 });
 
-// GET /api/ai/mahoraga/config/:companyId - Obtener configuraciÃ³n Mahoraga
-if (ENABLE_MAHORAGA_EXPERIMENTAL) {
-router.get('/mahoraga/config/:companyId', (req, res) => {
-  const { companyId } = req.params;
-
-  // Mock response - en producciÃ³n guardar en DB
-  res.json({
-    success: true,
-    active_pages: ['Ledger', 'TrialBalance', 'UFV']
-  });
-});
-
-// POST /api/ai/mahoraga/config/:companyId - Guardar configuraciÃ³n Mahoraga
-router.post('/mahoraga/config/:companyId', (req, res) => {
-  const { companyId } = req.params;
-  const { active_pages } = req.body;
-
-  // Mock response - en producciÃ³n guardar en DB
-  res.json({
-    success: true,
-    message: 'ConfiguraciÃ³n guardada'
-  });
-});
-
-// GET /api/ai/mahoraga/insights - Obtener insights Mahoraga
-router.get('/mahoraga/insights', (req, res) => {
-  res.json({
-    success: true,
-    insights: []
-  });
-});
-
-// GET /api/ai/monitor/stats - Obtener estadÃ­sticas del monitor
-router.get('/monitor/stats', (req, res) => {
-  res.json({
-    success: true,
-    stats: {
-      total_requests: 0,
-      successful_requests: 0,
-      failed_requests: 0
-    }
-  });
-});
-
-// GET /api/ai/mahoraga/status - Obtener estado Mahoraga
-router.get('/mahoraga/status', (req, res) => {
-  res.json({
-    success: true,
-    mahoraga: {
-      mode: 'DISABLED',
-      active: false
-    }
-  });
-});
-
-// POST /api/ai/mahoraga/change-mode - Cambiar modo Mahoraga
-router.post('/mahoraga/change-mode', (req, res) => {
-  const { newMode, userId, reason } = req.body;
-
-  res.json({
-    success: true,
-    message: 'Modo cambiado'
-  });
-});
-
-// POST /api/ai/mahoraga/emergency-stop - Parada de emergencia
-router.post('/mahoraga/emergency-stop', (req, res) => {
-  const { userId, reason } = req.body;
-
-  res.json({
-    success: true,
-    message: 'Parada de emergencia activada'
-  });
-});
-
-// GET /api/ai/recognition/status - Obtener estado de reconocimiento
-router.get('/recognition/status', (req, res) => {
-  res.json({
-    success: true,
-    status: 'idle'
-  });
-});
-
-// GET /api/ai/skills/health - Health check de skills (redirigir a /api/skills)
-router.get('/skills/health', (req, res) => {
-  res.redirect('/api/skills/health');
-});
-
-// GET /api/ai/skills/search - Buscar skills (redirigir a /api/skills)
-router.get('/skills/search', (req, res) => {
-  res.redirect('/api/skills/search');
-});
-
-// GET /api/ai/profile/:companyId - Obtener perfil de empresa
-router.get('/profile/:companyId', (req, res) => {
-  const { companyId } = req.params;
-
-  try {
-    // Mock response - en producciÃ³n obtener de DB
-    res.json({
-      success: true,
-      profile_json: {}
-    });
-  } catch (error) {
-    console.error('Error getting AI profile:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
-  }
-});
-
-// POST /api/ai/profile/:companyId - Guardar perfil de empresa
-router.post('/profile/:companyId', (req, res) => {
-  const { companyId } = req.params;
-  const { profile_json } = req.body;
-
-  // Mock response - en producciÃ³n guardar en DB
-  res.json({
-    success: true,
-    message: 'Perfil guardado'
-  });
-});
-
-}
 module.exports = router;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import { format, parseISO } from 'date-fns';
@@ -8,6 +8,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useCompany } from '../context/CompanyContext';
 import CompanyCard from '../components/CompanyCard';
 import API_URL from '../api';
+
+// Emblema 3D de Mahoraga en el hero, diferido (no entra en el bundle principal).
+const MahoragaWheel3D = lazy(() => import('../three/MahoragaWheel3D'));
 
 export default function CompanySelector() {
     const navigate = useNavigate();
@@ -306,14 +309,19 @@ export default function CompanySelector() {
         <div className="company-selector-page">
             {/* Hero Section */}
             <div className="company-hero">
-                <div className="company-hero-content">
-                    <h1 className="company-hero-title">
-                        <i className="bi bi-buildings me-3"></i>
-                        Sistema Contable Multi-Empresa
-                    </h1>
-                    <p className="company-hero-subtitle">
-                        Gestiona la contabilidad de múltiples empresas desde un solo lugar
-                    </p>
+                <div className="company-hero-content d-flex flex-column flex-md-row align-items-center justify-content-center gap-3 gap-md-4">
+                    <Suspense fallback={null}>
+                        <MahoragaWheel3D size={120} />
+                    </Suspense>
+                    <div className="text-center text-md-start">
+                        <h1 className="company-hero-title">
+                            <i className="bi bi-buildings me-3"></i>
+                            Sistema Contable Multi-Empresa
+                        </h1>
+                        <p className="company-hero-subtitle">
+                            Gestiona la contabilidad de múltiples empresas desde un solo lugar
+                        </p>
+                    </div>
                 </div>
             </div>
 

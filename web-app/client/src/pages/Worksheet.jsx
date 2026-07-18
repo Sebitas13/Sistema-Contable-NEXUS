@@ -626,12 +626,22 @@ export default function Worksheet() {
         return Number.isFinite(n) ? n : 0;
     };
 
+    // Columnas secundarias que se ocultan en mobile (clases definidas en index.css).
+    // Nº/TIPO desaparecen en <=991px; los saldos DEUDOR/ACREEDOR del BC en <=575px.
+    const MOBILE_COL_HIDE = {
+        N: 'col-hide-md',
+        TIPO: 'col-hide-md',
+        BC_DEUDOR: 'col-hide-sm',
+        BC_ACREEDOR: 'col-hide-sm'
+    };
+
     const renderEditableCell = (rowKey, colKey, fallback = '', options = {}) => {
         const { align, placeholder, minWidth, onChange, skipDefaultUpdate } = options;
         const value = getBlockValue(rowKey, colKey, fallback);
         const alignClass = align === 'left' ? '' : 'text-end';
+        const hideClass = MOBILE_COL_HIDE[colKey] || '';
         return (
-            <td className={alignClass}>
+            <td className={`${alignClass} ${hideClass}`.trim()}>
                 <input
                     type="text"
                     value={value}
@@ -653,7 +663,7 @@ export default function Worksheet() {
     const renderAccountCell = (rowKey, defaultLabel, badgeLabel) => {
         const listId = `list-${rowKey}`;
         return (
-            <td className="align-middle">
+            <td className="align-middle sticky-col">
                 <div className="d-flex align-items-center">
                     <input
                         type="text"
@@ -1005,10 +1015,10 @@ export default function Worksheet() {
                         <table className="table table-sm table-dark table-bordered mb-0 border-secondary" style={{ fontSize: '0.7rem', backgroundColor: 'transparent' }}>
                             <thead className="sticky-top" style={{ backgroundColor: 'rgb(11, 14, 20)' }}>
                                 <tr>
-                                    <th rowSpan="2" className="align-middle text-center" style={{ minWidth: '40px' }}>Nº</th>
-                                    <th rowSpan="2" className="align-middle text-center" style={{ minWidth: '70px' }}>TIPO</th>
+                                    <th rowSpan="2" className="align-middle text-center col-hide-md" style={{ minWidth: '40px' }}>Nº</th>
+                                    <th rowSpan="2" className="align-middle text-center col-hide-md" style={{ minWidth: '70px' }}>TIPO</th>
                                     <th rowSpan="2" className="align-middle text-center" style={{ minWidth: '70px' }}>CÓDIGO</th>
-                                    <th rowSpan="2" className="align-middle" style={{ minWidth: '180px' }}>CUENTAS</th>
+                                    <th rowSpan="2" className="align-middle sticky-col" style={{ minWidth: '180px' }}>CUENTAS</th>
                                     <th colSpan="4" className="text-center bg-primary text-white">BALANCE DE COMPROBACIÓN</th>
                                     <th colSpan="2" className="text-center bg-warning">AJUSTES</th>
                                     <th colSpan="2" className="text-center bg-success text-white">BALANCE AJUSTADO</th>
@@ -1021,8 +1031,8 @@ export default function Worksheet() {
                                     {/* Balance de Comprobación */}
                                     <th className="text-center bg-primary bg-opacity-10" style={{ minWidth: '75px' }}>DEBE</th>
                                     <th className="text-center bg-primary bg-opacity-10" style={{ minWidth: '75px' }}>HABER</th>
-                                    <th className="text-center bg-primary bg-opacity-10" style={{ minWidth: '75px' }}>DEUDOR</th>
-                                    <th className="text-center bg-primary bg-opacity-10" style={{ minWidth: '75px' }}>ACREEDOR</th>
+                                    <th className="text-center bg-primary bg-opacity-10 col-hide-sm" style={{ minWidth: '75px' }}>DEUDOR</th>
+                                    <th className="text-center bg-primary bg-opacity-10 col-hide-sm" style={{ minWidth: '75px' }}>ACREEDOR</th>
                                     {/* Ajustes */}
                                     <th className="text-center bg-warning bg-opacity-25" style={{ minWidth: '75px' }}>DEBE</th>
                                     <th className="text-center bg-warning bg-opacity-25" style={{ minWidth: '75px' }}>HABER</th>
@@ -1070,15 +1080,15 @@ export default function Worksheet() {
 
                                             return (
                                                 <tr key={acc.id} className={!isValid ? 'table-warning' : ''}>
-                                                    <td className="text-center"><small>{index + 1}</small></td>
-                                                    <td className="text-center"><span className={`badge bg-${acc.type === 'Activo' ? 'primary' : acc.type === 'Pasivo' ? 'danger' : acc.type === 'Patrimonio' ? 'info' : acc.type === 'Ingreso' ? 'success' : 'warning'} badge-sm`}>{acc.type}</span></td>
+                                                    <td className="text-center col-hide-md"><small>{index + 1}</small></td>
+                                                    <td className="text-center col-hide-md"><span className={`badge bg-${acc.type === 'Activo' ? 'primary' : acc.type === 'Pasivo' ? 'danger' : acc.type === 'Patrimonio' ? 'info' : acc.type === 'Ingreso' ? 'success' : 'warning'} badge-sm`}>{acc.type}</span></td>
                                                     <td className="text-center"><small><code>{acc.code}</code></small></td>
-                                                    <td><small>{acc.name}</small></td>
+                                                    <td className="sticky-col"><small>{acc.name}</small></td>
                                                     {/* Balance de Comprobación */}
                                                     <td className="text-end">{(acc.total_debit || 0).toFixed(2)}</td>
                                                     <td className="text-end">{(acc.total_credit || 0).toFixed(2)}</td>
-                                                    <td className="text-end">{deudor > 0 ? deudor.toFixed(2) : ''}</td>
-                                                    <td className="text-end">{acreedor > 0 ? acreedor.toFixed(2) : ''}</td>
+                                                    <td className="text-end col-hide-sm">{deudor > 0 ? deudor.toFixed(2) : ''}</td>
+                                                    <td className="text-end col-hide-sm">{acreedor > 0 ? acreedor.toFixed(2) : ''}</td>
                                                     {/* Ajustes - show actual adjustment amounts */}
                                                     <td className="text-end">{(acc.adj_debit || 0) > 0 ? (acc.adj_debit).toFixed(2) : ''}</td>
                                                     <td className="text-end">{(acc.adj_credit || 0) > 0 ? (acc.adj_credit).toFixed(2) : ''}</td>

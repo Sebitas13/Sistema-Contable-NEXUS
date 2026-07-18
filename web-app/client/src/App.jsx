@@ -18,7 +18,13 @@ import ExchangeRate from './pages/ExchangeRate';
 import DataForge from './DataForge/DataForge';
 import FinancialStatements from './pages/FinancialStatements';
 import Settings from './pages/Settings';
-import { useState } from 'react';
+import CommandPalette from './components/CommandPalette';
+import { motion } from 'framer-motion';
+import { useState, lazy, Suspense } from 'react';
+
+// Fondo WebGL inmersivo cargado de forma diferida: nunca bloquea el arranque
+// ni entra en el bundle principal (React.lazy + dynamic import).
+const AmbientCanvas = lazy(() => import('./three/AmbientCanvas'));
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
     const location = useLocation();
@@ -167,6 +173,7 @@ function AppLayout() {
     const { selectedCompany } = useCompany();
     const { authRequired } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = () => {
         clearToken();
@@ -208,6 +215,14 @@ function AppLayout() {
                     </div>
                     
                     <div className="d-flex align-items-center gap-2 gap-sm-3 flex-shrink-0">
+                        <button
+                            className="btn btn-outline-secondary btn-sm d-none d-md-flex align-items-center gap-2"
+                            onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+                            title="Búsqueda rápida (Ctrl + K)"
+                        >
+                            <i className="bi bi-search"></i>
+                            <kbd className="command-kbd">Ctrl K</kbd>
+                        </button>
                         <span className="text-white-50 d-none d-sm-flex align-items-center">
                             <i className="bi bi-person-circle me-1"></i>
                             <span className="d-none d-md-inline">Usuario:</span> Admin
@@ -232,24 +247,33 @@ function AppLayout() {
                     </div>
                 </header>
                 <main className="p-3 p-md-4 main-view-area">
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/accounts" element={<Accounts />} />
-                        <Route path="/journal" element={<Journal />} />
-                        <Route path="/ledger" element={<Ledger />} />
-                        <Route path="/trial-balance" element={<TrialBalance />} />
-                        <Route path="/worksheet" element={<Worksheet />} />
-                        <Route path="/cost-centers" element={<CostCenters />} />
-                        <Route path="/fixed-assets" element={<FixedAssets />} />
-                        <Route path="/ufv" element={<UFV />} />
-                        <Route path="/exchange-rate" element={<ExchangeRate />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/data-forge" element={<DataForge />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/financial-statements" element={<FinancialStatements />} />
-                    </Routes>
+                    <motion.div
+                        key={location.pathname}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+                    >
+                        <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/accounts" element={<Accounts />} />
+                            <Route path="/journal" element={<Journal />} />
+                            <Route path="/ledger" element={<Ledger />} />
+                            <Route path="/trial-balance" element={<TrialBalance />} />
+                            <Route path="/worksheet" element={<Worksheet />} />
+                            <Route path="/cost-centers" element={<CostCenters />} />
+                            <Route path="/fixed-assets" element={<FixedAssets />} />
+                            <Route path="/ufv" element={<UFV />} />
+                            <Route path="/exchange-rate" element={<ExchangeRate />} />
+                            <Route path="/reports" element={<Reports />} />
+                            <Route path="/data-forge" element={<DataForge />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/financial-statements" element={<FinancialStatements />} />
+                        </Routes>
+                    </motion.div>
                 </main>
             </div>
+
+            <CommandPalette />
         </div>
     );
 }
@@ -259,6 +283,9 @@ function App() {
         <AuthProvider>
         <CompanyProvider>
             <Router>
+                <Suspense fallback={null}>
+                    <AmbientCanvas />
+                </Suspense>
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route

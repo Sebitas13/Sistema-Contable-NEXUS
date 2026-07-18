@@ -23,7 +23,9 @@ export const formatearMonto = (monto) => {
 // Componente Recursivo para Filas (Balance) - Exported per requirement
 export const TreeRow = ({ node, level = 0 }) => {
     const isHeader = level === 0;
-    const paddingLeft = `${level * 1.5}rem`;
+    // En pantallas angostas la sangría se topea en nivel 3 para no aplastar los nombres.
+    const isNarrow = typeof window !== 'undefined' && window.innerWidth < 768;
+    const paddingLeft = `${(isNarrow ? Math.min(level, 3) : level) * 1.5}rem`;
     const isReguladora = node.esReguladora;
     let rowClass = "align-middle";
     if (isHeader) rowClass += " fw-bold";

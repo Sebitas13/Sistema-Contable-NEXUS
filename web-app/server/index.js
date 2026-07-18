@@ -107,22 +107,23 @@ app.get('/api/status', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Knowledge Brain Routes remain experimental and are disabled by default.
-if (process.env.ENABLE_MAHORAGA_EXPERIMENTAL === '1') {
-  try {
-    const knowledgeRouter = require('./routes/knowledge');
-    app.use('/api/knowledge', knowledgeRouter);
-    console.log('Knowledge Brain registered at /api/knowledge');
+// Safety net global: cualquier error no capturado en un handler async llega aquí
+// (Express 5 reenvía rechazos de promesas al error handler). No cambia comportamiento
+// de rutas que ya manejan sus errores.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (res.headersSent) return;
+  console.error('Unhandled route error:', err.message);
+  res.status(500).json({ success: false, error: 'Internal server error' });
+});
 
-    const aiKnowledgeRouter = require('./routes/aiKnowledge');
-    app.use('/api/ai/knowledge', aiKnowledgeRouter);
-    console.log('AI Knowledge Bridge registered at /api/ai/knowledge');
-  } catch (e) {
-    console.warn('Knowledge router could not be registered:', e.message);
-  }
-} else {
-  console.log('Knowledge Brain routes disabled (ENABLE_MAHORAGA_EXPERIMENTAL!=1)');
-}
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

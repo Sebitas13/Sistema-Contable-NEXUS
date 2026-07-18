@@ -18,6 +18,8 @@ const {
 } = require('../utils/backupCore');
 
 const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+// Límite de tamaño DESCOMPRIMIDO del bundle (el import carga el JSON en RAM).
+const MAX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024; // 200MB
 const UPLOAD_DIR = path.join(__dirname, '../temp/uploads/');
 const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL || `http://127.0.0.1:${process.env.PORT || 3001}`;
 
@@ -435,6 +437,23 @@ async function readJsonEntry(directory, entryPath) {
 
 async function readBackupBundle(filePath) {
     const directory = await unzipper.Open.file(filePath);
+
+    // Guardia anti zip-bomb: el import carga todo el JSON en RAM, así que se
+    // rechaza por tamaño descomprimido ANTES de extraer (el Central Directory
+    // ya trae uncompressedSize, no hace falta descomprimir para medir).
+    const totalUncompressed = directory.files.reduce(
+        (sum, file) => sum + (Number(file.uncompressedSize) || 0),
+        0
+    );
+    if (totalUncompressed > MAX_UNCOMPRESSED_BYTES) {
+        const actualMB = Math.round(totalUncompressed / 1024 / 1024);
+        const limitMB = Math.round(MAX_UNCOMPRESSED_BYTES / 1024 / 1024);
+        throw new Error(
+            `Backup demasiado grande para importar: ${actualMB} MB descomprimidos ` +
+            `superan el límite de ${limitMB} MB (el import procesa el contenido en memoria).`
+        );
+    }
+
     const metadata = await readJsonEntry(directory, 'metadata.json');
 
     if (!metadata) {
