@@ -39,6 +39,16 @@ export default function Worksheet() {
     const [aiAdjustments, setAiAdjustments] = useState(null); // AI-generated adjustments
     const [showAIPanel, setShowAIPanel] = useState(false);
     const [mahoragaActive, setMahoragaActive] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 575.98);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         if (selectedCompany?.id) {
@@ -1019,7 +1029,7 @@ export default function Worksheet() {
                                     <th rowSpan="2" className="align-middle text-center col-hide-md" style={{ minWidth: '70px' }}>TIPO</th>
                                     <th rowSpan="2" className="align-middle text-center" style={{ minWidth: '70px' }}>CÓDIGO</th>
                                     <th rowSpan="2" className="align-middle sticky-col" style={{ minWidth: '180px' }}>CUENTAS</th>
-                                    <th colSpan="4" className="text-center bg-primary text-white">BALANCE DE COMPROBACIÓN</th>
+                                    <th colSpan={isMobile ? 2 : 4} className="text-center bg-primary text-white">BALANCE DE COMPROBACIÓN</th>
                                     <th colSpan="2" className="text-center bg-warning">AJUSTES</th>
                                     <th colSpan="2" className="text-center bg-success text-white">BALANCE AJUSTADO</th>
                                     <th colSpan="2" className="text-center bg-info text-white">ESTADO DE RESULTADOS</th>

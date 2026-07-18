@@ -5,27 +5,78 @@ import { motion, AnimatePresence } from 'framer-motion';
 /**
  * CommandPalette - Navegación instantánea con Ctrl/Cmd + K.
  *
- * Herramienta de uso diario, no adorno: permite saltar a cualquier módulo sin
- * tocar el ratón. Búsqueda difusa por etiqueta, navegación con flechas y Enter,
- * cierre con Esc. Se monta una vez en el layout y escucha el atajo globalmente.
+ * Paleta de comandos premium con bordes glassmórficos neon, resaltado de
+ * caracteres coincidentes, descripciones contextuales, y animaciones
+ * escalonadas en la lista de resultados.
  */
 
-// Destinos navegables (espejo del menú lateral) + palabras clave para búsqueda.
+// Destinos navegables + palabras clave y descripciones.
 const COMMANDS = [
-    { label: 'Dashboard', path: '/app', icon: 'bi-speedometer2', keywords: 'inicio centro mando resumen' },
-    { label: 'Plan de Cuentas', path: '/app/accounts', icon: 'bi-journal-text', keywords: 'cuentas catalogo puct' },
-    { label: 'Libro Diario', path: '/app/journal', icon: 'bi-pencil-square', keywords: 'asientos diario registrar' },
-    { label: 'Libro Mayor', path: '/app/ledger', icon: 'bi-book', keywords: 'mayor movimientos' },
-    { label: 'Balance de Comprobación', path: '/app/trial-balance', icon: 'bi-calculator', keywords: 'balance comprobacion sumas saldos' },
-    { label: 'Hoja de Trabajo', path: '/app/worksheet', icon: 'bi-file-earmark-spreadsheet', keywords: 'hoja trabajo ajustes' },
-    { label: 'Costos y Almacén', path: '/app/cost-centers', icon: 'bi-diagram-3', keywords: 'costos almacen centros inventario' },
-    { label: 'Activos Fijos', path: '/app/fixed-assets', icon: 'bi-building', keywords: 'activos fijos depreciacion' },
-    { label: 'UFV', path: '/app/ufv', icon: 'bi-graph-up-arrow', keywords: 'ufv unidad fomento vivienda' },
-    { label: 'Tipo de Cambio', path: '/app/exchange-rate', icon: 'bi-currency-exchange', keywords: 'tipo cambio dolar moneda' },
-    { label: 'Reportes', path: '/app/reports', icon: 'bi-graph-up', keywords: 'reportes estados financieros' },
-    { label: 'Estados Financieros', path: '/app/financial-statements', icon: 'bi-clipboard-data', keywords: 'balance general estado resultados' },
-    { label: 'Configuración', path: '/app/settings', icon: 'bi-gear', keywords: 'configuracion ajustes mahoraga ia' },
+    { label: 'Dashboard', path: '/app', icon: 'bi-speedometer2', keywords: 'inicio centro mando resumen', desc: 'Vista general de la empresa' },
+    { label: 'Plan de Cuentas', path: '/app/accounts', icon: 'bi-journal-text', keywords: 'cuentas catalogo puct', desc: 'Estructura contable y clasificación' },
+    { label: 'Libro Diario', path: '/app/journal', icon: 'bi-pencil-square', keywords: 'asientos diario registrar', desc: 'Registrar asientos contables' },
+    { label: 'Libro Mayor', path: '/app/ledger', icon: 'bi-book', keywords: 'mayor movimientos', desc: 'Movimientos por cuenta' },
+    { label: 'Balance de Comprobación', path: '/app/trial-balance', icon: 'bi-calculator', keywords: 'balance comprobacion sumas saldos', desc: 'Verificar sumas y saldos' },
+    { label: 'Hoja de Trabajo', path: '/app/worksheet', icon: 'bi-file-earmark-spreadsheet', keywords: 'hoja trabajo ajustes', desc: 'Formato completo de 16 columnas' },
+    { label: 'Costos y Almacén', path: '/app/cost-centers', icon: 'bi-diagram-3', keywords: 'costos almacen centros inventario', desc: 'Centros de costo e inventario' },
+    { label: 'Activos Fijos', path: '/app/fixed-assets', icon: 'bi-building', keywords: 'activos fijos depreciacion', desc: 'Gestión y depreciación de activos' },
+    { label: 'UFV', path: '/app/ufv', icon: 'bi-graph-up-arrow', keywords: 'ufv unidad fomento vivienda', desc: 'Valores UFV actualizados' },
+    { label: 'Tipo de Cambio', path: '/app/exchange-rate', icon: 'bi-currency-exchange', keywords: 'tipo cambio dolar moneda', desc: 'Tasas de cambio vigentes' },
+    { label: 'Reportes', path: '/app/reports', icon: 'bi-graph-up', keywords: 'reportes estados financieros', desc: 'Generar reportes financieros' },
+    { label: 'Estados Financieros', path: '/app/financial-statements', icon: 'bi-clipboard-data', keywords: 'balance general estado resultados', desc: 'Balance General y Estado de Resultados' },
+    { label: 'Configuración', path: '/app/settings', icon: 'bi-gear', keywords: 'configuracion ajustes mahoraga ia', desc: 'Ajustes del sistema e IA' },
 ];
+
+/** Highlight matching characters in a label */
+function HighlightedText({ text, query }) {
+    if (!query) return <span>{text}</span>;
+
+    const q = query.toLowerCase();
+    const lower = text.toLowerCase();
+    const parts = [];
+    let lastIdx = 0;
+
+    for (let i = 0; i < q.length; i++) {
+        const idx = lower.indexOf(q[i], lastIdx);
+        if (idx === -1) continue;
+        if (idx > lastIdx) {
+            parts.push(<span key={`t-${lastIdx}`}>{text.slice(lastIdx, idx)}</span>);
+        }
+        parts.push(
+            <span key={`h-${idx}`} style={{
+                color: 'var(--accent-primary)',
+                fontWeight: 700,
+                textShadow: '0 0 8px rgba(59,130,246,0.4)',
+            }}>
+                {text[idx]}
+            </span>
+        );
+        lastIdx = idx + 1;
+    }
+    if (lastIdx < text.length) {
+        parts.push(<span key={`e-${lastIdx}`}>{text.slice(lastIdx)}</span>);
+    }
+
+    return <>{parts}</>;
+}
+
+// Animation variants for staggered list entry
+const listVariants = {
+    hidden: {},
+    visible: {
+        transition: { staggerChildren: 0.035 },
+    },
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 8, scale: 0.97 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { type: 'spring', stiffness: 400, damping: 28 },
+    },
+};
 
 export default function CommandPalette() {
     const navigate = useNavigate();
@@ -67,7 +118,9 @@ export default function CommandPalette() {
         const q = query.trim().toLowerCase();
         if (!q) return COMMANDS;
         return COMMANDS.filter(c =>
-            c.label.toLowerCase().includes(q) || c.keywords.includes(q)
+            c.label.toLowerCase().includes(q) ||
+            c.keywords.includes(q) ||
+            c.desc.toLowerCase().includes(q)
         );
     }, [query]);
 
@@ -105,12 +158,18 @@ export default function CommandPalette() {
                 >
                     <motion.div
                         className="command-palette glass-panel"
-                        initial={{ opacity: 0, y: -20, scale: 0.98 }}
+                        initial={{ opacity: 0, y: -20, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.96 }}
                         transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                         onClick={(e) => e.stopPropagation()}
+                        style={{
+                            borderImage: 'linear-gradient(135deg, rgba(59,130,246,0.4), rgba(139,92,246,0.3), rgba(16,185,129,0.3)) 1',
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
+                        }}
                     >
+                        {/* Search bar */}
                         <div className="d-flex align-items-center gap-2 px-3 py-2 border-bottom border-secondary border-opacity-25">
                             <i className="bi bi-search text-white-50"></i>
                             <input
@@ -124,24 +183,47 @@ export default function CommandPalette() {
                             />
                             <kbd className="command-kbd d-none d-sm-inline">Esc</kbd>
                         </div>
-                        <div className="command-list">
+
+                        {/* Results list */}
+                        <motion.div
+                            className="command-list"
+                            variants={listVariants}
+                            initial="hidden"
+                            animate="visible"
+                            key={query}
+                        >
                             {results.length === 0 ? (
                                 <div className="text-center text-white-50 py-4 small">Sin resultados para "{query}"</div>
                             ) : (
                                 results.map((cmd, idx) => (
-                                    <button
+                                    <motion.button
                                         key={cmd.path}
+                                        variants={itemVariants}
                                         className={`command-item ${idx === active ? 'active' : ''}`}
                                         onMouseEnter={() => setActive(idx)}
                                         onClick={() => go(cmd)}
                                     >
-                                        <i className={`bi ${cmd.icon} me-3`}></i>
-                                        <span>{cmd.label}</span>
+                                        <i className={`bi ${cmd.icon} me-3`} style={{ fontSize: '1.1rem' }}></i>
+                                        <div className="d-flex flex-column align-items-start" style={{ minWidth: 0, flex: 1 }}>
+                                            <span style={{ fontWeight: 500 }}>
+                                                <HighlightedText text={cmd.label} query={query} />
+                                            </span>
+                                            <span style={{
+                                                fontSize: '0.72rem',
+                                                color: 'var(--text-muted)',
+                                                lineHeight: 1.3,
+                                                marginTop: '1px',
+                                            }}>
+                                                {cmd.desc}
+                                            </span>
+                                        </div>
                                         <i className="bi bi-arrow-return-left ms-auto text-white-50 small"></i>
-                                    </button>
+                                    </motion.button>
                                 ))
                             )}
-                        </div>
+                        </motion.div>
+
+                        {/* Footer shortcuts */}
                         <div className="d-flex justify-content-between align-items-center px-3 py-2 border-top border-secondary border-opacity-25 small text-white-50">
                             <span><kbd className="command-kbd">↑</kbd><kbd className="command-kbd ms-1">↓</kbd> navegar</span>
                             <span><kbd className="command-kbd">↵</kbd> abrir</span>

@@ -5,17 +5,14 @@ import * as THREE from 'three';
 import { useGLQuality } from './useGLQuality';
 
 /**
- * AmbientCanvas - Fondo WebGL vivo, único y fijo para toda la app.
+ * AmbientCanvas - Fondo WebGL vivo con shaders GLSL personalizados.
  *
- * Objetivo: aportar profundidad y "vida" sin robar protagonismo ni rendimiento.
- * - Un solo contexto WebGL a pantalla completa (position: fixed, detrás de todo).
- * - Nebulosa de partículas con la paleta de marca; el tono cambia según la ruta
- *   para dar identidad a cada sección (azul dashboard, verde reportes, etc.).
- * - Parallax sutil con el ratón. Rotación muy lenta y constante.
- * - Si WebGL no aplica (móvil / reduce-motion / sin soporte) -> gradiente CSS.
+ * Nebulosa orgánica de partículas que respira y ondula con movimiento fluido.
+ * El tono cambia según la ruta activa para dar identidad a cada sección.
+ * Parallax sutil con el ratón. Degradación elegante a CSS si WebGL no aplica.
  */
 
-// Paleta de marca (misma que index.css). Tono base por familia de ruta.
+// Paleta de marca. Tono base por familia de ruta.
 const ROUTE_HUES = {
     '/app': 0x3b82f6,          // Dashboard - azul
     '/app/reports': 0x10b981,  // Reportes - verde
@@ -29,49 +26,96 @@ const ROUTE_HUES = {
 
 function hueForPath(pathname) {
     if (ROUTE_HUES[pathname] !== undefined) return ROUTE_HUES[pathname];
-    // Coincidencia por prefijo más específico.
     const match = Object.keys(ROUTE_HUES)
         .filter(k => k !== '/' && pathname.startsWith(k))
         .sort((a, b) => b.length - a.length)[0];
     return match ? ROUTE_HUES[match] : 0x3b82f6;
 }
 
+// ─── Vertex Shader: organic wave displacement ───
+const vertexShader = /* glsl */ `
+    uniform float uTime;
+    uniform vec2 uMouse;
+    attribute float aSize;
+    attribute float aPhase;
+    varying float vAlpha;
+    varying float vDist;
+
+    void main() {
+        vec3 pos = position;
+
+        // Organic sine/cos wave offsets — fluid breathing motion
+        float wave1 = sin(pos.x * 0.4 + uTime * 0.3 + aPhase) * 0.6;
+        float wave2 = cos(pos.y * 0.3 + uTime * 0.25 + aPhase * 1.3) * 0.5;
+        float wave3 = sin(pos.z * 0.5 + uTime * 0.2 + aPhase * 0.7) * 0.4;
+        pos.x += wave1 + wave2 * 0.3;
+        pos.y += wave2 + wave3 * 0.3;
+        pos.z += wave3 + wave1 * 0.2;
+
+        // Mouse parallax influence
+        pos.x += uMouse.x * 0.5;
+        pos.y += uMouse.y * 0.5;
+
+        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+        vDist = length(mvPosition.xyz);
+        vAlpha = smoothstep(18.0, 4.0, vDist);
+
+        gl_PointSize = aSize * (280.0 / -mvPosition.z);
+        gl_Position = projectionMatrix * mvPosition;
+    }
+`;
+
+// ─── Fragment Shader: soft circular glow with bright core ───
+const fragmentShader = /* glsl */ `
+    uniform vec3 uColor;
+    uniform float uTime;
+    varying float vAlpha;
+    varying float vDist;
+
+    void main() {
+        // Soft circle (distance from center of point sprite)
+        vec2 uv = gl_PointCoord - 0.5;
+        float dist = length(uv);
+        if (dist > 0.5) discard;
+
+        // Bright core + soft halo
+        float core = exp(-dist * 8.0) * 0.9;
+        float halo = exp(-dist * 3.5) * 0.5;
+        float glow = core + halo;
+
+        // Subtle shimmer
+        float shimmer = sin(uTime * 2.0 + vDist * 3.0) * 0.08 + 1.0;
+        glow *= shimmer;
+
+        float alpha = glow * vAlpha * 0.7;
+        gl_FragColor = vec4(uColor, alpha);
+    }
+`;
+
 function Nebula({ count, targetColor }) {
     const pointsRef = useRef();
     const materialRef = useRef();
-    const { size } = useThree();
     const mouse = useRef({ x: 0, y: 0 });
     const currentColor = useRef(new THREE.Color(0x3b82f6));
     const goalColor = useRef(new THREE.Color(targetColor));
 
-    // Geometría generada una sola vez: nube esférica con densidad hacia el centro.
-    const positions = useMemo(() => {
-        const arr = new Float32Array(count * 3);
+    // Geometry: spherical cloud with central density + per-particle phase & size
+    const { positions, sizes, phases } = useMemo(() => {
+        const pos = new Float32Array(count * 3);
+        const sz = new Float32Array(count);
+        const ph = new Float32Array(count);
         for (let i = 0; i < count; i++) {
-            const r = Math.cbrt(Math.random()) * 9;      // radio con densidad central
+            const r = Math.cbrt(Math.random()) * 10;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
-            arr[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-            arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-            arr[i * 3 + 2] = r * Math.cos(phi);
+            pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+            pos[i * 3 + 2] = r * Math.cos(phi);
+            sz[i] = 0.04 + Math.random() * 0.14;
+            ph[i] = Math.random() * Math.PI * 2;
         }
-        return arr;
+        return { positions: pos, sizes: sz, phases: ph };
     }, [count]);
-
-    // Textura circular suave para partículas (evita cuadrados duros).
-    const sprite = useMemo(() => {
-        const c = document.createElement('canvas');
-        c.width = c.height = 64;
-        const ctx = c.getContext('2d');
-        const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        g.addColorStop(0, 'rgba(255,255,255,1)');
-        g.addColorStop(0.4, 'rgba(255,255,255,0.5)');
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, 64, 64);
-        const tex = new THREE.CanvasTexture(c);
-        return tex;
-    }, []);
 
     useEffect(() => {
         goalColor.current.set(targetColor);
@@ -80,34 +124,39 @@ function Nebula({ count, targetColor }) {
     useEffect(() => {
         const onMove = (e) => {
             mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+            mouse.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
         };
         window.addEventListener('pointermove', onMove, { passive: true });
         return () => window.removeEventListener('pointermove', onMove);
     }, []);
 
-    useEffect(() => () => sprite.dispose(), [sprite]);
-
-    useFrame((_, delta) => {
-        const pts = pointsRef.current;
-        if (!pts) return;
-        // Rotación lenta perpetua.
-        pts.rotation.y += delta * 0.03;
-        pts.rotation.x += delta * 0.008;
-        // Parallax suave: la nube sigue al ratón con inercia.
-        const targetX = mouse.current.x * 0.4;
-        const targetY = -mouse.current.y * 0.4;
-        pts.position.x += (targetX - pts.position.x) * 0.03;
-        pts.position.y += (targetY - pts.position.y) * 0.03;
-        // Transición de color hacia el tono de la ruta actual.
-        if (materialRef.current) {
-            currentColor.current.lerp(goalColor.current, 0.02);
-            materialRef.current.color.copy(currentColor.current);
-        }
+    // Shader uniforms
+    const uniforms = useRef({
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(0x3b82f6) },
+        uMouse: { value: new THREE.Vector2(0, 0) },
     });
 
-    // Tamaño de punto relativo a la resolución para consistencia visual.
-    const pointSize = Math.max(0.05, 0.12 * (size.width > 1600 ? 1 : 0.85));
+    useFrame((state, delta) => {
+        const pts = pointsRef.current;
+        if (!pts) return;
+
+        // Slow perpetual rotation
+        pts.rotation.y += delta * 0.025;
+        pts.rotation.x += delta * 0.006;
+
+        // Smooth color transition
+        currentColor.current.lerp(goalColor.current, 0.015);
+
+        // Update uniforms
+        const u = uniforms.current;
+        u.uTime.value = state.clock.elapsedTime;
+        u.uColor.value.copy(currentColor.current);
+        u.uMouse.value.set(
+            u.uMouse.value.x + (mouse.current.x * 0.4 - u.uMouse.value.x) * 0.03,
+            u.uMouse.value.y + (mouse.current.y * 0.4 - u.uMouse.value.y) * 0.03
+        );
+    });
 
     return (
         <points ref={pointsRef}>
@@ -118,16 +167,27 @@ function Nebula({ count, targetColor }) {
                     array={positions}
                     itemSize={3}
                 />
+                <bufferAttribute
+                    attach="attributes-aSize"
+                    count={count}
+                    array={sizes}
+                    itemSize={1}
+                />
+                <bufferAttribute
+                    attach="attributes-aPhase"
+                    count={count}
+                    array={phases}
+                    itemSize={1}
+                />
             </bufferGeometry>
-            <pointsMaterial
+            <shaderMaterial
                 ref={materialRef}
-                size={pointSize}
-                map={sprite}
+                vertexShader={vertexShader}
+                fragmentShader={fragmentShader}
+                uniforms={uniforms.current}
                 transparent
-                opacity={0.55}
                 depthWrite={false}
                 blending={THREE.AdditiveBlending}
-                sizeAttenuation
             />
         </points>
     );
