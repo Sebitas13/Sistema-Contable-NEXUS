@@ -102,17 +102,16 @@ cd "Sistema Contable"
    ```env
    PORT=3001
    AI_ENGINE_URL=http://localhost:8000
-   TURSO_DATABASE_URL=file:./db/accounting.db
-   TURSO_AUTH_TOKEN=your_turso_token_here
+   TURSO_DATABASE_URL=libsql://tu-db.turso.io
+   TURSO_AUTH_TOKEN=tu_token_turso
    APP_PASSWORD=tu_clave_de_acceso_segura
    FRONTEND_ORIGIN=http://localhost:5173
    ```
-4. Ejecuta las migraciones de base de datos para inicializar el esquema SQLite (si no existe):
+4. El esquema se inicializa automáticamente al arrancar desde `web-app/server/db/schema.sql`.
+   Ya no hay migración manual con `sqlite3`.
+5. Vuelve a la raíz del proyecto e inicia el servidor de desarrollo:
    ```bash
-   node migrate.js
-   ```
-5. Inicia el servidor de desarrollo:
-   ```bash
+   cd ../..
    npm run start:server
    ```
 
@@ -156,7 +155,7 @@ cd "Sistema Contable"
    APP_PASSWORD=tu_clave_de_acceso_segura
    GROQ_API_KEY=tu_api_key_de_groq_aqui
    LLM_ENDPOINT=https://api.groq.com/openai/v1
-   LLM_MODEL=llama3-70b-8192
+   LLM_MODEL=llama-3.1-8b-instant
    ```
 4. Inicia el motor de IA en el puerto 8000:
    ```bash

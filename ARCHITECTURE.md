@@ -3,7 +3,7 @@
 Documento de referencia para entender y explicar la app de punta a punta:
 stack, deploy, estructura de archivos, modelo de datos y flujos principales.
 
-> Última revisión: 2026-06-25.
+> Última revisión: 2026-07-18.
 
 ---
 
@@ -56,9 +56,9 @@ puede tener que despertar dos servicios.
 
 | Capa | Tecnología | Notas |
 |---|---|---|
-| Frontend | React 18 + Vite 5, Bootstrap 5, Tailwind utilitario, axios, react-router-dom 6 | SPA estática deployada en Vercel |
+| Frontend | React 18 + Vite 5, Bootstrap 5 por CDN, Tailwind utilitario, axios, react-router-dom 6 | SPA estática deployada en Vercel |
 | Backend | Node 22, Express 5, `@libsql/client`, multer, archiver/unzipper, axios | Render free |
-| Motor IA | Python, FastAPI, uvicorn, httpx, pandas, numpy, Groq SDK | Render free, ~145 KB en un archivo |
+| Motor IA | Python, FastAPI, uvicorn, httpx, pandas, numpy | Render free, ~145 KB en un archivo |
 | Base de datos | Turso (libSQL, SQLite compatible) | Cliente: `@libsql/client` |
 | Auth | Contraseña única compartida (`APP_PASSWORD`) → token = `sha256(APP_PASSWORD)` | Sin JWT, sin tabla de usuarios |
 | CI/keep-warm | GitHub Actions (`.github/workflows/keep-warm.yml`) | Ping a Render durante horas activas |
@@ -115,7 +115,7 @@ Sistema Contable/
 │   │   │   ├── utils/                    ← Motores puros (Income/Balance, UFV, fiscal)
 │   │   │   ├── DataForge/                ← Editor visual de datos (experimental)
 │   │   │   └── index.css                 ← Estilos globales
-│   │   ├── public/, dist/, index.html
+│   │   ├── public/, dist/, index.html       ← Bootstrap se carga por CDN
 │   │   ├── vite.config.js, vercel.json
 │   │   └── package.json
 │   │
@@ -220,7 +220,7 @@ que son públicos para el keep-warm). El gate y el montaje viven en `index.js`.
 |---|---|---|
 | GET | `/api/inventory/items?companyId=X` | Listar items |
 | POST | `/api/inventory/items` | Crear item |
-| POST | `/api/inventory/items/:id/movement` | Registrar movimiento (Compra/Venta/...) |
+| POST | `/api/inventory/movements` | Registrar movimiento (Compra/Venta/...) |
 
 ### Otras
 - `routes/ufv.js`: `GET/POST /api/ufv`, `POST /api/ufv/batch` (lookup en lote).
@@ -256,9 +256,9 @@ Agrupado por dominio. Las FK con `ON DELETE CASCADE` se indican explícitamente.
   — Cada partida pertenece a un asiento y referencia una cuenta.
 
 ### UFV / Tipo de cambio
-- **`ufv_rates`**(id, company_id→companies, date, value)
-- **`exchange_rates`**(id, company_id→companies, date, currency, buy_rate, sell_rate)
-  — Esquema "moderno"; también soporta legacy `usd_buy`/`usd_sell` para retrocompatibilidad.
+- **`ufv_rates`**(id, date UNIQUE, value, created_at)
+- **`exchange_rates`**(id, date UNIQUE, usd_buy, usd_sell, created_at)
+  — Son catálogos globales por fecha en el esquema actual.
 
 ### Inventario (Kardex)
 - **`inventory_items`**(id, company_id→companies CASCADE, code, name, unit,
@@ -296,7 +296,6 @@ companies ─┬─< accounts
            ├─< transactions ─< transaction_entries >─ accounts
            ├─< inventory_items ─< inventory_movements
            ├─< fixed_assets
-           ├─< ufv_rates, exchange_rates
            ├─< company_adjustment_profiles  (1 por empresa)
            ├─< mahoraga_adaptation_events
            ├─< cost_centers ─⤴ (auto: parent_id)
@@ -428,3 +427,5 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   el horario, recalcular la cuota (750 h/mes compartidas en el plan free).
 - **Backups son aditivos**: probar el restore en producción es seguro (crea una
   empresa nueva "(Restaurado ...)"), no pisa nada.
+- **DB vigente**: el backend usa `@libsql/client`; los restos legacy basados en
+  `sqlite3` y `migrate.js` ya no forman parte del flujo actual.

@@ -10,15 +10,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     }
   },
-  build: {
-    // ESTO ES LO QUE SOLUCIONA EL ERROR EN VERCEL
-    rollupOptions: {
-      external: [
-        '/bootstrap/js/bootstrap.bundle.min.js',
-        '/bootstrap/css/bootstrap.min.css'
-      ]
-    }
-  },
   server: {
     port: 5173,
     proxy: {

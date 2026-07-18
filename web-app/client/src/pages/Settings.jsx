@@ -576,7 +576,7 @@ export default function Settings() {
                     <div className="col-md-12 mt-4 mx-auto">
                         <div className="card shadow-sm border-primary glass-panel">
                             <div className="card-header border-primary d-flex justify-content-between align-items-center" style={{ backgroundColor: 'rgba(13, 110, 253, 0.1)' }}>
-                                <h5 className="mb-0 text-primary"><i className="bi bi-table me-2"></i>Tabla de DepreciaciÃ³n Configurable</h5>
+                                <h5 className="mb-0 text-primary"><i className="bi bi-table me-2"></i>Tabla de Depreciacion Configurable</h5>
                                 <button className="btn btn-sm btn-outline-primary fw-bold text-white" onClick={saveDepreciationConfig} disabled={savingConfig}>
                                     {savingConfig ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-save me-2"></i>}
                                     Guardar Cambios
