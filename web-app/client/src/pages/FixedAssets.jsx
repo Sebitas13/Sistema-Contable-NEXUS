@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { exportToPDF, exportToExcel, importFromExcel } from '../utils/exportUtils';
 import { useToast } from '../components/ToastProvider';
+import NexusModal from '../components/NexusModal';
 
 export default function FixedAssets() {
     const toast = useToast();
@@ -190,16 +191,8 @@ export default function FixedAssets() {
                 </div>
             </div>
 
-            {/* Modal */}
-            {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title"><i className="bi bi-plus-circle me-2"></i>Nuevo Activo Fijo</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showModal} onClose={() => setShowModal(false)} title="Nuevo Activo Fijo" icon="bi-plus-circle" size="lg">
+                <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
@@ -247,11 +240,8 @@ export default function FixedAssets() {
                                         <button type="submit" className="btn btn-primary">Guardar</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* Assets Table */}
             <div className="card glass-panel border-secondary shadow-sm">

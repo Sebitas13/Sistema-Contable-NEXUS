@@ -4,6 +4,7 @@ import { useCompany } from '../context/CompanyContext';
 import BackupManager from '../components/BackupManager';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
+import NexusModal from '../components/NexusModal';
 import API_URL from '../api';
 
 // Default ARS Profile
@@ -976,15 +977,15 @@ export default function Settings() {
             )}
 
             {/* Modals Section */}
-            {editingProfile && (
-                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content glass-panel border-primary shadow-lg">
-                            <div className="modal-header border-primary" style={{ backgroundColor: 'rgba(13, 110, 253, 0.1)', color: '#0d6efd' }}>
-                                <h5 className="modal-title text-primary"><i className="bi bi-cpu-fill me-2"></i>Entrenador de Perfil: <span className="text-white">{editingProfile.name}</span></h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setEditingProfile(null)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal
+                isOpen={Boolean(editingProfile)}
+                onClose={() => setEditingProfile(null)}
+                title={<>Entrenador de Perfil: <span className="text-white">{editingProfile?.name}</span></>}
+                icon="bi-cpu-fill"
+                size="lg"
+                contentClassName="border-primary shadow-lg"
+            >
+                <div className="modal-body">
                                 <div className="row g-3 mb-4">
                                     <div className="col-md-6">
                                         <label className="form-label small fw-bold text-white-50">Nombre del Perfil</label>
@@ -1066,52 +1067,43 @@ export default function Settings() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                                <button className="btn btn-outline-secondary text-white" onClick={() => setEditingProfile(null)}>Cancelar</button>
-                                <button className="btn btn-primary" onClick={saveProfileEdit}><i className="bi bi-save me-1"></i>Guardar</button>
-                            </div>
-                        </div>
+                </div>
+                <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                    <button className="btn btn-outline-secondary text-white" onClick={() => setEditingProfile(null)}>Cancelar</button>
+                    <button className="btn btn-primary" onClick={saveProfileEdit}><i className="bi bi-save me-1"></i>Guardar</button>
+                </div>
+            </NexusModal>
+
+            <NexusModal
+                isOpen={Boolean(showCloneModal)}
+                onClose={() => setShowCloneModal(null)}
+                title="Clonar Perfil"
+                icon="bi-copy"
+                contentClassName="border-success"
+            >
+                <div className="modal-body">
+                    <div className="mb-3">
+                        <label className="form-label small fw-bold text-white-50">Empresa Destino</label>
+                        <select className="form-select bg-dark text-white border-secondary" value={targetCompanyId} onChange={e => setTargetCompanyId(e.target.value)}>
+                            <option value="">-- Misma Empresa --</option>
+                            <option value="global">🌍 Plantilla Global</option>
+                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
                     </div>
                 </div>
-            )}
-
-            {showCloneModal && (
-                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content glass-panel border-success">
-                            <div className="modal-header border-success" style={{ backgroundColor: 'rgba(25, 135, 84, 0.1)', color: '#198754' }}>
-                                <h5 className="modal-title"><i className="bi bi-copy me-2"></i>Clonar Perfil</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowCloneModal(null)}></button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="mb-3">
-                                    <label className="form-label small fw-bold text-white-50">Empresa Destino</label>
-                                    <select className="form-select bg-dark text-white border-secondary" value={targetCompanyId} onChange={e => setTargetCompanyId(e.target.value)}>
-                                        <option value="">-- Misma Empresa --</option>
-                                        <option value="global">🌍 Plantilla Global</option>
-                                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                                <button className="btn btn-outline-secondary text-white" onClick={() => setShowCloneModal(null)}>Cancelar</button>
-                                <button className="btn btn-success" onClick={() => cloneProfile(showCloneModal)}><i className="bi bi-check2-circle me-1"></i>Clonar</button>
-                            </div>
-                        </div>
-                    </div>
+                <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                    <button className="btn btn-outline-secondary text-white" onClick={() => setShowCloneModal(null)}>Cancelar</button>
+                    <button className="btn btn-success" onClick={() => cloneProfile(showCloneModal)}><i className="bi bi-check2-circle me-1"></i>Clonar</button>
                 </div>
-            )}
+            </NexusModal>
 
-            {showModeChange && (
-                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content glass-panel shadow-lg border-secondary">
-                            <div className="modal-header border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-                                <h5 className="modal-title text-white"><i className="bi bi-shield-lock me-2"></i>Seguridad de Mahoraga</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModeChange(false)}></button>
-                            </div>
-                            <div className="modal-body p-4">
+            <NexusModal
+                isOpen={showModeChange}
+                onClose={() => setShowModeChange(false)}
+                title="Seguridad de Mahoraga"
+                icon="bi-shield-lock"
+            >
+                <div className="modal-body p-4">
                                 <div className="mb-4">
                                     <label className="form-label fw-bold text-white-50">Modo de Operación</label>
                                     <select className="form-select form-select-lg bg-dark text-white border-secondary" value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
@@ -1128,17 +1120,14 @@ export default function Settings() {
                                         onChange={(e) => setModeChangeReason(e.target.value)}
                                         placeholder="Escribe el motivo del cambio..."></textarea>
                                 </div>
-                            </div>
-                            <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                                <button className="btn btn-outline-secondary text-white" onClick={() => setShowModeChange(false)}>Cancelar</button>
-                                <button className="btn btn-primary px-4" onClick={handleModeChange} disabled={!selectedMode || !modeChangeReason.trim()}>
-                                    Aplicar Cambio
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+                <div className="modal-footer border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                    <button className="btn btn-outline-secondary text-white" onClick={() => setShowModeChange(false)}>Cancelar</button>
+                    <button className="btn btn-primary px-4" onClick={handleModeChange} disabled={!selectedMode || !modeChangeReason.trim()}>
+                        Aplicar Cambio
+                    </button>
+                </div>
+            </NexusModal>
         </div>
     );
 }

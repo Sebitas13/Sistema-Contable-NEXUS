@@ -9,6 +9,7 @@ import { useCompany } from '../context/CompanyContext';
 import CompanyCard from '../components/CompanyCard';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
+import NexusModal from '../components/NexusModal';
 import API_URL from '../api';
 
 // Emblema 3D de Mahoraga en el hero, diferido (no entra en el bundle principal).
@@ -438,22 +439,15 @@ export default function CompanySelector() {
             </div>
 
             {/* Registration/Edit Modal */}
-            {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content company-modal glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title">
-                                    <i className={`bi bi-${editingCompany ? 'pencil' : 'plus-circle'} me-2`}></i>
-                                    {editingCompany ? 'Editar Empresa' : 'Registrar Nueva Empresa'}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="btn-close btn-close-white"
-                                    onClick={() => setShowModal(false)}
-                                ></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title={editingCompany ? 'Editar Empresa' : 'Registrar Nueva Empresa'}
+                icon={editingCompany ? 'bi-pencil' : 'bi-plus-circle'}
+                size="lg"
+                contentClassName="company-modal"
+            >
+                <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="row g-3">
                                         {/* Company Name */}
@@ -730,30 +724,17 @@ export default function CompanySelector() {
                                         </button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* Restore Backup Modal */}
-            {showRestoreModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary">
-                                <h5 className="modal-title">
-                                    <i className="bi bi-cloud-upload me-2 text-info"></i>
-                                    Restaurar Empresa desde Backup
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="btn-close btn-close-white"
-                                    onClick={closeRestoreModal}
-                                    disabled={restoreLoading}
-                                ></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal
+                isOpen={showRestoreModal}
+                onClose={() => { if (!restoreLoading) closeRestoreModal(); }}
+                title="Restaurar Empresa desde Backup"
+                icon="bi-cloud-upload text-info"
+            >
+                <div className="modal-body">
                                 {/* Success state */}
                                 {restoreSuccess ? (
                                     <div className="text-center py-4 animate__animated animate__fadeIn">
@@ -960,11 +941,8 @@ export default function CompanySelector() {
                                         )}
                                     </>
                                 )}
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
         </div>
     );
 }

@@ -6,6 +6,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { useCompany } from '../context/CompanyContext';
 import { AccountPlanProfile } from '../utils/AccountPlanProfile';
 import { useToast } from './ToastProvider';
+import NexusModal from './NexusModal';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -1395,17 +1396,15 @@ function SmartImportWizard({ onClose, onSuccess }) {
     const getTypeInfo = (type) => ACCOUNT_TYPES.find(t => t.value === type) || ACCOUNT_TYPES[0];
 
     return (
-        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="modal-dialog modal-xl modal-dialog-scrollable">
-                <div className="modal-content glass-panel shadow-lg border-secondary text-white">
-                    <div className="modal-header border-secondary py-3">
-                        <h5 className="modal-title fw-bold">
-                            <i className="bi bi-magic me-2 text-primary"></i>
-                            Asistente de Importación <span className="text-white-50 ms-2">Paso {step === 3.5 ? 3 : step} de 4</span>
-                        </h5>
-                        <button className="btn-close btn-close-white" onClick={onClose}></button>
-                    </div>
-                    <div className="modal-body p-4">
+        <NexusModal
+            isOpen
+            onClose={onClose}
+            title={<>Asistente de Importación <span className="text-white-50 ms-2">Paso {step === 3.5 ? 3 : step} de 4</span></>}
+            icon="bi-magic text-primary"
+            size="xl"
+            contentClassName="shadow-lg"
+        >
+            <div className="modal-body p-4">
                         {error && <div className="alert alert-danger"><i className="bi bi-exclamation-triangle me-2"></i>{error}</div>}
 
                         {step === 1 && (
@@ -2164,15 +2163,8 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                 )}
 
                                 {/* Profile Library Modal */}
-                                {showProfileLibrary && (
-                                    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                                        <div className="modal-dialog modal-lg modal-dialog-centered">
-                                            <div className="modal-content shadow-lg glass-panel border-info">
-                                                <div className="modal-header border-secondary py-2">
-                                                    <h6 className="modal-title text-white"><i className="bi bi-journal-bookmark-fill me-2 text-info"></i>Cargar Perfil Guardado</h6>
-                                                    <button type="button" className="btn-close btn-close-white" onClick={() => setShowProfileLibrary(false)}></button>
-                                                </div>
-                                                <div className="modal-body p-0">
+                                <NexusModal isOpen={showProfileLibrary} onClose={() => setShowProfileLibrary(false)} title="Cargar Perfil Guardado" icon="bi-journal-bookmark-fill text-info" size="lg" contentClassName="shadow-lg border-info">
+                                    <div className="modal-body p-0">
                                                     <div className="table-responsive" style={{ maxHeight: '350px' }}>
                                                         <table className="table table-dark table-hover table-sm align-middle mb-0 border-secondary">
                                                             <thead className="sticky-top" style={{ backgroundColor: '#1a1f2e' }}>
@@ -2238,14 +2230,11 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                         </table>
                                                     </div>
                                                 </div>
-                                                <div className="modal-footer border-secondary py-1">
-                                                    <small className="text-white-50 me-auto px-2">Gestiona tus perfiles en la página de Configuración.</small>
-                                                    <button className="btn btn-outline-secondary btn-sm" onClick={() => setShowProfileLibrary(false)}>Cerrar</button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div className="modal-footer border-secondary py-1">
+                                        <small className="text-white-50 me-auto px-2">Gestiona tus perfiles en la página de Configuración.</small>
+                                        <button className="btn btn-outline-secondary btn-sm" onClick={() => setShowProfileLibrary(false)}>Cerrar</button>
                                     </div>
-                                )}
+                                </NexusModal>
 
 
                                 {/* Unified Level 1 Accounts & Group Rules Section */}
@@ -2490,9 +2479,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                             </div>
                         )}
                     </div>
-                </div>
-            </div>
-        </div >
+        </NexusModal>
     );
 }
 

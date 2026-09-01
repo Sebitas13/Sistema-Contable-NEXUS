@@ -6,6 +6,7 @@ import { useCompany } from '../context/CompanyContext';
 import { exportToExcel } from '../utils/exportUtils';
 import SmartImportWizard from '../components/SmartImportWizard';
 import MahoragaWheel from '../components/MahoragaWheel';
+import NexusModal from '../components/NexusModal';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
 
@@ -425,38 +426,27 @@ export default function Accounts() {
             </div>
 
             {/* PDF Preview Modal */}
-            {showPDFPreview && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
-                    <div className="modal-dialog modal-xl modal-dialog-centered">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary">
-                                <h5 className="modal-title"><i className="bi bi-file-earmark-pdf me-2"></i>Vista Previa del PDF</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}></button>
-                            </div>
-                            <div className="modal-body" style={{ height: '70vh', overflow: 'hidden' }}>
-                                <iframe src={pdfPreviewUrl} style={{ width: '100%', height: '100%', border: 'none' }}></iframe>
-                            </div>
-                            <div className="modal-footer border-secondary">
-                                <button className="btn btn-outline-secondary" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}>Cerrar</button>
-                                <a href={pdfPreviewUrl} download="plan_de_cuentas.pdf" className="btn btn-danger">
-                                    <i className="bi bi-download me-1"></i> Descargar PDF
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+            <NexusModal
+                isOpen={showPDFPreview}
+                onClose={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}
+                title="Vista Previa del PDF"
+                icon="bi-file-earmark-pdf"
+                size="xl"
+            >
+                <div className="modal-body" style={{ height: '70vh', overflow: 'hidden' }}>
+                    <iframe src={pdfPreviewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Vista previa del PDF"></iframe>
                 </div>
-            )}
+                <div className="modal-footer border-secondary">
+                    <button className="btn btn-outline-secondary" onClick={() => { setShowPDFPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}>Cerrar</button>
+                    <a href={pdfPreviewUrl} download="plan_de_cuentas.pdf" className="btn btn-danger">
+                        <i className="bi bi-download me-1"></i> Descargar PDF
+                    </a>
+                </div>
+            </NexusModal>
 
             {/* Excel Preview Modal */}
-            {showExcelPreview && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
-                    <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary">
-                                <h5 className="modal-title"><i className="bi bi-file-earmark-excel me-2 text-success"></i>Vista Previa de Exportación Excel</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowExcelPreview(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showExcelPreview} onClose={() => setShowExcelPreview(false)} title="Vista Previa de Exportación Excel" icon="bi-file-earmark-excel" size="lg">
+                <div className="modal-body">
                                 <p className="text-white-50">Se exportarán <strong>{excelPreviewData.length}</strong> registros con las siguientes columnas:</p>
                                 <div className="table-responsive" style={{ maxHeight: '400px' }}>
                                     <table className="table table-dark table-sm table-bordered table-striped border-secondary">
@@ -490,27 +480,17 @@ export default function Accounts() {
                                     </table>
                                 </div>
                             </div>
-                            <div className="modal-footer border-secondary">
-                                <button className="btn btn-outline-secondary" onClick={() => setShowExcelPreview(false)}>Cancelar</button>
-                                <button className="btn btn-success" onClick={confirmExportExcel}>
-                                    <i className="bi bi-download me-1"></i> Confirmar Descarga
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div className="modal-footer border-secondary">
+                    <button className="btn btn-outline-secondary" onClick={() => setShowExcelPreview(false)}>Cancelar</button>
+                    <button className="btn btn-success" onClick={confirmExportExcel}>
+                        <i className="bi bi-download me-1"></i> Confirmar Descarga
+                    </button>
                 </div>
-            )}
+            </NexusModal>
 
             {/* New/Edit Account Modal */}
-            {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title"><i className={`bi ${editingAccount ? 'bi-pencil text-warning' : 'bi-plus-circle text-primary'} me-2`}></i>{editingAccount ? 'Editar Cuenta' : 'Nueva Cuenta'}</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showModal} onClose={() => setShowModal(false)} title={editingAccount ? 'Editar Cuenta' : 'Nueva Cuenta'} icon={editingAccount ? 'bi-pencil text-warning' : 'bi-plus-circle text-primary'}>
+                <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="mb-3">
                                         <label className="form-label text-white-50">Código</label>
@@ -543,11 +523,8 @@ export default function Accounts() {
                                         <button type="submit" className="btn btn-premium px-4 border-0"><i className="bi bi-save me-2"></i>Guardar</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* Accounts Table */}
             <div className="card glass-panel border-0">

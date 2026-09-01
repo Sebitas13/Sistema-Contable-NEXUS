@@ -12,6 +12,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
+import NexusModal from '../components/NexusModal';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -533,15 +534,8 @@ export default function ExchangeRate() {
             </div>
 
             {/* Import Config Modal */}
-            {showImportModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title"><i className="bi bi-gear-wide-connected me-2"></i>Configurar Importación de T/C</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowImportModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} title="Configurar Importación de T/C" icon="bi-gear-wide-connected" size="lg">
+                <div className="modal-body">
                                 <div className="alert alert-info bg-info bg-opacity-10 border-info text-info small">
                                     <i className="bi bi-info-circle me-2"></i>
                                     Ajusta los parámetros para que el sistema lea tu archivo Excel correctamente.
@@ -574,31 +568,24 @@ export default function ExchangeRate() {
                                         <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: M" value={importConfig.endMonthCol || ''} onChange={e => setImportConfig({ ...importConfig, endMonthCol: e.target.value.toUpperCase() })} />
                                     </div>
                                 </div>
-                            </div>
-                            <div className="modal-footer border-secondary">
-                                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowImportModal(false)}>Cancelar</button>
-                                <button type="button" className="btn btn-primary" onClick={executeImport} disabled={isImporting}>
-                                    {isImporting ? 'Procesando...' : 'Confirmar e Importar'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+                <div className="modal-footer border-secondary">
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => setShowImportModal(false)}>Cancelar</button>
+                    <button type="button" className="btn btn-primary" onClick={executeImport} disabled={isImporting}>
+                        {isImporting ? 'Procesando...' : 'Confirmar e Importar'}
+                    </button>
+                </div>
+            </NexusModal>
 
             {/* Preview Modal */}
-            {showPreviewModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-xl modal-dialog-centered">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title">
-                                    <i className="bi bi-eye me-2"></i>
-                                    Previsualización de Exportación - {previewType === 'excel' ? 'Excel' : 'PDF'}
-                                </h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowPreviewModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal
+                isOpen={showPreviewModal}
+                onClose={() => setShowPreviewModal(false)}
+                title={<>Previsualización de Exportación - {previewType === 'excel' ? 'Excel' : 'PDF'}</>}
+                icon="bi-eye"
+                size="xl"
+            >
+                <div className="modal-body">
                                 <div className="alert alert-info bg-info bg-opacity-10 border-info text-info">
                                     <i className="bi bi-info-circle me-2"></i>
                                     Se encontraron <strong className="text-white">{previewData.length}</strong> registros para exportar del año <strong className="text-white">{fiscalYearDetails?.year || currentYear}</strong>
@@ -641,21 +628,18 @@ export default function ExchangeRate() {
                                         No hay datos para exportar
                                     </div>
                                 )}
-                            </div>
-                            <div className="modal-footer border-secondary">
-                                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPreviewModal(false)}>
-                                    <i className="bi bi-x-circle me-1"></i> Cancelar
-                                </button>
-                                {previewData.length > 0 && (
-                                    <button type="button" className="btn btn-primary" onClick={handleConfirmExport}>
-                                        <i className="bi bi-download me-1"></i> Descargar {previewType === 'excel' ? 'Excel' : 'PDF'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+                <div className="modal-footer border-secondary">
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPreviewModal(false)}>
+                        <i className="bi bi-x-circle me-1"></i> Cancelar
+                    </button>
+                    {previewData.length > 0 && (
+                        <button type="button" className="btn btn-primary" onClick={handleConfirmExport}>
+                            <i className="bi bi-download me-1"></i> Descargar {previewType === 'excel' ? 'Excel' : 'PDF'}
+                        </button>
+                    )}
+                </div>
+            </NexusModal>
 
             <style>{`
                 .matrix-table { font-size: 0.8rem; }

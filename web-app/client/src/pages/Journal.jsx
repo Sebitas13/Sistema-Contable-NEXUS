@@ -13,6 +13,7 @@ import MahoragaWheel from '../components/MahoragaWheel';
 import { getFiscalYearDetails, MONTH_NAMES_SHORT } from '../utils/fiscalYearUtils';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
+import NexusModal from '../components/NexusModal';
 export default function Journal() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
@@ -924,15 +925,8 @@ export default function Journal() {
             </div>
 
             {/* Modal Nuevo/Editar */}
-            {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-xl">
-                        <div className="modal-content glass-panel border-secondary">
-                            <div className="modal-header border-secondary">
-                                <h5 className="modal-title text-white">{selectedTransaction ? 'Editar Asiento Contable' : 'Nuevo Asiento Contable'}</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showModal} onClose={() => setShowModal(false)} title={selectedTransaction ? 'Editar Asiento Contable' : 'Nuevo Asiento Contable'} icon="bi-pencil-square" size="xl">
+                <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     {/* Header Info */}
                                     <div className="row mb-3">
@@ -1097,28 +1091,18 @@ export default function Journal() {
                                         </button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* Modal de Detalles de Transacción */}
-            {showDetailModal && selectedTransaction && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-xl">
-                        <div className="modal-content glass-panel border-secondary">
-                            <div className="modal-header border-secondary">
-                                <h5 className="modal-title text-white">
-                                    <i className="bi bi-receipt me-2"></i>
-                                    Detalles del Asiento Contable
-                                </h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => {
-                                    setShowDetailModal(false);
-                                    setSelectedTransaction(null);
-                                }}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal
+                isOpen={showDetailModal && Boolean(selectedTransaction)}
+                onClose={() => { setShowDetailModal(false); setSelectedTransaction(null); }}
+                title="Detalles del Asiento Contable"
+                icon="bi-receipt"
+                size="xl"
+            >
+                <div className="modal-body">
                                 <div className="row mb-3">
                                     <div className="col-md-3">
                                         <strong className="text-white-50">Fecha:</strong>
@@ -1184,33 +1168,26 @@ export default function Journal() {
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-                            <div className="modal-footer border-secondary">
-                                <button type="button" className="btn btn-outline-secondary" onClick={() => {
-                                    setShowDetailModal(false);
-                                    setSelectedTransaction(null);
-                                }}>
-                                    Cerrar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+                <div className="modal-footer border-secondary">
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => {
+                        setShowDetailModal(false);
+                        setSelectedTransaction(null);
+                    }}>
+                        Cerrar
+                    </button>
+                </div>
+            </NexusModal>
 
             {/* Export Modal */}
-            {showExportModal && (
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="modal-dialog modal-dialog-centered modal-xl">
-                        <div className="modal-content shadow glass-panel border-secondary" style={{ maxHeight: '90vh' }}>
-                            <div className="modal-header border-secondary">
-                                <h5 className="modal-title text-white">
-                                    <i className={`bi bi-file-earmark-${exportConfig.format === 'excel' ? 'excel text-success' : 'pdf text-danger'} me-2`}></i>
-                                    Exportar a {exportConfig.format === 'excel' ? 'Excel' : 'PDF'}
-                                </h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowExportModal(false)}></button>
-                            </div>
-                            <div className="modal-body p-0">
+            <NexusModal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                title={<>Exportar a {exportConfig.format === 'excel' ? 'Excel' : 'PDF'}</>}
+                icon={exportConfig.format === 'excel' ? 'bi-file-earmark-excel text-success' : 'bi-file-earmark-pdf text-danger'}
+                size="xl"
+            >
+                <div className="modal-body p-0">
                                 <div className="row h-100 g-0">
                                     <div className="col-md-3 border-end border-secondary p-3 glass-panel text-white">
                                         <form onSubmit={(e) => e.preventDefault()}>
@@ -1332,11 +1309,8 @@ export default function Journal() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                             </div>
+            </NexusModal>
 
             {/* Adjustment Wizard Modal */}
             {showAdjustmentWizard && (

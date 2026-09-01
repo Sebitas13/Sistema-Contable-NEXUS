@@ -29,7 +29,8 @@ export default function NexusModal({
     icon,
     size = 'md',
     children,
-    closeOnBackdrop = true
+    closeOnBackdrop = true,
+    contentClassName = ''
 }) {
     const dialogRef = useRef(null);
     const lastActiveRef = useRef(null);
@@ -97,7 +98,7 @@ export default function NexusModal({
         >
             <div className={`modal-dialog modal-dialog-centered modal-dialog-scrollable ${SIZE_CLASS[size] || ''}`}>
                 <div
-                    className="modal-content glass-panel border-secondary text-white"
+                    className={`modal-content glass-panel border-secondary text-white ${contentClassName}`}
                     ref={dialogRef}
                     tabIndex={-1}
                     role="dialog"
