@@ -1,178 +1,177 @@
-# AGENTS.md - Sistema Contable Project Guidelines
+# AGENTS.md — Sistema Contable NEXUS
 
-## Build, Lint, and Test Commands
+Guía para agentes y desarrolladores que trabajen en este repositorio.
+**La app está en producción con usuarios reales.** Tratar cada cambio como
+código vivo: verificar build/smoke antes de terminar.
 
-### JavaScript/Node.js Commands
-```bash
-# Start development server (auto-restarts on changes)
-npm run start:server
-
-# Start client development server
-npm run start:client
-
-# Run single test file
-node web-app/server/test_orchestrator.js
-node test_groq_integration.js
-
-# Run analysis scripts
-npm run analyze  # python analyze_excel.py
-```
-
-### Python/FastAPI Commands
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run FastAPI server (from project root)
-uvicorn ai_adjustment_engine:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Database
-```bash
-# Database location: web-app/server/db/accounting.db (SQLite3)
-# Schema file: web-app/server/db/schema.sql
-```
+> Docs de referencia (mantener sincronizadas con cualquier cambio):
+> - `ARCHITECTURE.md` — arquitectura completa, stack, endpoints, flujos, modelo de datos.
+> - `MAHORAGA.md` — diagnóstico y roadmap del asistente IA (experimental).
+> - `DIAGNOSTICO.md` — auditoría histórica; muchos ítems ya resueltos.
 
 ---
 
-## Code Style Guidelines
+## Arquitectura en 20 segundos
 
-### JavaScript Conventions
+App contable boliviana multi-empresa (PUCT/ASFI). Tres piezas desplegadas:
 
-**Imports:**
-```javascript
-// Use CommonJS require (project standard)
-const express = require('express');
-const db = require('./db');  // Relative imports with .js extension
-
-// Group imports: built-in first, then third-party, then local
+```
+Navegador ──> Vercel (React + Vite, SPA estática)
+                 │ rewrite /api/*
+                 ▼
+            Render free — Backend Node/Express ──> Turso (libSQL, DB real)
+                 │
+                 ▼
+            Render free — Motor IA (Python/FastAPI, ai_adjustment_engine.py)
+                 └── callback HTTP autenticado de vuelta a Node (mayor/cuentas)
 ```
 
-**Naming:**
-- `camelCase` for variables and functions: `calculateTotal()`, `ufvValue`
-- `PascalCase` for classes: `CognitiveOrchestrator`, `AccountService`
-- `SCREAMING_SNAKE_CASE` for constants: `MAX_RETRY_COUNT`, `DEFAULT_TIMEOUT`
-- Descriptive Spanish variable names accepted: `montoTotal`, `saldoCuenta`
-
-**Formatting:**
-- 4-space indentation (or 2 spaces - match surrounding code)
-- Semicolons at end of statements
-- Line length ~100 characters
-- Template literals for string interpolation: `Server running on http://localhost:${PORT}`
-
-**Error Handling:**
-```javascript
-try {
-    // Async operations with await
-    const result = await someAsyncCall();
-} catch (error) {
-    console.error('Descriptive error:', error.message);
-    console.error('Stack:', error.stack);
-    throw error;  // Re-throw for caller handling
-}
-```
-
-**Async/Await:**
-- Always wrap async operations in try/catch
-- Use `require.main === module` pattern for direct script execution
-- Export test functions for module reuse
-
-### Python Conventions
-
-**Imports:**
-```python
-# Standard library first, then third-party, then local
-import os
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
-```
-
-**Naming:**
-- `snake_case` for functions and variables: `calculate_total()`, `ufv_value`
-- `PascalCase` for classes: `AdjustmentRequest`, `AccountModel`
-- Private methods start with `_`: `_internal_helper()`
-
-**Type Hints (Pydantic):**
-```python
-class Account(BaseModel):
-    code: str = Field(..., description="Código de cuenta contable")
-    name: str = Field(..., description="Nombre de cuenta")
-    balance: float = Field(..., description="Saldo pre-ajuste")
-    type: Optional[str] = Field(None, description="Tipo contable básico")
-```
-
-**Error Handling:**
-```python
-try:
-    result = await process_adjustment(request)
-except ValueError as e:
-    raise HTTPException(status_code=400, detail=str(e))
-except Exception as e:
-    raise HTTPException(status_code=500, detail="Internal error")
-```
+- La base de datos real es **Turso (libSQL)** — NO SQLite local. `@libsql/client`.
+- Auth: contraseña única compartida (`APP_PASSWORD`) → token `sha256`. Gate en `index.js`.
+- Plan free de Render: **750 h/mes compartidas** entre Node + Python. El cron
+  `.github/workflows/keep-warm.yml` solo pinge 12 h/día (720 h/mes). **Nunca
+  agregar pingers 24/7 ni un tercer servicio free.**
 
 ---
 
-## Project Structure
+## Comandos
+
+```bash
+# Backend Node (desde la raíz; carga web-app/server/.env + .env raíz automáticamente)
+npm run start:server          # puerto 3001
+
+# Frontend
+npm run start:client          # Vite dev, puerto 5173
+cd web-app/client && npm run build   # build de producción (verificación obligatoria)
+
+# Motor IA Python (desde la raíz)
+uvicorn ai_adjustment_engine:app --reload --port 8000
+
+# Tests manuales (no hay framework formal)
+node web-app/server/test_backup_core.js
+node web-app/server/test_ai_engine_resolver.js
+```
+
+**Verificación mínima antes de dar por terminada una tarea:**
+1. `npm run build` dentro de `web-app/client` (si se tocó el frontend).
+2. `node -e "require('./web-app/server/routes/<router>.js')"` (si se tocó el backend).
+
+---
+
+## Estructura real
 
 ```
 Sistema Contable/
+├── ai_adjustment_engine.py    ← Motor IA real (FastAPI). ⛔ INTOCABLE.
+├── requirements.txt
+├── PUCT/                      ← Plan Único de Cuentas (xlsx, PDF)
+├── scripts/                   ← extractores de skills (Mahoraga)
+├── vercel.json                ← rewrite /api/* → backend Render
+├── .env                       ← GROQ_API_KEY, LLM_*, MAHORAGA_MODE
 ├── web-app/
-│   ├── server/
-│   │   ├── routes/         # API endpoints
-│   │   ├── services/       # Business logic
-│   │   ├── utils/          # Helper functions
-│   │   ├── db/            # SQLite database
-│   │   └── index.js       # Entry point (port 3001)
-│   └── client/            # Frontend (if exists)
-├── scripts/               # Utility scripts
-├── PUCT/                  # Plan de Cuentas Uniforme Tributario
-├── DataForgeDocs/         # Documentation
-├── ai_adjustment_engine.py # FastAPI AI service (port 8000)
-└── package.json
+│   ├── client/
+│   │   ├── src/
+│   │   │   ├── App.jsx            ← Router + sidebar + gates (auth/empresa)
+│   │   │   ├── auth.js            ← token + monkey-patch fetch/axios
+│   │   │   ├── context/           ← AuthContext, CompanyContext (multi-empresa)
+│   │   │   ├── pages/             ← Vutas ruteadas (Journal, Reports, Settings, ...)
+│   │   │   ├── components/        ← Submódulos (Inventory/Kardex, MahoragaWheel, ...)
+│   │   │   ├── services/          ← aiAdjustmentService, inventoryService (axios)
+│   │   │   ├── utils/             ← Motores puros: IncomeStatement, FinancialStatement
+│   │   │   ├── three/             ← Fondos 3D (lazy)
+│   │   │   └── DataForge/         ← Editor visual experimental
+│   │   └── .env               ← VITE_API_URL
+│   └── server/
+│       ├── index.js           ← Entry: CORS, gate auth, monta routers, keep-alive
+│       ├── db.js              ← Cliente libSQL + cola serial + transaction
+│       ├── db/schema.sql      ← DDL completo + datos semilla
+│       ├── routes/            ← accounts, transactions, reports, inventory, backup,
+│       │                         companies, ufv, exchange_rates, auth, ai, skills, orchestrator
+│       ├── services/          ← valuationService (kardex), mahoragaController, skillLoader...
+│       ├── utils/             ← auth, backupCore, keepAlive, aiEngineResolver,
+│       │                         serverFiscalYearUtils, serverIncomeStatement, corsConfig
+│       └── .env               ← TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, AI_ENGINE_URL
 ```
 
-**Key Routes:**
-- `/api/transactions` - Transaction management
-- `/api/accounts` - Account plan operations
-- `/api/ufv` - UFV values handling
-- `/api/companies` - Multi-tenant company support
-- `/api/reports` - Financial reports
-- `/api/ai/*` - AI/ML inference endpoints
+Nota: la ruta `/app/cost-centers` ("Costos y Almacén") aloja el **Kardex Físico
+Valorado** (componente `components/Inventory.jsx`) + centros de costo + modelos
+de distribución. No es una página independiente.
 
 ---
 
-## Development Notes
+## ⛔ INTOCABLE — motor de ajustes contables (lo que SÍ funciona)
 
-**Environment Variables (.env):**
-- `PORT` - Server port (default 3001)
-- `AI_BACKEND` - AI provider (groq, local)
-- `GROQ_API_KEY` - Required for AI features
-- `ENABLE_AI` - Enable/disable AI routes
+- `ai_adjustment_engine.py` (motor Python completo).
+- En `routes/ai.js`: endpoints `/adjustments/*` y `/profile/:companyId`.
+- `utils/aiEngineResolver.js`, `utils/serverFiscalYearUtils.js`, `services/valuationService.js`.
+- Frontend: `Worksheet.jsx`, `AIAdjustmentPanel.jsx`, `AdjustmentWizard.jsx`,
+  `ClosingWizard.jsx`.
+- La pestaña Depreciación de `Settings.jsx` y la tabla `company_adjustment_profiles`
+  **alimentan el motor real**, aunque el endpoint diga `/api/ai/`.
 
-**Database:**
-- SQLite3 at `web-app/server/db/accounting.db`
-- Schema in `web-app/server/db/schema.sql`
-- Use `require('./db')` for shared connection
+## 🔮 Mahoraga (asistente IA — experimental/decorativo)
 
-**AI Integration:**
-- Uses Groq SDK for LLM inference
-- Skill system: `skillLoader.loadSkills()` on startup
-- Cognitive orchestrator for multi-step AI workflows
-
-**Testing:**
-- No formal test framework (Jest/Vitest not configured)
-- Manual test scripts in project root
-- Run individual test files with `node <filename>`
+Ver `MAHORAGA.md` para el mapa completo y el roadmap de activación. Reglas:
+- `MahoragaWheel.jsx` (y `MahoragaWheel3D.jsx`) se conservan por valor estético.
+- El estado del controlador ya **se hidrata desde la DB** al arrancar.
+- `routes/orchestrator.js` + `services/cognitiveOrchestrator.js` están rotos
+  (dependencia `pg` inexistente); se cargan en try/catch y nunca se registran.
+- Cualquier activación real sigue el roadmap por etapas de `MAHORAGA.md`.
 
 ---
 
-## Important Considerations
+## Convenciones de código
 
-1. **Spanish Language**: Project uses Spanish for comments, console output, user-facing messages
-2. **Bolivian Accounting**: NC-3, NC-6 compliance; UFV adjustments; PUCT code structure
-3. **Multi-tenant**: Most endpoints expect `companyId` parameter
-4. **No Formal Testing**: Add Jest/Vitest for unit tests, pytest for Python
-5. **No ESLint/Prettier**: Consider adding for code quality enforcement
-6. **Hot Reload**: Use `nodemon` for JS, `--reload` for FastAPI
+### Backend (Node, CommonJS)
+```javascript
+const express = require('express');        // CommonJS, no ESM
+const db = require('../db');               // conexión compartida (cola serial)
+// Queries SIEMPRE con placeholders ? — nunca concatenar SQL
+const res = await db.execute({ sql: 'SELECT ... WHERE company_id = ?', args: [companyId] });
+// Escrituras múltiples dentro de db.transaction(cb)
+```
+- 4 espacios de indentación, ~100 caracteres por línea, punto y coma.
+- `camelCase` (variables/funciones), `PascalCase` (clases), `SCREAMING_SNAKE_CASE` (constantes).
+- Nombres de dominio en español aceptados: `montoTotal`, `saldoCuenta`.
+- Async SIEMPRE en try/catch con `console.error` descriptivo y re-throw si corresponde.
+- Mensajes de consola y UI en español.
+
+### Frontend (React 18 + Vite, JSX)
+- Componentes función + hooks; Bootstrap 5 por CDN + utilidades propias en `index.css`.
+- Multi-empresa: toda petición lleva `companyId` de `useCompany()`; la empresa
+  activa vive en `localStorage` (`selectedCompanyId`).
+- Submódulos de página viven en `components/`, no en `pages/`.
+
+### Multi-tenancy
+Prácticamente todas las tablas core tienen `company_id` y todas las consultas
+filtran por él. Nunca introducir consultas sin filtro de empresa.
+
+### Backups
+El import es **aditivo** (crea empresa "(Restaurado <fecha>)"): probar restore
+en producción es seguro, no pisa datos.
+
+---
+
+## Variables de entorno (3 archivos)
+
+| Archivo | Claves |
+|---|---|
+| `.env` (raíz) | `GROQ_API_KEY`, `LLM_ENDPOINT`, `LLM_MODEL`, `AI_BACKEND`, `MAHORAGA_MODE` |
+| `web-app/server/.env` | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `AI_ENGINE_URL` (+ `APP_PASSWORD`, `FRONTEND_ORIGIN` en Render) |
+| `web-app/client/.env` | `VITE_API_URL` |
+
+`db.js` encadena ambos `.env` (server primero, raíz después; dotenv no
+sobrescribe variables ya definidas).
+
+---
+
+## Estado de la deuda técnica (post-limpieza 2026-09)
+
+Pendiente conocido (ver `DIAGNOSTICO.md` para detalle histórico):
+- **A3**: tablas anchas en mobile (Worksheet ~21 columnas es la peor).
+- Multer sin validación MIME; import de backup carga todo en RAM.
+- N+1 en `GET /api/inventory/items`; logs de `ai.js` vuelcan el body completo.
+- CORS abierto en modo dev (regex `^(.*)$`).
+- `routes/orchestrator.js` montado pero nunca registra (ver Mahoraga arriba).
+- Decisión pendiente: activar Mahoraga por etapas (roadmap) o podarlo dejando
+  solo la rueda.

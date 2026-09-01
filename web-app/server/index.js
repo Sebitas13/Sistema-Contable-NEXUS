@@ -85,9 +85,10 @@ app.use('/api/skills', skillsRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/inventory', inventoryRouter);
 
-// Optional AI router (opt-in). Enable by setting environment variable ENABLE_AI=1
-// Cambiado a true por defecto para pruebas, o si ENABLE_AI es 1
-if (true || (process.env.ENABLE_AI && process.env.ENABLE_AI !== '0')) {
+// AI router (motor de ajustes contables + secciones experimentales de Mahoraga).
+// Se registra siempre; si faltara alguna dependencia el try/catch lo reporta
+// sin tumbar el servidor.
+if (true) {
   try {
     // Load base AI routes first
     const aiRouter = require('./routes/ai');

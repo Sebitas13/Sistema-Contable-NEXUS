@@ -44,13 +44,6 @@ export default function Reports() {
             path: '/app/journal'
         },
         {
-            title: 'Inventarios (Kardex)',
-            description: 'Control de existencias con métodos PEPS, UEPS, CPP e IE',
-            icon: 'bi-box-seam',
-            color: 'danger',
-            path: '/app/inventory'
-        },
-        {
             title: 'Activos Fijos',
             description: 'Registro y depreciación de bienes de uso',
             icon: 'bi-building',

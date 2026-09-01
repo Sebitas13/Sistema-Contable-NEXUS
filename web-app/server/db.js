@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@libsql/client');
+// Carga .env del propio server (TURSO_*, AI_ENGINE_URL) y luego el de la raíz
+// (GROQ_API_KEY, LLM_*, MAHORAGA_MODE). dotenv no sobrescribe variables ya
+// definidas, así que encadenar ambos es seguro y permite arrancar el server
+// desde cualquier directorio de trabajo.
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config();
 
 

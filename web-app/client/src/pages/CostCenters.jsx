@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
-import Inventory from './Inventory';
+import Inventory from '../components/Inventory';
 
 export default function CostCenters() {
     const { selectedCompany } = useCompany();
