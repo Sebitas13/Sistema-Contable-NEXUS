@@ -14,7 +14,7 @@ const MahoragaWheel3D = lazy(() => import('../three/MahoragaWheel3D'));
 
 export default function CompanySelector() {
     const navigate = useNavigate();
-    const { companies, loading, deleteCompany, refreshCompanies, createCompany, updateCompany, selectCompany } = useCompany();
+    const { companies, loading, companiesError, retryCompanies, deleteCompany, refreshCompanies, createCompany, updateCompany, selectCompany } = useCompany();
 
     // Constantes de Tipos Societarios y Actividades
     const SOCIETAL_TYPES = [
@@ -299,7 +299,7 @@ export default function CompanySelector() {
         return (
             <div className="loading-screen-premium">
                 <div className="spinner-premium"></div>
-                <h4 className="mt-4 text-white fw-light animate__animated animate__pulse animate__infinite">Cargando empresas...</h4>
+                <h4 className="mt-4 text-white fw-light">Cargando empresas...</h4>
                 <p className="text-white-50 small">Preparando su espacio contable</p>
             </div>
         );
@@ -356,21 +356,61 @@ export default function CompanySelector() {
                 </div>
             </div>
 
+            {/* Banner de conectividad: el servidor está despertando (cold start Render free).
+                Distinto a "no hay empresas": aquí el auto-retry ya está corriendo. */}
+            {companiesError && (
+                <div className="glass-panel border-warning rounded-3 p-3 mb-4 d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-3" role="alert">
+                    <i className="bi bi-cloud-slash fs-2 text-warning"></i>
+                    <div className="flex-grow-1">
+                        <strong className="text-white d-block">
+                            <i className="bi bi-moon-stars me-2"></i>El servidor está despertando…
+                        </strong>
+                        <small className="text-white-50 d-block">
+                            El backend gratuito de Render se duerme tras ~15 min de inactividad y puede tardar hasta un minuto en responder.
+                            {companies.length > 0
+                                ? ' Se muestran los últimos datos conocidos.'
+                                : ' Reintentando automáticamente cada pocos segundos…'}
+                        </small>
+                    </div>
+                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                        <div className="spinner-border spinner-border-sm text-warning" role="status">
+                            <span className="visually-hidden">Reintentando…</span>
+                        </div>
+                        <button className="btn btn-sm btn-outline-warning" onClick={() => retryCompanies()}>
+                            <i className="bi bi-arrow-clockwise me-1"></i>Reintentar ahora
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Companies Grid */}
             <div className="companies-container">
                 {filteredCompanies.length === 0 ? (
-                    <div className="no-companies text-center py-5 glass-panel border-secondary rounded-3">
-                        <i className="bi bi-building display-1 text-white-50 mb-3"></i>
-                        <h3 className="text-white">No hay empresas registradas</h3>
-                        <p className="text-white-50">Comienza registrando tu primera empresa</p>
-                        <button
-                            className="btn btn-primary mt-3"
-                            onClick={openNewCompanyModal}
-                        >
-                            <i className="bi bi-plus-circle me-2"></i>
-                            Registrar Primera Empresa
-                        </button>
-                    </div>
+                    companies.length === 0 ? (
+                        companiesError ? null : (
+                            // Empresa realmente no hay (y no hay error): recién aquí tiene
+                            // sentido el CTA de registro.
+                            <div className="no-companies text-center py-5 glass-panel border-secondary rounded-3">
+                                <i className="bi bi-building display-1 text-white-50 mb-3"></i>
+                                <h3 className="text-white">No hay empresas registradas</h3>
+                                <p className="text-white-50">Comienza registrando tu primera empresa</p>
+                                <button
+                                    className="btn btn-primary mt-3"
+                                    onClick={openNewCompanyModal}
+                                >
+                                    <i className="bi bi-plus-circle me-2"></i>
+                                    Registrar Primera Empresa
+                                </button>
+                            </div>
+                        )
+                    ) : (
+                        // Hay empresas pero ninguna coincide con la búsqueda
+                        <div className="no-companies text-center py-5 glass-panel border-secondary rounded-3">
+                            <i className="bi bi-search display-4 text-white-50 mb-3"></i>
+                            <h4 className="text-white">Ninguna empresa coincide con la búsqueda</h4>
+                            <p className="text-white-50">Prueba con otro nombre o NIT</p>
+                        </div>
+                    )
                 ) : (
                     <div className="companies-grid">
                         {filteredCompanies.map((company) => (

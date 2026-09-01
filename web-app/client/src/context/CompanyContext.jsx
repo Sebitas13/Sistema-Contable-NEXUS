@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import API_URL from '@/api.js'; 
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import API_URL from '@/api.js';
 
 const CompanyContext = createContext();
 
@@ -15,17 +15,23 @@ export const CompanyProvider = ({ children }) => {
     const [selectedCompany, setSelectedCompany] = useState(null);
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Error de conectividad (p. ej. cold start de Render): distinto a "no hay empresas".
+    const [companiesError, setCompaniesError] = useState(null);
 
-    // Load selected company from localStorage on mount
-    useEffect(() => {
-        const savedCompanyId = localStorage.getItem('selectedCompanyId');
-        if (savedCompanyId) {
-            fetchCompanyById(savedCompanyId);
-        } else {
-            setLoading(false);
-        }
-        fetchCompanies();
-    }, []);
+    // Refs para el auto-retry sin closures stale.
+    const retryTimerRef = useRef(null);
+    const retryAttemptRef = useRef(0);
+    const selectedCompanyRef = useRef(null);
+    useEffect(() => { selectedCompanyRef.current = selectedCompany; }, [selectedCompany]);
+    useEffect(() => () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); }, []);
+
+    // Auto-retry con backoff mientras el servidor despierta (máx. 20s entre intentos).
+    const scheduleCompaniesRetry = () => {
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryAttemptRef.current += 1;
+        const delay = Math.min(5000 * retryAttemptRef.current, 20000);
+        retryTimerRef.current = setTimeout(() => fetchCompanies(), delay);
+    };
 
     // Fetch all companies
     const fetchCompanies = async () => {
@@ -34,9 +40,24 @@ export const CompanyProvider = ({ children }) => {
             const data = await response.json();
             if (data.success) {
                 setCompanies(data.data);
+                setCompaniesError(null);
+                retryAttemptRef.current = 0;
+                if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+
+                // Re-vincular sesión: si había empresa guardada en localStorage y aún no
+                // está seleccionada (p. ej. falló durante el cold start), restaurarla.
+                const savedCompanyId = localStorage.getItem('selectedCompanyId');
+                if (savedCompanyId && !selectedCompanyRef.current) {
+                    fetchCompanyById(savedCompanyId);
+                }
+            } else {
+                setCompaniesError('El servidor respondió con un error inesperado.');
+                scheduleCompaniesRetry();
             }
         } catch (error) {
             console.error('Error fetching companies:', error);
+            setCompaniesError('No se pudo conectar con el servidor. Puede estar despertando (plan gratuito de Render).');
+            scheduleCompaniesRetry();
         }
     };
 
@@ -153,12 +174,14 @@ export const CompanyProvider = ({ children }) => {
         selectedCompany,
         companies,
         loading,
+        companiesError,
         selectCompany,
         clearCompany,
         createCompany,
         updateCompany,
         deleteCompany,
         refreshCompanies: fetchCompanies,
+        retryCompanies: fetchCompanies,
     };
 
     return (

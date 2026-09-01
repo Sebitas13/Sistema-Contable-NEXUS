@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import axios from 'axios';
 import API_URL from '../api';
@@ -24,12 +24,28 @@ export default function Dashboard() {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [activitySeries, setActivitySeries] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Error de carga (p. ej. cold start de Render): nunca mostrar "Bs 0.00" como si
+  // fueran saldos reales. Se distingue con '—' + banner de reintentos.
+  const [loadError, setLoadError] = useState(false);
+
+  const retryTimerRef = useRef(null);
+  const attemptRef = useRef(0);
+  // Siempre apunta a la ÚLTIMA versión de fetchDashboardData (evita closures stale
+  // en el setTimeout de reintento si la empresa activa cambió).
+  const fetchRef = useRef(() => {});
+
+  useEffect(() => {
+    return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     if (selectedCompany) {
       fetchDashboardData();
     } else {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      attemptRef.current = 0;
       setLoading(false);
+      setLoadError(false);
       setStats({ totalAssets: 0, totalLiabilities: 0, totalEquity: 0, totalTransactions: 0 });
       setRecentTransactions([]);
       setActivitySeries([]);
@@ -39,6 +55,7 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     if (!selectedCompany) return;
     setLoading(true);
+    setLoadError(false);
     try {
       const companyId = selectedCompany.id;
 
@@ -127,12 +144,22 @@ export default function Dashboard() {
       const allTransactions = transRes.data.data || [];
       setRecentTransactions(allTransactions.slice(0, 5));
       setActivitySeries(buildActivitySeries(allTransactions, 14));
+      attemptRef.current = 0;
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      setLoadError(true);
+      // Auto-retry con backoff (hasta 3 intentos): el servidor puede estar despertando.
+      attemptRef.current += 1;
+      if (attemptRef.current <= 3) {
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => fetchRef.current(), 8000 * attemptRef.current);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  fetchRef.current = fetchDashboardData;
 
   const formatCurrency = (value) => {
     return `Bs ${(value || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -172,6 +199,26 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Banner de error de carga: el usuario SABE que los datos no cargaron
+          (p. ej. cold start de Render) en vez de ver ceros que parecen reales. */}
+      {loadError && (
+        <div className="glass-panel border-warning rounded-3 p-3 mb-4 d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-3" role="alert">
+          <i className="bi bi-cloud-slash fs-2 text-warning"></i>
+          <div className="flex-grow-1">
+            <strong className="text-white d-block">
+              <i className="bi bi-moon-stars me-2"></i>No se pudo cargar el resumen financiero
+            </strong>
+            <small className="text-white-50 d-block">
+              El servidor puede estar despertando (plan gratuito de Render).
+              {attemptRef.current <= 3 ? ' Reintentando automáticamente…' : ' Reintentos agotados.'}
+            </small>
+          </div>
+          <button className="btn btn-sm btn-outline-warning flex-shrink-0" onClick={fetchDashboardData} disabled={loading}>
+            <i className="bi bi-arrow-clockwise me-1"></i>Reintentar ahora
+          </button>
+        </div>
+      )}
+
       <AnimatePresence>
         <motion.div 
           className="dashboard-bento-grid"
@@ -189,7 +236,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Total Bienes y Derechos</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalAssets} format={formatCurrency} />}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : loadError ? '—' : <CountUp value={stats.totalAssets} format={formatCurrency} />}</h3>
             </div>
           </motion.div>
 
@@ -203,7 +250,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Total Obligaciones</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalLiabilities} format={formatCurrency} />}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : loadError ? '—' : <CountUp value={stats.totalLiabilities} format={formatCurrency} />}</h3>
             </div>
           </motion.div>
 
@@ -217,7 +264,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Total Patrimonio</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalEquity} format={formatCurrency} />}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : loadError ? '—' : <CountUp value={stats.totalEquity} format={formatCurrency} />}</h3>
             </div>
           </motion.div>
 
@@ -231,7 +278,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-auto">
               <small className="text-white-50 fw-semibold">Asientos Registrados</small>
-              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : <CountUp value={stats.totalTransactions} format={(v) => Math.round(v).toLocaleString('es-BO')} />}</h3>
+              <h3 className="mb-0 fw-bold text-white">{loading ? '...' : loadError ? '—' : <CountUp value={stats.totalTransactions} format={(v) => Math.round(v).toLocaleString('es-BO')} />}</h3>
             </div>
           </motion.div>
 
@@ -345,14 +392,14 @@ export default function Dashboard() {
              </div>
           </motion.div>
 
-          {/* Sistema */}
-          <motion.div layoutId="system" className="bento-card bento-system align-items-center justify-content-center text-center">
-             <i className="bi bi-hdd-network mb-3" style={{ fontSize: '2.5rem', color: 'var(--accent-success)' }}></i>
-             <h6 className="fw-bold mb-3 text-white">Sistema En Línea</h6>
-             <span className={`badge rounded-pill px-3 py-2 ${stats.isClosed ? 'bg-danger text-white border border-danger' : 'bg-success text-white border border-success'}`}>
-               {stats.isClosed ? 'Gestión Cerrada' : 'Totalmente Operativo'}
-             </span>
-          </motion.div>
+           {/* Sistema */}
+           <motion.div layoutId="system" className="bento-card bento-system align-items-center justify-content-center text-center">
+              <i className={`bi mb-3 ${loadError ? 'bi-cloud-slash text-warning' : 'bi-hdd-network'}`} style={{ fontSize: '2.5rem', color: loadError ? undefined : 'var(--accent-success)' }}></i>
+              <h6 className="fw-bold mb-3 text-white">{loadError ? 'Conectando…' : 'Sistema En Línea'}</h6>
+              <span className={`badge rounded-pill px-3 py-2 ${loadError ? 'bg-warning text-dark border border-warning' : stats.isClosed ? 'bg-danger text-white border border-danger' : 'bg-success text-white border border-success'}`}>
+                {loadError ? 'Despertando servidor…' : stats.isClosed ? 'Gestión Cerrada' : 'Totalmente Operativo'}
+              </span>
+           </motion.div>
 
           {/* Estructura Financiera (Torres 3D: Activo = Pasivo + Patrimonio) */}
           <motion.div layoutId="structure" className="bento-card bento-structure" whileHover={{ scale: 1.005 }}>
