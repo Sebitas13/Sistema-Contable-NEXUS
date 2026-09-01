@@ -4,6 +4,7 @@ import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
 import { useToast } from './ToastProvider';
 import { useConfirm } from './ConfirmProvider';
+import NexusModal from './NexusModal';
 
 export default function Inventory() {
     const { selectedCompany } = useCompany();
@@ -253,15 +254,8 @@ export default function Inventory() {
             </div>
 
             {/* Nuevo Artículo Modal */}
-            {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title"><i className="bi bi-plus-circle me-2"></i>Alta de Artículo</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showModal} onClose={() => setShowModal(false)} title="Alta de Artículo" icon="bi-plus-circle" size="lg">
+                <div className="modal-body">
                                 <form onSubmit={handleSubmit}>
                                     <div className="row mb-3">
                                         <div className="col-md-4">
@@ -329,22 +323,12 @@ export default function Inventory() {
                                         <button type="submit" className="btn btn-primary">Registrar Artículo</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* Movement Modal */}
-            {showMovementModal && selectedItem && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title"><i className="bi bi-arrow-left-right me-2"></i>Movimiento - {selectedItem.name}</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => { setShowMovementModal(false); setSelectedItem(null); }}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showMovementModal && Boolean(selectedItem)} onClose={() => { setShowMovementModal(false); setSelectedItem(null); }} title={selectedItem ? `Movimiento - ${selectedItem.name}` : 'Movimiento'} icon="bi-arrow-left-right">
+                <div className="modal-body">
                                 <form onSubmit={handleMovementSubmit}>
                                     <div className="row mb-3">
                                         <div className="col-md-6">
@@ -397,22 +381,12 @@ export default function Inventory() {
                                         <button type="submit" className="btn btn-primary">Registrar Movimiento</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* History Modal */}
-            {showHistoryModal && selectedItem && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title"><i className="bi bi-clock-history me-2"></i>Kardex: {selectedItem.name}</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowHistoryModal(false)}></button>
-                            </div>
-                            <div className="modal-body p-0">
+            <NexusModal isOpen={showHistoryModal && Boolean(selectedItem)} onClose={() => setShowHistoryModal(false)} title={selectedItem ? `Kardex: ${selectedItem.name}` : 'Kardex'} icon="bi-clock-history" size="lg">
+                <div className="modal-body p-0">
                                 <div className="table-responsive" style={{maxHeight: '400px'}}>
                                     <table className="table table-dark table-striped table-hover mb-0">
                                         <thead className="position-sticky top-0 bg-dark">
@@ -449,11 +423,8 @@ export default function Inventory() {
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
             {/* Inventory Table */}
             <div className="card glass-panel border-secondary shadow-sm">

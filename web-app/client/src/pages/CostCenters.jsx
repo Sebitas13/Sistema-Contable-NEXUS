@@ -4,6 +4,7 @@ import inventoryService from '../services/inventoryService';
 import Inventory from '../components/Inventory';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
+import NexusModal from '../components/NexusModal';
 
 export default function CostCenters() {
     const { selectedCompany } = useCompany();
@@ -274,15 +275,8 @@ export default function CostCenters() {
             </div>
 
             {/* Modals */}
-            {showModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title">Nuevo Centro de Costo</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showModal} onClose={() => setShowModal(false)} title="Nuevo Centro de Costo">
+                <div className="modal-body">
                                 <form onSubmit={handleCCSubmit}>
                                     <div className="mb-3">
                                         <label className="form-label text-white-50">Código</label>
@@ -305,21 +299,11 @@ export default function CostCenters() {
                                         <button type="submit" className="btn btn-primary">Guardar</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
 
-            {showModelModal && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content glass-panel border-secondary text-white">
-                            <div className="modal-header border-secondary border-bottom">
-                                <h5 className="modal-title">Nuevo Modelo de Distribución (Prorrateo)</h5>
-                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModelModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
+            <NexusModal isOpen={showModelModal} onClose={() => setShowModelModal(false)} title="Nuevo Modelo de Distribución (Prorrateo)" size="lg">
+                <div className="modal-body">
                                 <form onSubmit={handleModelSubmit}>
                                     <div className="row mb-3">
                                         <div className="col-md-6">
@@ -380,11 +364,8 @@ export default function CostCenters() {
                                         <button type="submit" className="btn btn-primary" disabled={modelData.entries.length === 0}>Guardar Modelo</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+            </NexusModal>
         </div>
     );
 }
