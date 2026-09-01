@@ -165,13 +165,32 @@ sobrescribe variables ya definidas).
 
 ---
 
-## Estado de la deuda técnica (post-limpieza 2026-09)
+## Estado de la deuda técnica (post-limpieza 2026-09, actualizado)
 
-Pendiente conocido (ver `DIAGNOSTICO.md` para detalle histórico):
-- **A3**: tablas anchas en mobile (Worksheet ~21 columnas es la peor).
-- Multer sin validación MIME; import de backup carga todo en RAM.
-- N+1 en `GET /api/inventory/items`; logs de `ai.js` vuelcan el body completo.
-- CORS abierto en modo dev (regex `^(.*)$`).
-- `routes/orchestrator.js` montado pero nunca registra (ver Mahoraga arriba).
+Resuelto (ver git log para detalle):
+- **Nivel 0**: validación contable server-side (`utils/transactionValidator.js`),
+  cerrojos multi-tenant en todos los CRUD, rate-limit en login, schema.sql
+  sincronizado + índices de `transaction_entries`, atomicidad en escrituras.
+- **Nivel 1**: UX de cold start (banner "servidor despertando", auto-retry con
+  backoff, fin de los Bs 0.00 falsos, AuthContext con reintentos).
+- **Nivel 2**: ToastProvider (~60 alerts fuera), ConfirmProvider (14 confirms
+  fuera), NexusModal (21 modales con Escape/focus-trap/portal).
+- **Nivel 3**: code splitting (main chunk 2.5MB→578KB, lazy routes, jspdf/xlsx/
+  pdfjs on-demand), favicon 348KB→10KB, fondo 3D solo en desktop, Tailwind
+  fantasma y componentes muertos eliminados.
+- Mojibake reparado en Settings.jsx y ai.js (reparador con validación UTF-8).
+
+Pendiente conocido:
+- **A3**: tablas anchas en mobile (Worksheet ~21 columnas es la peor); los
+  modales NexusModal ya son scrollables.
+- AdjustmentWizard/ClosingWizard (zona intocable) aún usan alert()/modales
+  artesanales; migrar solo si se decide tocar esa zona.
+- Multer: `okExt || okMime` permite zip con cualquier MIME (backstop: unzipper).
+- Import de backup carga cada JSON en RAM (hay guard anti zip-bomb de 200MB).
+- Logs de `ai.js` vuelcan el response completo del motor Python.
+- CORS abierto en modo dev (regex `^(.*)$`); handler OPTIONS duplicado muerto.
+- ESLint: el script `lint` existe pero NO hay archivo de configuración.
+- `/api/skills/dispatch` responde 500 (depende de `vm2`, no declarada) —
+  resolver al decidir el destino de Mahoraga.
 - Decisión pendiente: activar Mahoraga por etapas (roadmap) o podarlo dejando
-  solo la rueda.
+  solo la rueda. El estado del controlador ya persiste en DB.
