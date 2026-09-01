@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useCompany } from '../context/CompanyContext';
 import BackupManager from '../components/BackupManager';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import API_URL from '../api';
 
 // Default ARS Profile
@@ -71,6 +72,7 @@ const INITIAL_DEPRECIATION_RULES = [
 export default function Settings() {
     const { selectedCompany, refreshCompanies } = useCompany();
     const toast = useToast();
+    const confirmDialog = useConfirm();
     const [activeTab, setActiveTab] = useState('data'); // 'data', 'profiles', 'mahoraga'
     const [healing, setHealing] = useState(false);
     const [healResult, setHealResult] = useState(null);
@@ -130,11 +132,16 @@ export default function Settings() {
         return Math.max(...profiles.map(p => p.id)) + 1;
     };
 
-    const deleteProfile = (key, name) => {
-        if (window.confirm(`¿Estás seguro de eliminar el perfil "${name}"?`)) {
-            localStorage.removeItem(key);
-            setEditingProfile(null);
-        }
+    const deleteProfile = async (key, name) => {
+        const ok = await confirmDialog({
+            title: 'Eliminar perfil',
+            message: `¿Estás seguro de eliminar el perfil "${name}"?`,
+            confirmText: 'Eliminar',
+            danger: true
+        });
+        if (!ok) return;
+        localStorage.removeItem(key);
+        setEditingProfile(null);
     };
 
     const saveProfileEdit = () => {
@@ -467,7 +474,13 @@ export default function Settings() {
     };
 
     const handleEmergencyStop = async () => {
-        if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrá TODAS las operaciones de Mahoraga.')) return;
+        const ok = await confirmDialog({
+            title: 'PARADA DE EMERGENCIA',
+            message: '¿Estás seguro de activarla? Esto detendrá TODAS las operaciones de Mahoraga.',
+            confirmText: 'Activar parada',
+            danger: true
+        });
+        if (!ok) return;
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, { userId: 'admin', reason: 'Emergency stop from dashboard' });
             toast.warning('PARADA DE EMERGENCIA ACTIVADA');

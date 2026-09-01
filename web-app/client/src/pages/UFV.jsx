@@ -9,6 +9,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import API_URL from '../api';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -16,6 +17,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export default function UFV() {
     const { selectedCompany } = useCompany();
     const toast = useToast();
+    const confirmDialog = useConfirm();
     const [ufvData, setUfvData] = useState([]);
     const [loading, setLoading] = useState(true);
     const fileInputRef = useRef(null);
@@ -153,9 +155,13 @@ export default function UFV() {
             return;
         }
 
-        if (!confirm(`¿Estás seguro de que quieres borrar TODOS los datos UFV del año ${year}? Esta acción no se puede deshacer.`)) {
-            return;
-        }
+        const ok = await confirmDialog({
+            title: 'Borrar TODOS los datos UFV del año',
+            message: `Se eliminarán todos los registros UFV del año ${year}. Esta acción no se puede deshacer.`,
+            confirmText: 'Borrar todo',
+            danger: true
+        });
+        if (!ok) return;
 
         try {
             setLoading(true);

@@ -7,11 +7,13 @@ import { exportToExcel } from '../utils/exportUtils';
 import SmartImportWizard from '../components/SmartImportWizard';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 
 export default function Accounts() {
     const navigate = useNavigate();
     const { selectedCompany } = useCompany();
     const toast = useToast();
+    const confirmDialog = useConfirm();
     const [accounts, setAccounts] = useState([]);
     const [filteredAccounts, setFilteredAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -196,30 +198,45 @@ export default function Accounts() {
 
     const handleDelete = async (id) => {
         if (!selectedCompany) return;
-        if (window.confirm('¿Está seguro de eliminar esta cuenta?')) {
-            try {
-                await axios.delete(`${API_URL}/api/accounts/${id}?companyId=${selectedCompany.id}`);
-                fetchAccounts();
-            } catch (error) {
-                console.error('Error deleting account:', error);
-                toast.error('Error eliminando cuenta');
-            }
+        const ok = await confirmDialog({
+            title: 'Eliminar cuenta',
+            message: '¿Está seguro de eliminar esta cuenta?',
+            confirmText: 'Eliminar',
+            danger: true
+        });
+        if (!ok) return;
+        try {
+            await axios.delete(`${API_URL}/api/accounts/${id}?companyId=${selectedCompany.id}`);
+            fetchAccounts();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            toast.error('Error eliminando cuenta');
         }
     };
 
     const handleDeleteAll = async () => {
         if (!selectedCompany) return;
-        if (window.confirm('⚠️ ¿ESTÁ SEGURO DE ELIMINAR TODO EL PLAN DE CUENTAS?\n\nEsta acción no se puede deshacer y eliminará todas las cuentas registradas.')) {
-            if (window.confirm('⚠️ CONFIRMACIÓN FINAL: ¿Realmente desea vaciar el plan de cuentas?')) {
-                try {
-                    await axios.delete(`${API_URL}/api/accounts/all?companyId=${selectedCompany.id}`);
-                    fetchAccounts();
-                    toast.success('Plan de cuentas eliminado correctamente.');
-                } catch (error) {
-                    console.error('Error deleting all accounts:', error);
-                    toast.error('Error eliminando el plan de cuentas.');
-                }
-            }
+        const firstOk = await confirmDialog({
+            title: 'Eliminar TODO el plan de cuentas',
+            message: 'Esta acción no se puede deshacer y eliminará todas las cuentas registradas.',
+            confirmText: 'Continuar',
+            danger: true
+        });
+        if (!firstOk) return;
+        const finalOk = await confirmDialog({
+            title: 'CONFIRMACIÓN FINAL',
+            message: '¿Realmente desea vaciar el plan de cuentas?',
+            confirmText: 'Sí, vaciar todo',
+            danger: true
+        });
+        if (!finalOk) return;
+        try {
+            await axios.delete(`${API_URL}/api/accounts/all?companyId=${selectedCompany.id}`);
+            fetchAccounts();
+            toast.success('Plan de cuentas eliminado correctamente.');
+        } catch (error) {
+            console.error('Error deleting all accounts:', error);
+            toast.error('Error eliminando el plan de cuentas.');
         }
     };
 

@@ -3,11 +3,13 @@ import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
 import Inventory from '../components/Inventory';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 
 export default function CostCenters() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
     const toast = useToast();
+    const confirmDialog = useConfirm();
 
     const [costCenters, setCostCenters] = useState([]);
     const [distributionModels, setDistributionModels] = useState([]);
@@ -188,10 +190,14 @@ export default function CostCenters() {
                                                         <td><span className="badge bg-secondary border border-secondary">{cc.type}</span></td>
                                                         <td className="text-end">
                                                             <button className="btn btn-sm btn-outline-danger" onClick={async () => {
-                                                                if (window.confirm('¿Eliminar centro de costo?')) {
-                                                                    await inventoryService.deleteCostCenter(cc.id, companyId);
-                                                                    fetchData();
-                                                                }
+                                                                const ok = await confirmDialog({
+                                                                    title: 'Eliminar centro de costo',
+                                                                    confirmText: 'Eliminar',
+                                                                    danger: true
+                                                                });
+                                                                if (!ok) return;
+                                                                await inventoryService.deleteCostCenter(cc.id, companyId);
+                                                                fetchData();
                                                             }}><i className="bi bi-trash"></i></button>
                                                         </td>
                                                     </tr>
@@ -245,10 +251,14 @@ export default function CostCenters() {
                                                         </td>
                                                         <td className="text-end">
                                                             <button className="btn btn-sm btn-outline-danger" onClick={async () => {
-                                                                if (window.confirm('¿Eliminar modelo de distribución?')) {
-                                                                    await inventoryService.deleteDistributionModel(dm.id, companyId);
-                                                                    fetchData();
-                                                                }
+                                                                const ok = await confirmDialog({
+                                                                    title: 'Eliminar modelo de distribución',
+                                                                    confirmText: 'Eliminar',
+                                                                    danger: true
+                                                                });
+                                                                if (!ok) return;
+                                                                await inventoryService.deleteDistributionModel(dm.id, companyId);
+                                                                fetchData();
                                                             }}><i className="bi bi-trash"></i></button>
                                                         </td>
                                                     </tr>

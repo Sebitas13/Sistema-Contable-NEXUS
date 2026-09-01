@@ -3,11 +3,13 @@ import { exportToPDF, exportToExcel, importFromExcel } from '../utils/exportUtil
 import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
 import { useToast } from './ToastProvider';
+import { useConfirm } from './ConfirmProvider';
 
 export default function Inventory() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
     const toast = useToast();
+    const confirmDialog = useConfirm();
 
     const [items, setItems] = useState([]);
     const [costCenters, setCostCenters] = useState([]);
@@ -519,10 +521,15 @@ export default function Inventory() {
                                                         <i className="bi bi-clock-history"></i>
                                                     </button>
                                                     <button className="btn btn-sm btn-outline-danger" title="Eliminar Artículo" onClick={async () => {
-                                                        if(window.confirm(`¿Eliminar el artículo ${item.code}?`)) {
-                                                            await inventoryService.deleteItem(item.id, companyId);
-                                                            fetchData();
-                                                        }
+                                                        const ok = await confirmDialog({
+                                                            title: 'Eliminar artículo',
+                                                            message: `¿Eliminar el artículo ${item.code}? Se eliminarán también sus movimientos del kardex.`,
+                                                            confirmText: 'Eliminar',
+                                                            danger: true
+                                                        });
+                                                        if (!ok) return;
+                                                        await inventoryService.deleteItem(item.id, companyId);
+                                                        fetchData();
                                                     }}>
                                                         <i className="bi bi-trash"></i>
                                                     </button>

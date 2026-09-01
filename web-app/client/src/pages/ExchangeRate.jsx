@@ -11,6 +11,7 @@ import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -18,6 +19,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export default function ExchangeRate() {
     const { selectedCompany } = useCompany();
     const toast = useToast();
+    const confirmDialog = useConfirm();
     const [rates, setRates] = useState([]);
     const [loading, setLoading] = useState(true);
     const fileInputRef = useRef(null);
@@ -96,14 +98,18 @@ export default function ExchangeRate() {
     }, [selectedCompany, gestion]);
 
     const handleDelete = async (id) => {
-        if (window.confirm('¿Está seguro de eliminar este tipo de cambio?')) {
-            try {
-                await axios.delete(`${API_URL}/api/exchange-rates/${id}?companyId=${selectedCompany.id}`);
-                fetchRates();
-            } catch (error) {
-                console.error('Error deleting exchange rate:', error);
-                toast.error('Error al eliminar el tipo de cambio.');
-            }
+        const ok = await confirmDialog({
+            title: 'Eliminar tipo de cambio',
+            confirmText: 'Eliminar',
+            danger: true
+        });
+        if (!ok) return;
+        try {
+            await axios.delete(`${API_URL}/api/exchange-rates/${id}?companyId=${selectedCompany.id}`);
+            fetchRates();
+        } catch (error) {
+            console.error('Error deleting exchange rate:', error);
+            toast.error('Error al eliminar el tipo de cambio.');
         }
     };
 
@@ -167,9 +173,13 @@ export default function ExchangeRate() {
     };
 
     const handleDeleteAll = async () => {
-        if (!confirm(`¿Estás seguro de que quieres borrar TODOS los datos de tipo de cambio del año ${fiscalYearDetails?.year || currentYear}? Esta acción no se puede deshacer.`)) {
-            return;
-        }
+        const ok = await confirmDialog({
+            title: 'Borrar TODOS los datos del año',
+            message: `¿Estás seguro de que quieres borrar TODOS los datos de tipo de cambio del año ${fiscalYearDetails?.year || currentYear}? Esta acción no se puede deshacer.`,
+            confirmText: 'Borrar todo',
+            danger: true
+        });
+        if (!ok) return;
 
         try {
             setLoading(true);

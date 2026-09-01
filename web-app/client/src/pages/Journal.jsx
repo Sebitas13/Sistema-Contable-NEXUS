@@ -12,10 +12,12 @@ import { exportToPDF, exportToExcel, generatePDFDoc } from '../utils/exportUtils
 import MahoragaWheel from '../components/MahoragaWheel';
 import { getFiscalYearDetails, MONTH_NAMES_SHORT } from '../utils/fiscalYearUtils';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 export default function Journal() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
     const toast = useToast();
+    const confirmDialog = useConfirm();
     const [transactions, setTransactions] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -298,16 +300,21 @@ export default function Journal() {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('¿Está seguro de eliminar este asiento? Esta acción no se puede deshacer.')) {
-            try {
-                await axios.delete(`${API_URL}/api/transactions/${id}`, {
-                    params: { companyId: selectedCompany.id }
-                });
-                fetchTransactions();
-            } catch (error) {
-                console.error('Error deleting transaction:', error);
-                toast.error('Error al eliminar el asiento');
-            }
+        const ok = await confirmDialog({
+            title: 'Eliminar asiento',
+            message: '¿Está seguro de eliminar este asiento? Esta acción no se puede deshacer.',
+            confirmText: 'Eliminar',
+            danger: true
+        });
+        if (!ok) return;
+        try {
+            await axios.delete(`${API_URL}/api/transactions/${id}`, {
+                params: { companyId: selectedCompany.id }
+            });
+            fetchTransactions();
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            toast.error('Error al eliminar el asiento');
         }
     };
 

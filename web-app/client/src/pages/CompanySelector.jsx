@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useCompany } from '../context/CompanyContext';
 import CompanyCard from '../components/CompanyCard';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import API_URL from '../api';
 
 // Emblema 3D de Mahoraga en el hero, diferido (no entra en el bundle principal).
@@ -17,6 +18,7 @@ export default function CompanySelector() {
     const navigate = useNavigate();
     const { companies, loading, companiesError, retryCompanies, deleteCompany, refreshCompanies, createCompany, updateCompany, selectCompany } = useCompany();
     const toast = useToast();
+    const confirmDialog = useConfirm();
 
     // Constantes de Tipos Societarios y Actividades
     const SOCIETAL_TYPES = [
@@ -104,13 +106,18 @@ export default function CompanySelector() {
             return;
         }
 
-        if (window.confirm(`¿Estás seguro de eliminar "${company.name}"? Todos los datos asociados se eliminarán permanentemente.`)) {
-            const result = await deleteCompany(company.id);
-            if (result.success) {
-                toast.success('Empresa eliminada exitosamente');
-            } else {
-                toast.error('Error al eliminar la empresa: ' + result.error);
-            }
+        const ok = await confirmDialog({
+            title: 'Eliminar empresa',
+            message: `¿Estás seguro de eliminar "${company.name}"? Todos los datos asociados se eliminarán permanentemente.`,
+            confirmText: 'Eliminar para siempre',
+            danger: true
+        });
+        if (!ok) return;
+        const result = await deleteCompany(company.id);
+        if (result.success) {
+            toast.success('Empresa eliminada exitosamente');
+        } else {
+            toast.error('Error al eliminar la empresa: ' + result.error);
         }
     };
 
@@ -244,9 +251,12 @@ export default function CompanySelector() {
             return;
         }
 
-        if (!window.confirm('¿Estás seguro de restaurar esta empresa? Se creará una nueva empresa con los datos del backup.')) {
-            return;
-        }
+        const ok = await confirmDialog({
+            title: 'Restaurar empresa',
+            message: '¿Estás seguro de restaurar esta empresa? Se creará una nueva empresa con los datos del backup.',
+            confirmText: 'Restaurar'
+        });
+        if (!ok) return;
 
         setRestoreLoading(true);
         setRestoreProgress(10);

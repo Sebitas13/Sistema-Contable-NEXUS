@@ -20,6 +20,7 @@ import FinancialStatements from './pages/FinancialStatements';
 import Settings from './pages/Settings';
 import CommandPalette from './components/CommandPalette';
 import { ToastProvider } from './components/ToastProvider';
+import { ConfirmProvider } from './components/ConfirmProvider';
 import { motion } from 'framer-motion';
 import { useState, lazy, Suspense } from 'react';
 
@@ -282,6 +283,7 @@ function AppLayout() {
 function App() {
     return (
         <ToastProvider>
+        <ConfirmProvider>
         <AuthProvider>
         <CompanyProvider>
             <Router>
@@ -458,6 +460,7 @@ function App() {
             </Router>
         </CompanyProvider>
         </AuthProvider>
+        </ConfirmProvider>
         </ToastProvider>
     );
 }
