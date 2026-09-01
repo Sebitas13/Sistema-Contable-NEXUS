@@ -569,17 +569,14 @@ export default function Journal() {
         const { data, columns, title, subtitle } = getJournalExportData();
 
         if (exportConfig.format === 'pdf') {
-            try {
-                const doc = generatePDFDoc(data, columns, title, {
-                    ...exportConfig,
-                    subtitle,
-                    hideDefaultDate: !!(selectedCompany?.current_year)
-                });
+            generatePDFDoc(data, columns, title, {
+                ...exportConfig,
+                subtitle,
+                hideDefaultDate: !!(selectedCompany?.current_year)
+            }).then(doc => {
                 const blobUrl = doc.output('bloburl');
                 setPreviewUrl(blobUrl);
-            } catch (e) {
-                console.error("Error generating PDF preview", e);
-            }
+            }).catch(e => console.error("Error generating PDF preview", e));
         }
     }, [showExportModal, exportConfig, getJournalExportData]);
 

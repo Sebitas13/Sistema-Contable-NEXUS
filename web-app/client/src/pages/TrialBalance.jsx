@@ -146,23 +146,20 @@ export default function TrialBalance() {
         const { data, columns, title, subtitle } = getExportData();
 
         if (exportConfig.format === 'pdf') {
-            try {
-                const doc = generatePDFDoc(data, columns, title, {
-                    ...exportConfig,
-                    subtitle,
-                    hideDefaultDate: !!(selectedCompany?.current_year),
-                    cellStyleCallback: (data) => {
-                        // Bold the totals row
-                        if (data.row.raw['Código'] === 'TOTALES') {
-                            data.cell.styles.fontStyle = 'bold';
-                        }
+            generatePDFDoc(data, columns, title, {
+                ...exportConfig,
+                subtitle,
+                hideDefaultDate: !!(selectedCompany?.current_year),
+                cellStyleCallback: (data) => {
+                    // Bold the totals row
+                    if (data.row.raw['Código'] === 'TOTALES') {
+                        data.cell.styles.fontStyle = 'bold';
                     }
-                });
+                }
+            }).then(doc => {
                 const blobUrl = doc.output('bloburl');
                 setPreviewUrl(blobUrl);
-            } catch (e) {
-                console.error("Error generating PDF preview", e);
-            }
+            }).catch(e => console.error("Error generating PDF preview", e));
         }
     }, [showExportModal, exportConfig, getExportData]);
 

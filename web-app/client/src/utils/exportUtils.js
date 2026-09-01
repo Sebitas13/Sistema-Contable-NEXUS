@@ -1,9 +1,34 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+/**
+ * Utilidades de exportación con CARGA DIFERIDA.
+ *
+ * jspdf, jspdf-autotable y xlsx son librerías pesadas (~1 MB combinadas). Antes
+ * se importaban estáticamente y viajaban en el chunk principal de la app,
+ * penalizando la carga inicial aunque el usuario nunca exportara nada. Ahora se
+ * descargan bajo demanda (dinámicamente) la primera vez que se usa una función
+ * de exportación/importación.
+ */
+
+let pdfLibsPromise = null;
+const loadPdfLibs = () => {
+    if (!pdfLibsPromise) {
+        pdfLibsPromise = Promise.all([
+            import('jspdf'),
+            import('jspdf-autotable')
+        ]);
+    }
+    return pdfLibsPromise;
+};
+
+let xlsxPromise = null;
+const loadXlsx = () => {
+    if (!xlsxPromise) xlsxPromise = import('xlsx');
+    return xlsxPromise;
+};
 
 // Helper to generate PDF instance without saving
-export const generatePDFDoc = (data, columns, title, options = {}) => {
+export const generatePDFDoc = async (data, columns, title, options = {}) => {
+    const [{ default: jsPDF }, { autoTable }] = await loadPdfLibs();
+
     const orientation = options.orientation || 'portrait';
     const doc = new jsPDF({ orientation });
 
@@ -77,14 +102,15 @@ export const generatePDFDoc = (data, columns, title, options = {}) => {
     return doc;
 };
 
-export const exportToPDF = (data, columns, title, options = {}) => {
-    const doc = generatePDFDoc(data, columns, title, options);
+export const exportToPDF = async (data, columns, title, options = {}) => {
+    const doc = await generatePDFDoc(data, columns, title, options);
     const fileName = options.fileName || title.replace(/\s+/g, '_');
     doc.save(`${fileName}.pdf`);
 };
 
 // Helper for Excel generation
-export const generateExcelWorkbook = (data, sheetName) => {
+export const generateExcelWorkbook = async (data, sheetName) => {
+    const XLSX = await loadXlsx();
     let finalData = data;
     if (data.isGrouped) {
         finalData = [];
@@ -103,8 +129,8 @@ export const generateExcelWorkbook = (data, sheetName) => {
     return wb;
 };
 
-export const exportToExcel = (data, sheetName, filename) => {
-    const wb = generateExcelWorkbook(data, sheetName);
+export const exportToExcel = async (data, sheetName, filename) => {
+    const [wb, XLSX] = await Promise.all([generateExcelWorkbook(data, sheetName), loadXlsx()]);
     XLSX.writeFile(wb, `${filename}.xlsx`);
 };
 
@@ -112,8 +138,9 @@ export const importFromExcel = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
+                const XLSX = await loadXlsx();
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];

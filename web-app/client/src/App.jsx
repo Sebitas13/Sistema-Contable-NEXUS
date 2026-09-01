@@ -4,29 +4,32 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { isAuthenticated, clearToken } from './auth';
 import Login from './pages/Login';
 import CompanySelector from './pages/CompanySelector';
-import Dashboard from './pages/Dashboard';
-import Journal from './pages/Journal';
-import Reports from './pages/Reports';
-import Accounts from './pages/Accounts';
-import Ledger from './pages/Ledger';
-import TrialBalance from './pages/TrialBalance';
-import Worksheet from './pages/Worksheet';
-import CostCenters from './pages/CostCenters';
-import FixedAssets from './pages/FixedAssets';
-import UFV from './pages/UFV';
-import ExchangeRate from './pages/ExchangeRate';
-import DataForge from './DataForge/DataForge';
-import FinancialStatements from './pages/FinancialStatements';
-import Settings from './pages/Settings';
 import CommandPalette from './components/CommandPalette';
 import { ToastProvider } from './components/ToastProvider';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { motion } from 'framer-motion';
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 
 // Fondo WebGL inmersivo cargado de forma diferida: nunca bloquea el arranque
 // ni entra en el bundle principal (React.lazy + dynamic import).
 const AmbientCanvas = lazy(() => import('./three/AmbientCanvas'));
+
+// Code splitting por ruta: cada página es un chunk independiente que se
+// descarga al navegar. Login y CompanySelector quedan eager (primeras pantallas).
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Journal = lazy(() => import('./pages/Journal'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Accounts = lazy(() => import('./pages/Accounts'));
+const Ledger = lazy(() => import('./pages/Ledger'));
+const TrialBalance = lazy(() => import('./pages/TrialBalance'));
+const Worksheet = lazy(() => import('./pages/Worksheet'));
+const CostCenters = lazy(() => import('./pages/CostCenters'));
+const FixedAssets = lazy(() => import('./pages/FixedAssets'));
+const UFV = lazy(() => import('./pages/UFV'));
+const ExchangeRate = lazy(() => import('./pages/ExchangeRate'));
+const DataForge = lazy(() => import('./DataForge/DataForge'));
+const FinancialStatements = lazy(() => import('./pages/FinancialStatements'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
     const location = useLocation();
@@ -255,6 +258,13 @@ function AppLayout() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
                     >
+                        <Suspense fallback={
+                            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="visually-hidden">Cargando módulo...</span>
+                                </div>
+                            </div>
+                        }>
                         <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/accounts" element={<Accounts />} />
@@ -271,6 +281,7 @@ function AppLayout() {
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/financial-statements" element={<FinancialStatements />} />
                         </Routes>
+                        </Suspense>
                     </motion.div>
                 </main>
             </div>
@@ -281,6 +292,18 @@ function AppLayout() {
 }
 
 function App() {
+    // El fondo WebGL (chunk ~820KB con three.js) solo se carga en pantallas grandes:
+    // en mobile es peso y batería sin beneficio visual.
+    const [isLargeScreen, setIsLargeScreen] = useState(
+        typeof window !== 'undefined' && window.matchMedia('(min-width: 992px)').matches
+    );
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 992px)');
+        const onChange = (e) => setIsLargeScreen(e.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+
     return (
         <ToastProvider>
         <ConfirmProvider>
@@ -288,7 +311,7 @@ function App() {
         <CompanyProvider>
             <Router>
                 <Suspense fallback={null}>
-                    <AmbientCanvas />
+                    {isLargeScreen && <AmbientCanvas />}
                 </Suspense>
                 <Routes>
                     <Route path="/login" element={<Login />} />
