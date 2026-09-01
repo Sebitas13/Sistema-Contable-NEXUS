@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const db = require('./db'); // Importar la conexión compartida
 
 // Importar utilidades nuevas
@@ -7,6 +8,20 @@ const { shouldUseDynamicCors, corsMiddleware } = require('./utils');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Render (y cualquier PaaS) pone la app detrás de 1 proxy: sin esto, req.ip
+// siempre sería la IP del proxy y el rate-limit agruparía a TODOS los usuarios.
+app.set('trust proxy', 1);
+
+// Rate-limit del login: la auth es una única contraseña compartida; sin límite,
+// un brute-force online contra /api/auth/login es trivial.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    limit: 10,                // 10 intentos por IP por ventana (margen para errores honestos)
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Demasiados intentos de inicio de sesión. Espera 15 minutos e inténtalo de nuevo.' }
+});
 
 // Middleware - CORS dinámico o estático
 if (shouldUseDynamicCors()) {
@@ -35,6 +50,8 @@ const authRouter = require('./routes/auth');
 const { requireAuth, isAuthRequired } = require('./utils/auth');
 
 // Rutas públicas de login/config (se montan ANTES del gate).
+// El POST de login va limitado por IP (anti brute-force).
+app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRouter);
 
 // Gate de autenticación: protege todas las rutas /api salvo la whitelist.

@@ -187,7 +187,7 @@ export default function CostCenters() {
                                                         <td className="text-end">
                                                             <button className="btn btn-sm btn-outline-danger" onClick={async () => {
                                                                 if (window.confirm('¿Eliminar centro de costo?')) {
-                                                                    await inventoryService.deleteCostCenter(cc.id);
+                                                                    await inventoryService.deleteCostCenter(cc.id, companyId);
                                                                     fetchData();
                                                                 }
                                                             }}><i className="bi bi-trash"></i></button>
@@ -244,7 +244,7 @@ export default function CostCenters() {
                                                         <td className="text-end">
                                                             <button className="btn btn-sm btn-outline-danger" onClick={async () => {
                                                                 if (window.confirm('¿Eliminar modelo de distribución?')) {
-                                                                    await inventoryService.deleteDistributionModel(dm.id);
+                                                                    await inventoryService.deleteDistributionModel(dm.id, companyId);
                                                                     fetchData();
                                                                 }
                                                             }}><i className="bi bi-trash"></i></button>

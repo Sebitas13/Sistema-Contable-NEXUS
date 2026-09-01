@@ -33,8 +33,11 @@ router.get('/ledger', async (req, res) => {
             return res.status(400).json({ error: 'companyId is required' });
         }
 
-        companyFilter = 'AND t.company_id = ?';
-        params.push(companyId);
+        // Filtro de empresa para las TRANSACCIONES (t), además del filtro por cuentas (a).
+        // Antes este valor se construía pero nunca se interpolaba en el SQL: asientos de
+        // otra empresa podían contaminar el Mayor si una partida referenciaba una cuenta ajena.
+        companyFilter = 't.company_id = ?';
+        params.push(companyId, companyId);
 
         if (startDate && endDate) {
             dateFilter = 'AND t.date BETWEEN ? AND ?';
@@ -73,7 +76,7 @@ router.get('/ledger', async (req, res) => {
             FROM accounts a
             LEFT JOIN transaction_entries te ON a.id = te.account_id AND te.id IS NOT NULL
             LEFT JOIN transactions t ON te.transaction_id = t.id
-            WHERE a.company_id = ? AND (t.id IS NULL OR (1=1 ${dateFilter})) ${typeFilter}
+            WHERE a.company_id = ? AND (t.id IS NULL OR (${companyFilter} ${dateFilter})) ${typeFilter}
             GROUP BY a.id
             HAVING total_debit > 0 OR total_credit > 0
             ORDER BY a.code

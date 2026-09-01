@@ -23,23 +23,23 @@ ensureColumns();
 
 // GET all companies
 router.get('/', (req, res) => {
+    // Subqueries correlacionadas en vez de LEFT JOIN dobles: el join cartesiano
+    // anterior materializaba O(transacciones × cuentas) filas por empresa, siendo
+    // este el endpoint que corre en cada arranque de la app.
     const sql = `
-        SELECT 
+        SELECT
             c.*,
-            COUNT(DISTINCT t.id) as transaction_count,
-            COUNT(DISTINCT a.id) as account_count,
-            MAX(t.date) as last_activity
+            (SELECT COUNT(*) FROM transactions t WHERE t.company_id = c.id) as transaction_count,
+            (SELECT COUNT(*) FROM accounts a WHERE a.company_id = c.id) as account_count,
+            (SELECT MAX(t.date) FROM transactions t WHERE t.company_id = c.id) as last_activity
         FROM companies c
-        LEFT JOIN transactions t ON t.company_id = c.id
-        LEFT JOIN accounts a ON a.company_id = c.id
-        GROUP BY c.id
         ORDER BY c.created_at DESC
     `;
 
     db.all(sql, [], (err, rows) => {
         if (err) {
             console.error('Error fetching companies:', err);
-            return res.status(500).json({ error: err.message });
+            return res.status(500).json({ error: 'Error al obtener empresas' });
         }
         res.json({ success: true, data: rows });
     });
@@ -50,24 +50,20 @@ router.get('/:id', (req, res) => {
     const { id } = req.params;
 
     const sql = `
-        SELECT 
+        SELECT
             c.*,
-            COUNT(DISTINCT t.id) as transaction_count,
-            COUNT(DISTINCT a.id) as account_count,
-            COUNT(DISTINCT i.id) as inventory_count,
-            MAX(t.date) as last_activity
+            (SELECT COUNT(*) FROM transactions t WHERE t.company_id = c.id) as transaction_count,
+            (SELECT COUNT(*) FROM accounts a WHERE a.company_id = c.id) as account_count,
+            (SELECT COUNT(*) FROM inventory_items i WHERE i.company_id = c.id) as inventory_count,
+            (SELECT MAX(t.date) FROM transactions t WHERE t.company_id = c.id) as last_activity
         FROM companies c
-        LEFT JOIN transactions t ON t.company_id = c.id
-        LEFT JOIN accounts a ON a.company_id = c.id
-        LEFT JOIN inventory_items i ON i.company_id = c.id
         WHERE c.id = ?
-        GROUP BY c.id
     `;
 
     db.get(sql, [id], (err, row) => {
         if (err) {
             console.error('Error fetching company:', err);
-            return res.status(500).json({ error: err.message });
+            return res.status(500).json({ error: 'Error al obtener la empresa' });
         }
         if (!row) {
             return res.status(404).json({ error: 'Company not found' });

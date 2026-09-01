@@ -89,6 +89,7 @@ export default function Inventory() {
         e.preventDefault();
         try {
             await inventoryService.addMovement({
+                company_id: companyId,
                 item_id: selectedItem.id,
                 type: movementData.type,
                 quantity: movementData.quantity,
@@ -116,7 +117,7 @@ export default function Inventory() {
     const viewHistory = async (item) => {
         setSelectedItem(item);
         try {
-            const res = await inventoryService.getMovements(item.id);
+            const res = await inventoryService.getMovements(item.id, companyId);
             if (res.success) {
                 setMovementHistory(res.data);
                 setShowHistoryModal(true);
@@ -517,7 +518,7 @@ export default function Inventory() {
                                                     </button>
                                                     <button className="btn btn-sm btn-outline-danger" title="Eliminar Artículo" onClick={async () => {
                                                         if(window.confirm(`¿Eliminar el artículo ${item.code}?`)) {
-                                                            await inventoryService.deleteItem(item.id);
+                                                            await inventoryService.deleteItem(item.id, companyId);
                                                             fetchData();
                                                         }
                                                     }}>

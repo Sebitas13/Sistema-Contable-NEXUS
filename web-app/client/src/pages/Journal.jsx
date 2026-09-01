@@ -94,7 +94,7 @@ export default function Journal() {
 
     const fetchTransactionDetails = async (id) => {
         try {
-            const response = await axios.get(`${API_URL}/api/transactions/${id}`);
+            const response = await axios.get(`${API_URL}/api/transactions/${id}`, { params: { companyId } });
             setSelectedTransaction(response.data.data);
             setShowDetailModal(true);
         } catch (error) {
@@ -326,7 +326,7 @@ export default function Journal() {
 
     const handleEdit = async (transaction) => {
         try {
-            const response = await axios.get(`${API_URL}/api/transactions/${transaction.id}`);
+            const response = await axios.get(`${API_URL}/api/transactions/${transaction.id}`, { params: { companyId } });
             const details = response.data.data;
 
             setSelectedTransaction(details);

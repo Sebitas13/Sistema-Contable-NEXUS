@@ -82,8 +82,31 @@ async function initializeSchema() {
     }
 }
 
-// Add schema initialization to the queue. All other queries will wait for this.
-queryQueue = queryQueue.then(initializeSchema);
+// Migraciones idempotentes para DBs pre-existentes. Se ejecutan UNA POR UNA
+// (nunca dentro del batch del schema: un ALTER fallido por columna duplicada
+// haría fallar el batch completo y tumbaría el arranque).
+async function runMigrations() {
+    const columnMigrations = [
+        ["inventory_movements", "gloss", "TEXT DEFAULT ''"],
+        ["inventory_movements", "cost_center_id", "INTEGER"],
+        ["inventory_movements", "production_order_id", "INTEGER"]
+    ];
+
+    for (const [table, column, definition] of columnMigrations) {
+        try {
+            await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+            console.log(`Migration applied: ${table}.${column}`);
+        } catch (err) {
+            const msg = String(err.message || '');
+            if (!msg.toLowerCase().includes('duplicate column')) {
+                console.warn(`Migration skipped (${table}.${column}):`, msg);
+            }
+        }
+    }
+}
+
+// Add schema initialization + migrations to the queue. All other queries will wait for this.
+queryQueue = queryQueue.then(initializeSchema).then(runMigrations);
 
 // Wrapper to add a task to the serial queue
 const enqueue = (task) => {

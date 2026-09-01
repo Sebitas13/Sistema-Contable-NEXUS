@@ -18,8 +18,8 @@ router.get('/', (req, res) => {
     const sql = `SELECT * FROM accounts WHERE company_id = ? ORDER BY code`;
     db.all(sql, [companyId], (err, rows) => {
         if (err) {
-            res.status(400).json({ error: err.message });
-            return;
+            console.error('Error fetching accounts:', err.message);
+            return res.status(500).json({ error: 'Error al obtener el plan de cuentas' });
         }
         res.json({ data: rows });
     });
@@ -36,23 +36,22 @@ router.patch('/acquisition-dates', async (req, res) => {
     const sql = `UPDATE accounts SET acquisition_date = ? WHERE code = ? AND company_id = ?`;
 
     try {
-        // Start transaction
-        await db.run('BEGIN TRANSACTION');
+        // Transacción atómica (antes: BEGIN/COMMIT sueltos sobre la cola compartida).
+        const errors = await db.transaction(async (tx) => {
+            let errorCount = 0;
 
-        let errors = 0;
-
-        // Process all acquisitions sequentially
-        for (const acq of acquisitions) {
-            try {
-                await db.run(sql, [acq.acquisitionDate, acq.accountCode, acq.companyId]);
-            } catch (err) {
-                errors++;
-                console.error(`Error updating acquisition date for account ${acq.accountCode}:`, err.message);
+            for (const acq of acquisitions) {
+                try {
+                    await tx.execute({ sql, args: [acq.acquisitionDate, acq.accountCode, acq.companyId] });
+                } catch (err) {
+                    errorCount++;
+                    console.error(`Error updating acquisition date for account ${acq.accountCode}:`, err.message);
+                }
             }
-        }
 
-        // Commit transaction
-        await db.run('COMMIT');
+            return errorCount;
+        });
+
         res.json({
             success: true,
             message: `Updated ${acquisitions.length - errors} acquisition dates`,
@@ -61,13 +60,6 @@ router.patch('/acquisition-dates', async (req, res) => {
         });
 
     } catch (error) {
-        // Rollback on any error
-        try {
-            await db.run('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError.message);
-        }
-
         console.error('Error updating acquisition dates:', error.message);
         res.status(500).json({ error: 'Failed to update acquisition dates' });
     }
@@ -79,7 +71,7 @@ router.post('/', async (req, res) => {
 
     if (!code || !name || !type || !level || !companyId) {
         console.error('❌ [API] Missing required fields for account creation:', { body: req.body });
-        res.status(400).json({ error: 'Missing required fields', received: req.body });
+        return res.status(400).json({ error: 'Missing required fields', received: req.body });
     }
 
     const sql = 'INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)';
@@ -92,7 +84,11 @@ router.post('/', async (req, res) => {
             data: { ...req.body, company_id: companyId }
         });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        if (String(err.message).includes('UNIQUE')) {
+            return res.status(409).json({ error: `Ya existe la cuenta ${code} en esta empresa` });
+        }
+        console.error('Error creating account:', err.message);
+        res.status(500).json({ error: 'Error al crear la cuenta' });
     }
 });
 
@@ -107,31 +103,36 @@ router.post('/bulk', async (req, res) => {
     const sql = 'INSERT INTO accounts (company_id, code, name, type, level, parent_code) VALUES (?, ?, ?, ?, ?, ?)';
 
     try {
-        // Start transaction
-        await db.run('BEGIN TRANSACTION');
+        // Transacción atómica. Errores por fila (p. ej. código duplicado) se cuentan
+        // y se toleran como antes, pero ahora o se committea el lote completo o nada.
+        const { successCount, errors } = await db.transaction(async (tx) => {
+            let errorCount = 0;
+            let okCount = 0;
+            const seenCodes = new Set();
 
-        let errors = 0;
-        let successCount = 0;
+            for (const acc of accounts) {
+                // Validación mínima antes de insertar (+ duplicados dentro del propio lote)
+                if (!acc.code || !acc.name || !acc.type || !acc.level || seenCodes.has(acc.code)) {
+                    errorCount++;
+                    continue;
+                }
+                seenCodes.add(acc.code);
 
-        // Process all accounts sequentially
-        for (const acc of accounts) {
-            // Validación mínima antes de insertar
-            if (!acc.code || !acc.name || !acc.type || !acc.level) {
-                errors++;
-                continue;
+                try {
+                    await tx.execute({
+                        sql,
+                        args: [companyId, acc.code, acc.name, acc.type, acc.level, acc.parent_code || null]
+                    });
+                    okCount++;
+                } catch (err) {
+                    errorCount++;
+                    console.error(`Error inserting account ${acc.code}:`, err.message);
+                }
             }
 
-            try {
-                await db.run(sql, [companyId, acc.code, acc.name, acc.type, acc.level, acc.parent_code || null]);
-                successCount++;
-            } catch (err) {
-                errors++;
-                console.error(`Error inserting account ${acc.code}:`, err.message);
-            }
-        }
+            return { successCount: okCount, errors: errorCount };
+        });
 
-        // Commit transaction
-        await db.run('COMMIT');
         res.json({
             message: `Bulk import completed. Processed ${accounts.length} accounts.`,
             successCount: successCount,
@@ -139,13 +140,6 @@ router.post('/bulk', async (req, res) => {
         });
 
     } catch (error) {
-        // Rollback on any error
-        try {
-            await db.run('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError.message);
-        }
-
         console.error('Error in bulk account creation:', error.message);
         res.status(500).json({ error: 'Failed to execute bulk insert' });
     }
@@ -159,14 +153,26 @@ router.put('/:id', async (req, res) => {
     if (!companyId) {
         return res.status(400).json({ error: 'companyId is required' });
     }
+    if (!code || !name || !type || !level) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-    const sql = 'UPDATE accounts SET company_id = ?, code = ?, name = ?, type = ?, level = ?, parent_code = ? WHERE id = ?';
+    // ⛔ Nunca se actualiza company_id: una cuenta no puede "mudarse" de empresa
+    // (arrastraría sus transaction_entries y contaminaría el mayor de la otra).
+    const sql = 'UPDATE accounts SET code = ?, name = ?, type = ?, level = ?, parent_code = ? WHERE id = ? AND company_id = ?';
 
     try {
-        const result = await db.run(sql, [companyId, code, name, type, level, parent_code || null, id]);
+        const result = await db.run(sql, [code, name, type, level, parent_code || null, id, companyId]);
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
         res.json({ message: 'Account updated', changes: result.changes });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        if (String(err.message).includes('UNIQUE')) {
+            return res.status(409).json({ error: `Ya existe la cuenta ${code} en esta empresa` });
+        }
+        console.error('Error updating account:', err.message);
+        res.status(500).json({ error: 'Error al actualizar la cuenta' });
     }
 });
 
@@ -190,10 +196,18 @@ router.delete('/:id', async (req, res) => {
 
         const sql = 'DELETE FROM accounts WHERE id = ? AND company_id = ?';
         const result = await db.run(sql, [id, companyId]);
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
         res.json({ message: 'Account deleted', changes: result.changes });
 
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        // FK: la cuenta tiene partidas asociadas → mensaje claro, sin filtrar internals.
+        if (String(err.message).includes('FOREIGN KEY')) {
+            return res.status(409).json({ error: 'La cuenta tiene movimientos asociados y no puede eliminarse.' });
+        }
+        console.error('Error deleting account:', err.message);
+        res.status(500).json({ error: 'Error al eliminar la cuenta' });
     }
 });
 
@@ -208,40 +222,26 @@ router.patch('/batch-parents', async (req, res) => {
     const sql = 'UPDATE accounts SET parent_code = ? WHERE id = ? AND company_id = ?';
 
     try {
-        // Start transaction
-        await db.run('BEGIN TRANSACTION');
+        // Transacción atómica (antes: BEGIN/COMMIT sueltos sobre la cola compartida).
+        const successCount = await db.transaction(async (tx) => {
+            let okCount = 0;
 
-        let hasErrors = false;
-        let successCount = 0;
-
-        // Process all updates sequentially
-        for (const u of updates) {
-            try {
-                await db.run(sql, [u.parent_code, u.id, companyId]);
-                successCount++;
-            } catch (err) {
-                hasErrors = true;
-                console.error(`Error updating parent code for account ${u.id}:`, err.message);
+            for (const u of updates) {
+                try {
+                    await tx.execute({ sql, args: [u.parent_code, u.id, companyId] });
+                    okCount++;
+                } catch (err) {
+                    console.error(`Error updating parent code for account ${u.id}:`, err.message);
+                    throw err; // aborta el lote completo: consistencia del árbol de cuentas
+                }
             }
-        }
 
-        // Commit or rollback based on results
-        if (hasErrors) {
-            await db.run('ROLLBACK');
-            res.status(500).json({ error: 'Errors occurred during batch update' });
-        } else {
-            await db.run('COMMIT');
-            res.json({ message: `Successfully updated ${successCount} accounts` });
-        }
+            return okCount;
+        });
+
+        res.json({ message: `Successfully updated ${successCount} accounts` });
 
     } catch (error) {
-        // Rollback on any error
-        try {
-            await db.run('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError.message);
-        }
-
         console.error('Error in batch parent update:', error.message);
         res.status(500).json({ error: 'Failed to execute batch update' });
     }
@@ -249,15 +249,26 @@ router.patch('/batch-parents', async (req, res) => {
 
 // Fix parent codes for all accounts - LIBSQL PROMISES VERSION
 router.post('/fix-parent-codes', async (req, res) => {
+    const { companyId } = req.body;
+
+    // Scoped multi-tenant: inferir padres SOLO dentro del plan de cuentas de la empresa.
+    if (!companyId) {
+        return res.status(400).json({ error: 'companyId is required' });
+    }
+
     try {
         console.log('🔧 Iniciando corrección de parent_code vía API...');
 
-        // Obtener todas las cuentas
+        // Obtener las cuentas de ESTA empresa únicamente
         const accounts = await new Promise((resolve, reject) => {
-            db.all('SELECT id, code, name, level, parent_code FROM accounts ORDER BY code', [], (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
+            db.all(
+                'SELECT id, code, name, level, parent_code FROM accounts WHERE company_id = ? ORDER BY code',
+                [companyId],
+                (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                }
+            );
         });
 
         console.log(`📊 Encontradas ${accounts.length} cuentas`);
@@ -294,14 +305,18 @@ router.post('/fix-parent-codes', async (req, res) => {
             }
 
             if (parentCode && parentCode !== acc.parent_code) {
-                // Verificar que el padre existe
+                // Verificar que el padre existe DENTRO de esta empresa
                 const parentExists = accounts.some(a => a.code === parentCode);
                 if (parentExists) {
                     await new Promise((resolve, reject) => {
-                        db.run('UPDATE accounts SET parent_code = ? WHERE id = ?', [parentCode, acc.id], (err) => {
-                            if (err) reject(err);
-                            else resolve();
-                        });
+                        db.run(
+                            'UPDATE accounts SET parent_code = ? WHERE id = ? AND company_id = ?',
+                            [parentCode, acc.id, companyId],
+                            (err) => {
+                                if (err) reject(err);
+                                else resolve();
+                            }
+                        );
                     });
                     updatedCount++;
                 }
@@ -318,7 +333,7 @@ router.post('/fix-parent-codes', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error fixing parent codes:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Error al corregir los parent codes' });
     }
 });
 

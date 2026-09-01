@@ -13,19 +13,19 @@ const inventoryService = {
         return response.data;
     },
 
-    async updateItem(id, itemData) {
-        const response = await axios.put(`${API_URL}/api/inventory/items/${id}`, itemData);
+    async updateItem(id, itemData, companyId) {
+        const response = await axios.put(`${API_URL}/api/inventory/items/${id}`, { ...itemData, company_id: companyId });
         return response.data;
     },
 
-    async deleteItem(id) {
-        const response = await axios.delete(`${API_URL}/api/inventory/items/${id}`);
+    async deleteItem(id, companyId) {
+        const response = await axios.delete(`${API_URL}/api/inventory/items/${id}`, { params: { companyId } });
         return response.data;
     },
 
     // ============ MOVEMENTS ============
-    async getMovements(itemId) {
-        const response = await axios.get(`${API_URL}/api/inventory/movements/${itemId}`);
+    async getMovements(itemId, companyId) {
+        const response = await axios.get(`${API_URL}/api/inventory/movements/${itemId}`, { params: { companyId } });
         return response.data;
     },
 
@@ -45,13 +45,13 @@ const inventoryService = {
         return response.data;
     },
 
-    async updateCostCenter(id, data) {
-        const response = await axios.put(`${API_URL}/api/inventory/cost-centers/${id}`, data);
+    async updateCostCenter(id, data, companyId) {
+        const response = await axios.put(`${API_URL}/api/inventory/cost-centers/${id}`, { ...data, company_id: companyId });
         return response.data;
     },
 
-    async deleteCostCenter(id) {
-        const response = await axios.delete(`${API_URL}/api/inventory/cost-centers/${id}`);
+    async deleteCostCenter(id, companyId) {
+        const response = await axios.delete(`${API_URL}/api/inventory/cost-centers/${id}`, { params: { companyId } });
         return response.data;
     },
 
@@ -66,8 +66,8 @@ const inventoryService = {
         return response.data;
     },
 
-    async deleteDistributionModel(id) {
-        const response = await axios.delete(`${API_URL}/api/inventory/distribution-models/${id}`);
+    async deleteDistributionModel(id, companyId) {
+        const response = await axios.delete(`${API_URL}/api/inventory/distribution-models/${id}`, { params: { companyId } });
         return response.data;
     }
 };

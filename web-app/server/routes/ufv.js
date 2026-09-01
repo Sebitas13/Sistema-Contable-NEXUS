@@ -57,7 +57,10 @@ const createUfvTable = () => {
                     )
                 `);
 
-                // 4. Copy data, assigning a default company_id
+                // 4. Copy data, assigning a default company_id.
+                //    Guard anti-pérdida: si el copy falla, se hace ROLLBACK y NO se
+                //    ejecuta el DROP de la tabla vieja (antes el DROP corría igual y
+                //    un fallo silencioso del copy borraba los datos para siempre).
                 db.run(`
                     INSERT INTO ufv_rates (id, company_id, date, value, created_at)
                     SELECT id, 
@@ -68,20 +71,22 @@ const createUfvTable = () => {
                     FROM ufv_rates_old
                 `, (err) => {
                     if (err) {
-                        console.error("Data migration copy failed:", err.message);
-                    }
-                });
-
-                // 5. Cleanup
-                db.run("DROP TABLE ufv_rates_old");
-
-                db.run("COMMIT", (err) => {
-                    if (err) {
-                        console.error("Migration COMMIT failed:", err.message);
+                        console.error("Data migration copy failed — ROLLBACK, la tabla ufv_rates_old se preserva:", err.message);
                         db.run("ROLLBACK");
-                    } else {
-                        console.log("✅ UFV Table Migration Successful (Multi-tenancy enabled)");
+                        return;
                     }
+
+                    // 5. Cleanup (solo si el copy succeeded)
+                    db.run("DROP TABLE ufv_rates_old");
+
+                    db.run("COMMIT", (err) => {
+                        if (err) {
+                            console.error("Migration COMMIT failed:", err.message);
+                            db.run("ROLLBACK");
+                        } else {
+                            console.log("✅ UFV Table Migration Successful (Multi-tenancy enabled)");
+                        }
+                    });
                 });
             });
         }
@@ -342,15 +347,16 @@ router.delete('/year/:year', async (req, res) => {
 // DELETE single UFV record - LIBSQL PROMISES VERSION
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.query; // Optional but recommended
+    const { companyId } = req.query;
 
-    let sql = 'DELETE FROM ufv_rates WHERE id = ?';
-    let params = [id];
-
-    if (companyId) {
-        sql += ' AND company_id = ?';
-        params.push(companyId);
+    // Scoped multi-tenant: sin empresa no se borra (antes era opcional y permitía
+    // borrar registros de cualquier empresa por id).
+    if (!companyId) {
+        return res.status(400).json({ error: 'companyId is required' });
     }
+
+    const sql = 'DELETE FROM ufv_rates WHERE id = ? AND company_id = ?';
+    const params = [id, companyId];
 
     try {
         const result = await db.run(sql, params);
@@ -360,7 +366,8 @@ router.delete('/:id', async (req, res) => {
         }
         res.json({ message: 'UFV record deleted' });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Error deleting UFV record:', err.message);
+        res.status(500).json({ error: 'Error al eliminar el registro UFV' });
     }
 });
 

@@ -60,10 +60,12 @@ const createTable = () => {
                     )
                 `);
 
-                // 4. Copy data, mapping old schema to new multi-tenancy schema
+                // 4. Copy data, mapping old schema to new multi-tenancy schema.
+                //    Guard anti-pérdida: si el copy falla, ROLLBACK y NO se ejecuta el
+                //    DROP de la tabla vieja (antes el DROP corría igual y perdía datos).
                 db.run(`
                     INSERT INTO exchange_rates (id, company_id, date, currency, buy_rate, sell_rate, created_at)
-                    SELECT id, 
+                    SELECT id,
                            (SELECT id FROM companies ORDER BY id ASC LIMIT 1),
                            date,
                            'USD',
@@ -72,19 +74,23 @@ const createTable = () => {
                            created_at
                     FROM exchange_rates_old
                 `, (err) => {
-                    if (err) console.error("Data migration copy failed for exchange_rates:", err.message);
-                });
-
-                // 5. Cleanup
-                db.run("DROP TABLE exchange_rates_old");
-
-                db.run("COMMIT", (err) => {
                     if (err) {
-                        console.error("Exchange rates migration COMMIT failed:", err.message);
+                        console.error("Data migration copy failed for exchange_rates — ROLLBACK, exchange_rates_old se preserva:", err.message);
                         db.run("ROLLBACK");
-                    } else {
-                        console.log("✅ Exchange Rates Table Migration Successful (Multi-tenancy enabled)");
+                        return;
                     }
+
+                    // 5. Cleanup (solo si el copy succeeded)
+                    db.run("DROP TABLE exchange_rates_old");
+
+                    db.run("COMMIT", (err) => {
+                        if (err) {
+                            console.error("Exchange rates migration COMMIT failed:", err.message);
+                            db.run("ROLLBACK");
+                        } else {
+                            console.log("✅ Exchange Rates Table Migration Successful (Multi-tenancy enabled)");
+                        }
+                    });
                 });
             });
         } else {

@@ -77,14 +77,20 @@ CREATE TABLE IF NOT EXISTS inventory_items (
 );
 
 -- Inventory Movements
+-- NOTA: gloss/cost_center_id/production_order_id son parte del schema real usado
+-- por routes/inventory.js y el kardex (antes faltaban aquí y una DB fresca rompía).
+-- db.js aplica ALTERs idempotentes para DBs pre-existentes.
 CREATE TABLE IF NOT EXISTS inventory_movements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER NOT NULL,
     date TEXT NOT NULL,
-    type TEXT NOT NULL, -- Compra, Venta, Devolucion
+    type TEXT NOT NULL, -- Entrada, Salida, Consumo, Ajuste
     quantity REAL NOT NULL,
     unit_cost REAL NOT NULL,
     total_cost REAL NOT NULL,
+    gloss TEXT DEFAULT '',
+    cost_center_id INTEGER,
+    production_order_id INTEGER,
     FOREIGN KEY (item_id) REFERENCES inventory_items(id) ON DELETE CASCADE
 );
 
@@ -106,20 +112,30 @@ CREATE TABLE IF NOT EXISTS fixed_assets (
 );
 
 -- UFV (Unidad de Fomento de Vivienda)
+-- Forma multi-tenant (igual a la que produce la migración de boot en routes/ufv.js).
+-- Así una DB fresca nace correcta y la migración de ufv.js se vuelve no-op.
 CREATE TABLE IF NOT EXISTS ufv_rates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT UNIQUE NOT NULL,
+    company_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
     value REAL NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    UNIQUE(company_id, date)
 );
 
 -- Exchange Rates
+-- Forma multi-tenant (igual a la que produce la migración de boot en routes/exchange_rates.js).
 CREATE TABLE IF NOT EXISTS exchange_rates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT UNIQUE NOT NULL,
-    usd_buy REAL NOT NULL,
-    usd_sell REAL NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    company_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    buy_rate REAL NOT NULL,
+    sell_rate REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    UNIQUE(company_id, date, currency)
 );
 
 -- =============================================================================
@@ -166,6 +182,11 @@ CREATE INDEX IF NOT EXISTS idx_transactions_company ON transactions(company_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_inventory_company ON inventory_items(company_id);
 CREATE INDEX IF NOT EXISTS idx_fixed_assets_company ON fixed_assets(company_id);
+-- Índices críticos sobre la tabla más grande del sistema: todo JOIN del diario,
+-- mayor y balance pasa por transaction_id o account_id (antes: full scan).
+CREATE INDEX IF NOT EXISTS idx_te_transaction ON transaction_entries(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_te_account ON transaction_entries(account_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(item_id);
 
 -- =============================================================================
 -- COST MANAGEMENT & ANALYTIC ACCOUNTING
