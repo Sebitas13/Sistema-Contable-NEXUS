@@ -40,28 +40,28 @@ const INITIAL_DEPRECIATION_RULES = [
     { asset_type_keyword: "Barcos y lanchas en general", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Vehiculos automotores", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Aviones", useful_life_years: 5, annual_rate: 0.20 },
-    { asset_type_keyword: "Maquinaria para la construcciÃ³n", useful_life_years: 5, annual_rate: 0.20 },
-    { asset_type_keyword: "Maquinaria agrÃ­cola", useful_life_years: 4, annual_rate: 0.25 },
+    { asset_type_keyword: "Maquinaria para la construcción", useful_life_years: 5, annual_rate: 0.20 },
+    { asset_type_keyword: "Maquinaria agrícola", useful_life_years: 4, annual_rate: 0.25 },
     { asset_type_keyword: "Animales de trabajo", useful_life_years: 4, annual_rate: 0.25 },
     { asset_type_keyword: "Herramientas en general", useful_life_years: 4, annual_rate: 0.25 },
     { asset_type_keyword: "Reproductores y hembras de pedigree o puros por cruza", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Equipos de computacion", useful_life_years: 4, annual_rate: 0.25 },
-    { asset_type_keyword: "Canales de regadÃ­o y pozos", useful_life_years: 20, annual_rate: 0.05 },
-    { asset_type_keyword: "Estanques, baÃ±aderos y abrevaderos", useful_life_years: 10, annual_rate: 0.10 },
+    { asset_type_keyword: "Canales de regadío y pozos", useful_life_years: 20, annual_rate: 0.05 },
+    { asset_type_keyword: "Estanques, bañaderos y abrevaderos", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Alambrados, tranqueras y vallas", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Viviendas para el personal", useful_life_years: 20, annual_rate: 0.05 },
     { asset_type_keyword: "Muebles y enseres en las viviendas para el personal", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Silos, almacenes y galpones", useful_life_years: 20, annual_rate: 0.05 },
     { asset_type_keyword: "Tinglados y cobertizos de madera", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Tinglados y cobertizos de metal", useful_life_years: 10, annual_rate: 0.10 },
-    { asset_type_keyword: "Instalaciones de electrificaciÃ³n y telefonÃ­a rurales", useful_life_years: 10, annual_rate: 0.10 },
+    { asset_type_keyword: "Instalaciones de electrificación y telefonía rurales", useful_life_years: 10, annual_rate: 0.10 },
     { asset_type_keyword: "Caminos interiores", useful_life_years: 10, annual_rate: 0.10 },
-    { asset_type_keyword: "CaÃ±a de azÃºcar", useful_life_years: 5, annual_rate: 0.20 },
+    { asset_type_keyword: "Caña de azúcar", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Vides", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Frutales", useful_life_years: 10, annual_rate: 0.10 },
-    { asset_type_keyword: "Otras plantaciones (segÃºn experiencia del contribuyente)", useful_life_years: 0, annual_rate: 0.00 },
+    { asset_type_keyword: "Otras plantaciones (según experiencia del contribuyente)", useful_life_years: 0, annual_rate: 0.00 },
     { asset_type_keyword: "Pozos Petroleros", useful_life_years: 5, annual_rate: 0.20 },
-    { asset_type_keyword: "LÃ­neas de RecolecciÃ³n de la industria petrolera", useful_life_years: 5, annual_rate: 0.20 },
+    { asset_type_keyword: "Líneas de Recolección de la industria petrolera", useful_life_years: 5, annual_rate: 0.20 },
     { asset_type_keyword: "Equipos de campo de la industria petrolera", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Plantas de Procesamiento de la industria petrolera", useful_life_years: 8, annual_rate: 0.125 },
     { asset_type_keyword: "Ductos de la industria petrolera", useful_life_years: 10, annual_rate: 0.10 }
@@ -114,7 +114,7 @@ export default function Settings() {
                         name: data.name || `Perfil #${data.id}`,
                         companyId: data.companyId,
                         config: data.config,
-                        companyName: company?.name || (data.companyId === 'global' ? 'ðŸŒ Plantilla Global' : `Empresa ID: ${data.companyId}`)
+                        companyName: company?.name || (data.companyId === 'global' ? '🌍 Plantilla Global' : `Empresa ID: ${data.companyId}`)
                     });
                 } catch (e) { console.error("Error parsing profile", key); }
             }
@@ -129,7 +129,7 @@ export default function Settings() {
     };
 
     const deleteProfile = (key, name) => {
-        if (window.confirm(`Â¿EstÃ¡s seguro de eliminar el perfil "${name}"?`)) {
+        if (window.confirm(`¿Estás seguro de eliminar el perfil "${name}"?`)) {
             localStorage.removeItem(key);
             setEditingProfile(null);
         }
@@ -173,10 +173,10 @@ export default function Settings() {
 
             if (response.data.success && response.data.profile_json) {
                 setCompanyProfile(response.data.profile_json);
-                console.log('âœ… Perfil de IA especÃ­fico de la empresa cargado.');
+                console.log('✅ Perfil de IA específico de la empresa cargado.');
             } else {
                 setCompanyProfile(ARS_CONTEXT_PROFILE); // Fallback
-                console.log('â„¹ï¸ No se encontrÃ³ perfil de IA para la empresa, usando perfil por defecto.');
+                console.log('ℹ️ No se encontró perfil de IA para la empresa, usando perfil por defecto.');
             }
         } catch (e) {
             console.warn('No se pudo cargar perfil persistente, usando default.', e.message);
@@ -300,7 +300,7 @@ export default function Settings() {
             const updates = AccountPlanProfile.calculateHierarchy(accounts);
 
             if (updates.length === 0) {
-                setHealResult({ type: 'success', message: 'La jerarquÃ­a ya estÃ¡ correcta. No se requieren cambios.' });
+                setHealResult({ type: 'success', message: 'La jerarquía ya está correcta. No se requieren cambios.' });
                 setHealing(false);
                 setDiagnosticResult(prev => ({ ...prev, status: 'healthy', withoutParent: 0 }));
                 return;
@@ -455,7 +455,7 @@ export default function Settings() {
     };
 
     const handleModeChange = async () => {
-        if (!selectedMode || !modeChangeReason.trim()) return alert('Selecciona un modo y proporciona una razÃ³n');
+        if (!selectedMode || !modeChangeReason.trim()) return alert('Selecciona un modo y proporciona una razón');
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/change-mode`, { newMode: selectedMode, userId: 'admin', reason: modeChangeReason });
             alert(`Modo cambiado exitosamente a ${selectedMode}`);
@@ -465,7 +465,7 @@ export default function Settings() {
     };
 
     const handleEmergencyStop = async () => {
-        if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrÃ¡ TODAS las operaciones de Mahoraga.')) return;
+        if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrá TODAS las operaciones de Mahoraga.')) return;
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, { userId: 'admin', reason: 'Emergency stop from dashboard' });
             alert('PARADA DE EMERGENCIA ACTIVADA');
@@ -501,7 +501,7 @@ export default function Settings() {
     return (
         <div className="container-fluid py-4">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-                <h2 className="mb-0"><i className="bi bi-gear me-2"></i>ConfiguraciÃ³n <span className="d-none d-sm-inline">del Sistema</span></h2>
+                <h2 className="mb-0"><i className="bi bi-gear me-2"></i>Configuración <span className="d-none d-sm-inline">del Sistema</span></h2>
                 <div className="d-flex flex-wrap gap-2">
                     <button
                         className={`btn ${activeTab === 'data' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -540,7 +540,7 @@ export default function Settings() {
                                 <p className="text-white-50 small">
                                     Esta herramienta analiza los códigos de tus cuentas y reconstruye las relaciones
                                     padre-hijo (campo <code className="text-info">parent_code</code>). <br />
-                                    <strong className="text-white">Uso recomendado:</strong> Si tus Estados Financieros aparecen vacÃ­os o desordenados.
+                                    <strong className="text-white">Uso recomendado:</strong> Si tus Estados Financieros aparecen vacíos o desordenados.
                                 </p>
 
                                 <div className="d-grid gap-2 mb-3">
@@ -602,7 +602,7 @@ export default function Settings() {
                                         <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }} className="sticky-top">
                                             <tr>
                                                 <th style={{ width: '40%' }} className="text-white-50 border-secondary">Bien / Activo (Palabra Clave)</th>
-                                                <th style={{ width: '20%' }} className="text-white-50 border-secondary">Vida Ãštil (AÃ±os)</th>
+                                                <th style={{ width: '20%' }} className="text-white-50 border-secondary">Vida Útil (Años)</th>
                                                 <th style={{ width: '20%' }} className="text-white-50 border-secondary">Coeficiente %</th>
                                                 <th style={{ width: '20%' }} className="text-end text-white-50 border-secondary">Acciones</th>
                                             </tr>
@@ -709,7 +709,7 @@ export default function Settings() {
                                                                 <button className="btn btn-outline-primary" title="Editar con Entrenador" onClick={() => setEditingProfile(p)}>
                                                                     <i className="bi bi-pencil-square"></i>
                                                                 </button>
-                                                                <button className="btn btn-outline-success" title="Clonar / Nueva VersiÃ³n" onClick={() => setShowCloneModal(p)}>
+                                                                <button className="btn btn-outline-success" title="Clonar / Nueva Versión" onClick={() => setShowCloneModal(p)}>
                                                                     <i className="bi bi-copy"></i>
                                                                 </button>
                                                                 <button className="btn btn-outline-danger" title="Eliminar" onClick={() => deleteProfile(p.key, p.name)}>
@@ -752,10 +752,10 @@ export default function Settings() {
                                         </p>
                                         <div className="row g-3">
                                             {[
-                                                { id: 'GENESIS', label: 'GÃ‰NESIS', sub: 'Cimientos', threshold: 25 },
-                                                { id: 'OPERACION', label: 'OPERACIÃ“N', sub: 'Hechos Reales', threshold: 50 },
+                                                { id: 'GENESIS', label: 'GÉNESIS', sub: 'Cimientos', threshold: 25 },
+                                                { id: 'OPERACION', label: 'OPERACIÓN', sub: 'Hechos Reales', threshold: 50 },
                                                 { id: 'RITUAL', label: 'RITUAL', sub: 'Ajustes/SCL', threshold: 75 },
-                                                { id: 'REVELACION', label: 'REVELACIÃ“N', sub: 'Juicio Final', threshold: 100 }
+                                                { id: 'REVELACION', label: 'REVELACIÓN', sub: 'Juicio Final', threshold: 100 }
                                             ].map(phase => (
                                                 <div key={phase.id} className="col-6 col-md-3">
                                                     <div className={`p-2 rounded text-center border ${(maturity?.percentage ?? learningStatus?.learning_progress?.percentage) >= phase.threshold
@@ -772,7 +772,7 @@ export default function Settings() {
                                     </div>
                                     <div className="col-md-4 text-center mt-4 mt-md-0 border-start border-secondary">
                                         <div className="display-4 fw-bold mb-0" style={{ color: '#eab308' }}>{maturity?.percentage ?? learningStatus?.learning_progress?.percentage ?? 0}%</div>
-                                        <div className="small text-uppercase opacity-75 mb-3">Madurez de OrquestaciÃ³n</div>
+                                        <div className="small text-uppercase opacity-75 mb-3">Madurez de Orquestación</div>
                                         <div className="badge p-2 border border-secondary w-100" style={{ background: '#1e293b', color: '#eab308' }}>
                                             <i className="bi bi-flag-fill me-2"></i>
                                             {maturity?.next_milestone || learningStatus?.learning_progress?.next_milestone || 'Pendiente'}
@@ -783,19 +783,19 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {/* Controles de ActivaciÃ³n por PÃ¡gina */}
+                    {/* Controles de Activación por Página */}
                     <div className="col-12">
                         <div className="card shadow-sm border-0 border-top border-4 border-primary glass-panel">
                             <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 className="mb-0 fw-bold text-white"><i className="bi bi-toggle-on me-2"></i>Central de ActivaciÃ³n</h5>
+                                    <h5 className="mb-0 fw-bold text-white"><i className="bi bi-toggle-on me-2"></i>Central de Activación</h5>
                                     {savingConfig && <span className="spinner-border spinner-border-sm text-primary"></span>}
                                 </div>
                                 <div className="row g-2">
                                     {[
                                         { id: 'Journal', name: 'Libro Diario', icon: 'bi-pencil-square' },
                                         { id: 'Accounts', name: 'Plan de Cuentas', icon: 'bi-journal-text' },
-                                        { id: 'TrialBalance', name: 'Balance ComprobaciÃ³n', icon: 'bi-calculator' },
+                                        { id: 'TrialBalance', name: 'Balance Comprobación', icon: 'bi-calculator' },
                                         { id: 'Ledger', name: 'Libro Mayor', icon: 'bi-book' },
                                         { id: 'UFV', name: 'Mantenimiento UFV', icon: 'bi-graph-up-arrow' },
                                         { id: 'ExchangeRate', name: 'Tipo de Cambio', icon: 'bi-currency-exchange' },
@@ -826,7 +826,7 @@ export default function Settings() {
                                     ))}
                                 </div>
                                 <div className="mt-3 small text-white-50">
-                                    <i className="bi bi-info-circle me-1"></i> Mahoraga solo mostrarÃ¡ su rueda y controles en las pÃ¡ginas seleccionadas.
+                                    <i className="bi bi-info-circle me-1"></i> Mahoraga solo mostrará su rueda y controles en las páginas seleccionadas.
                                 </div>
                             </div>
                         </div>
@@ -856,11 +856,11 @@ export default function Settings() {
                     <div className="col-md-4">
                         <div className="card shadow-sm h-100 border-secondary glass-panel" style={{ background: 'linear-gradient(135deg, rgba(240, 249, 255, 0.05) 0%, rgba(224, 242, 254, 0.05) 100%)' }}>
                             <div className="card-body">
-                                <h6 className="text-primary text-uppercase small fw-bold mb-3">CogniciÃ³n (Reglas)</h6>
+                                <h6 className="text-primary text-uppercase small fw-bold mb-3">Cognición (Reglas)</h6>
                                 <h3 className="fw-bold mb-2 text-white">
                                     {maturity?.cognition?.total ?? ((companyProfile?.monetary_rules?.length || 0) + (companyProfile?.non_monetary_rules?.length || 0))}
                                 </h3>
-                                <p className="small text-white-50 mb-4">Patrones especÃ­ficos aprendidos de tus correcciones diarias.</p>
+                                <p className="small text-white-50 mb-4">Patrones específicos aprendidos de tus correcciones diarias.</p>
                                 <div className="d-flex gap-2">
                                     <span className="badge bg-primary bg-opacity-75">{maturity?.cognition?.monetary_rules ?? (companyProfile?.monetary_rules?.length || 0)} Monetarias</span>
                                     <span className="badge bg-info text-dark bg-opacity-75">{maturity?.cognition?.non_monetary_rules ?? (companyProfile?.non_monetary_rules?.length || 0)} No Monetarias</span>
@@ -980,7 +980,7 @@ export default function Settings() {
                                         <label className="form-label small fw-bold text-white-50">Empresa Asignada</label>
                                         <select className="form-select bg-dark text-white border-secondary" value={editingProfile.companyId}
                                             onChange={e => setEditingProfile({ ...editingProfile, companyId: e.target.value })}>
-                                            <option value="global">ðŸŒ Plantilla Global (Para todos)</option>
+                                            <option value="global">🌍 Plantilla Global (Para todos)</option>
                                             {companies.map(c => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
@@ -988,10 +988,10 @@ export default function Settings() {
                                     </div>
                                 </div>
                                 <div className="p-3 rounded border border-secondary shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                                    <h6 className="border-bottom border-secondary pt-1 pb-2 mb-3 text-white"><i className="bi bi-sliders me-2"></i>ConfiguraciÃ³n de Estructura</h6>
+                                    <h6 className="border-bottom border-secondary pt-1 pb-2 mb-3 text-white"><i className="bi bi-sliders me-2"></i>Configuración de Estructura</h6>
                                     <div className="row g-3 align-items-end">
                                         <div className="col-md-3">
-                                            <label className="form-label small fw-bold text-white-50">DetecciÃ³n</label>
+                                            <label className="form-label small fw-bold text-white-50">Detección</label>
                                             <div className="btn-group btn-group-sm w-100">
                                                 <button className={`btn ${editingProfile.config.hasSeparator ? 'btn-primary' : 'btn-outline-primary text-white'}`}
                                                     onClick={() => setEditingProfile({ ...editingProfile, config: { ...editingProfile.config, hasSeparator: true } })}>Separador</button>
@@ -1074,7 +1074,7 @@ export default function Settings() {
                                     <label className="form-label small fw-bold text-white-50">Empresa Destino</label>
                                     <select className="form-select bg-dark text-white border-secondary" value={targetCompanyId} onChange={e => setTargetCompanyId(e.target.value)}>
                                         <option value="">-- Misma Empresa --</option>
-                                        <option value="global">ðŸŒ Plantilla Global</option>
+                                        <option value="global">🌍 Plantilla Global</option>
                                         {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
@@ -1098,17 +1098,17 @@ export default function Settings() {
                             </div>
                             <div className="modal-body p-4">
                                 <div className="mb-4">
-                                    <label className="form-label fw-bold text-white-50">Modo de OperaciÃ³n</label>
+                                    <label className="form-label fw-bold text-white-50">Modo de Operación</label>
                                     <select className="form-select form-select-lg bg-dark text-white border-secondary" value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
                                         <option value="">Seleccionar...</option>
-                                        <option value="disabled">ðŸš« Desactivado</option>
-                                        <option value="manual">ðŸ‘† Manual (Por defecto)</option>
-                                        <option value="assisted">ðŸ¤– Asistido (Sugerencias)</option>
-                                        <option value="autonomous">âš¡ AutÃ³nomo (Experimental)</option>
+                                        <option value="disabled">🚫 Desactivado</option>
+                                        <option value="manual">👆 Manual (Por defecto)</option>
+                                        <option value="assisted">🤖 Asistido (Sugerencias)</option>
+                                        <option value="autonomous">⚡ Autónomo (Experimental)</option>
                                     </select>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label fw-bold text-white-50">RazÃ³n del Cambio</label>
+                                    <label className="form-label fw-bold text-white-50">Razón del Cambio</label>
                                     <textarea className="form-control bg-dark text-white border-secondary" rows="3" value={modeChangeReason}
                                         onChange={(e) => setModeChangeReason(e.target.value)}
                                         placeholder="Escribe el motivo del cambio..."></textarea>

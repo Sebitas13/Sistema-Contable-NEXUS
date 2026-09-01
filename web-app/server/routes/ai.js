@@ -414,7 +414,7 @@ router.get('/test-route', (req, res) => {
 router.post('/reload-profiles', async (req, res) => {
   try {
     const { companyId } = req.body;
-    console.log(`ðŸ§  AI Reload Signal: Refreshing cache for ${companyId || 'ALL companies'}`);
+    console.log(`🧠 AI Reload Signal: Refreshing cache for ${companyId || 'ALL companies'}`);
 
     // Ping the Python AI engine to let it know data changed
     const pythonResponse = await callAiEngine(req, 'post', '/api/ai/reload', {
@@ -508,7 +508,7 @@ const deduplicateRules = (rules) => {
   });
 };
 
-// Helper to save company profile to DB (con deduplicaciÃ³n automÃ¡tica V6.0 + ATOMICIDAD)
+// Helper to save company profile to DB (con deduplicación automática V6.0 + ATOMICIDAD)
 const saveProfile = (companyId, profileJson) => {
   // DEDUPLICAR antes de guardar
   if (profileJson.monetary_rules) {
@@ -538,10 +538,10 @@ const saveProfile = (companyId, profileJson) => {
       [companyId, jsonStr],
       (err) => {
         if (err) {
-          console.error('âŒ Error guardando perfil:', err.message);
+          console.error('❌ Error guardando perfil:', err.message);
           reject(err);
         } else {
-          console.log(`âœ… Perfil guardado para empresa ${companyId}`);
+          console.log(`✅ Perfil guardado para empresa ${companyId}`);
           resolve(profileJson);
         }
       }
@@ -735,10 +735,10 @@ const logEvent = (companyId, feedback, eventId) => {
       ],
       (err) => {
         if (err) {
-          console.error(`âŒ Error registrando evento Mahoraga: ${err.message}`);
+          console.error(`❌ Error registrando evento Mahoraga: ${err.message}`);
           reject(err);
         } else {
-          console.log(`âœ… Evento Mahoraga ${eventId} registrado exitosamente`);
+          console.log(`✅ Evento Mahoraga ${eventId} registrado exitosamente`);
           resolve();
         }
       }
@@ -765,11 +765,11 @@ router.post('/adjustments/generate', async (req, res) => {
     // V6.0: Inyectar perfil persistente fusionando correctamente arrays de reglas
     const companyId = req.body.parameters?.companyId || req.body.companyId;
 
-    // Si NO se proveen cuentas, las cargamos del Ledger automÃ¡ticamente (Modo AutÃ³nomo/Wizard)
+    // Si NO se proveen cuentas, las cargamos del Ledger automáticamente (Modo Autónomo/Wizard)
     if (!req.body.accounts || req.body.accounts.length === 0) {
       if (!companyId) return res.status(400).json({ success: false, error: 'companyId is required to fetch ledger' });
 
-      console.log(`ðŸ” Mahoraga: Cargando ledger automÃ¡tico para empresa ${companyId}...`);
+      console.log(`🔍 Mahoraga: Cargando ledger automático para empresa ${companyId}...`);
       const sql = `
             SELECT 
                 a.id, a.code, a.name, a.type,
@@ -788,14 +788,14 @@ router.post('/adjustments/generate', async (req, res) => {
         balance: Math.abs(r.balance),
         type: r.type
       }));
-      console.log(`âœ… Ledger cargado: ${req.body.accounts.length} cuentas encontradas.`);
+      console.log(`✅ Ledger cargado: ${req.body.accounts.length} cuentas encontradas.`);
     }
 
     if (companyId) {
       const dbProfile = await getProfile(companyId);
       // Usar mergeProfiles para no sobrescribir reglas aprendidas
       req.body.profile_schema = mergeProfiles(dbProfile, req.body.profile_schema);
-      console.log(`ðŸ”„ Perfil fusionado para empresa ${companyId}: ${(req.body.profile_schema?.monetary_rules?.length || 0)} reglas M, ${(req.body.profile_schema?.non_monetary_rules?.length || 0)} reglas NM`);
+      console.log(`🔄 Perfil fusionado para empresa ${companyId}: ${(req.body.profile_schema?.monetary_rules?.length || 0)} reglas M, ${(req.body.profile_schema?.non_monetary_rules?.length || 0)} reglas NM`);
     }
 
     await warmupAiEngine(req);
@@ -810,7 +810,7 @@ router.post('/adjustments/generate', async (req, res) => {
 
     // V6.0: If result is empty, log reasoning for debugging
     if (response.data.success === false) {
-      console.warn(`âš ï¸ Mahoraga returned success:false. Reasoning: ${response.data.reasoning}`);
+      console.warn(`⚠️ Mahoraga returned success:false. Reasoning: ${response.data.reasoning}`);
     }
 
     res.json(response.data);
@@ -925,18 +925,18 @@ router.get('/adjustments/config', async (req, res) => {
 // POST /api/ai/adjustments/generate-from-ledger - Proxy to FastAPI
 router.post('/adjustments/generate-from-ledger', async (req, res) => {
   console.log("\n" + "=".repeat(80));
-  console.log(`ðŸš€ [LOG] Endpoint /api/ai/adjustments/generate-from-ledger HIT`);
-  console.log(`â° [LOG] Timestamp: ${new Date().toISOString()}`);
+  console.log(`🚀 [LOG] Endpoint /api/ai/adjustments/generate-from-ledger HIT`);
+  console.log(`⏰ [LOG] Timestamp: ${new Date().toISOString()}`);
 
   let companyId = req.body.company_id || req.body.parameters?.companyId || req.body.companyId;
   const runtimeBaseUrl = resolveRuntimeBaseUrl(req);
 
   try {
-    console.log(`ðŸ“„ [LOG] Body keys: ${Object.keys(req.body || {}).join(', ') || '(empty)'}`);
-    console.log(`ðŸ¢ [LOG] Company ID extracted: ${companyId}`);
+    console.log(`📄 [LOG] Body keys: ${Object.keys(req.body || {}).join(', ') || '(empty)'}`);
+    console.log(`🏢 [LOG] Company ID extracted: ${companyId}`);
 
     if (!companyId) {
-      console.error(`âŒ [ERROR] 400 - No companyId provided in request.`);
+      console.error(`❌ [ERROR] 400 - No companyId provided in request.`);
       return res.status(400).json({ success: false, error: 'companyId is required' });
     }
 
@@ -944,7 +944,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     req.body.parameters = req.body.parameters || {};
     req.body.parameters.company_id = String(companyId);
 
-    // Resolver URL del middleware con prioridad a la explÃ­cita del request.
+    // Resolver URL del middleware con prioridad a la explícita del request.
     const explicitApiBaseUrl = normalizeBaseUrl(req.body.parameters.api_base_url || '');
     const apiBaseUrlCandidates = buildApiBaseUrlCandidates(req, runtimeBaseUrl, explicitApiBaseUrl);
 
@@ -959,16 +959,16 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     if (internalToken) {
       req.body.parameters.internal_token = internalToken;
     }
-    console.log(`   ðŸŒ [LOG] Middleware base URL candidates: ${JSON.stringify(apiBaseUrlCandidates)}`);
+    console.log(`   🌐 [LOG] Middleware base URL candidates: ${JSON.stringify(apiBaseUrlCandidates)}`);
 
     // V6.0: Inyectar perfil persistente fusionando correctamente arrays de reglas
-    console.log(`   ðŸ‘¤ [LOG] Fetching profile for company ${companyId}...`);
+    console.log(`   👤 [LOG] Fetching profile for company ${companyId}...`);
     const dbProfile = await getProfile(companyId);
     req.body.profile_schema = mergeProfiles(dbProfile, req.body.profile_schema);
     if (dbProfile) {
-      console.log(`   âœ… [LOG] Profile loaded. Merged profile has ${req.body.profile_schema?.monetary_rules?.length || 0} monetary rules and ${req.body.profile_schema?.non_monetary_rules?.length || 0} non-monetary rules.`);
+      console.log(`   ✅ [LOG] Profile loaded. Merged profile has ${req.body.profile_schema?.monetary_rules?.length || 0} monetary rules and ${req.body.profile_schema?.non_monetary_rules?.length || 0} non-monetary rules.`);
     } else {
-      console.log(`   âš ï¸ [LOG] No existing profile found for company. Using default/request profile.`);
+      console.log(`   ⚠️ [LOG] No existing profile found for company. Using default/request profile.`);
     }
 
     // V8.0 AoT: Enrich with ledger trajectories if trajectory mode is requested
@@ -1107,8 +1107,8 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 
     await warmupAiEngine(req);
 
-    console.log(`   ðŸ“¡ [LOG] Preparing to send request to AI Engine at: ${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`);
-    console.log(`   ðŸ“¦ [LOG] Payload listo: parameters keys=[${Object.keys((req.body && req.body.parameters) || {}).join(', ')}]`);
+    console.log(`   📡 [LOG] Preparing to send request to AI Engine at: ${AI_ENGINE_URL}/api/ai/adjustments/generate-from-ledger`);
+    console.log(`   📦 [LOG] Payload listo: parameters keys=[${Object.keys((req.body && req.body.parameters) || {}).join(', ')}]`);
 
     const aiEngineTargets = resolveAiEngineTargets(req);
     console.log(`   [LOG] AI Engine candidates: ${JSON.stringify(aiEngineTargets.candidates)}`);
@@ -1133,8 +1133,8 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 
   } catch (error) {
     console.error("\n" + "=".repeat(80));
-    console.error(`âŒ CRITICAL [ERROR] in /generate-from-ledger endpoint`);
-    console.error(`â° [ERROR] Timestamp: ${new Date().toISOString()}`);
+    console.error(`❌ CRITICAL [ERROR] in /generate-from-ledger endpoint`);
+    console.error(`⏰ [ERROR] Timestamp: ${new Date().toISOString()}`);
     console.error(`   Message: ${error.message}`);
 
     if (error.response) {
@@ -1161,7 +1161,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
     if (isTransientOutage && runtimeBaseUrl && companyId) {
       try {
         const fallbackPayload = buildReportsFallbackPayload(req.body, companyId);
-        console.warn(`âš ï¸ [LOG] AI unavailable/rate-limited. Activating fallback to /api/reports/adjustment-entries-proposal for company ${companyId}.`);
+        console.warn(`⚠️ [LOG] AI unavailable/rate-limited. Activating fallback to /api/reports/adjustment-entries-proposal for company ${companyId}.`);
         const fallbackResponse = await axios.post(
           `${runtimeBaseUrl}/api/reports/adjustment-entries-proposal`,
           fallbackPayload,
@@ -1183,7 +1183,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
           )
         );
       } catch (fallbackError) {
-        console.error('âŒ [ERROR] Fallback /adjustment-entries-proposal failed:', fallbackError.message);
+        console.error('❌ [ERROR] Fallback /adjustment-entries-proposal failed:', fallbackError.message);
       }
     }
 
@@ -1214,7 +1214,7 @@ router.post('/adjustments/generate-from-ledger', async (req, res) => {
 router.post('/adjustments/feedback', async (req, res) => {
   try {
     const companyId = req.body.company_id;
-    console.log(`\nðŸ”® ===== MAHORAGA FEEDBACK RECIBIDO =====`);
+    console.log(`\n🔮 ===== MAHORAGA FEEDBACK RECIBIDO =====`);
     console.log(`   Company ID: ${companyId}`);
     console.log(`   Account: ${req.body.account_name} (${req.body.account_code})`);
     console.log(`   Correct Type: ${req.body.correct_type}`);
@@ -1232,17 +1232,17 @@ router.post('/adjustments/feedback', async (req, res) => {
     });
 
     if (recentConflicts.length > 0) {
-      req.body.status = 'PENDING_REVIEW'; // Marcar para escalaciÃ³n
+      req.body.status = 'PENDING_REVIEW'; // Marcar para escalación
     }
 
-    // V6.0 FIX: Obtener perfil existente y enviarlo a Python para fusiÃ³n correcta
+    // V6.0 FIX: Obtener perfil existente y enviarlo a Python para fusión correcta
     const existingProfile = await getProfile(companyId);
-    console.log(`   ðŸ“¦ Perfil existente en DB: ${existingProfile ? `${existingProfile.monetary_rules?.length || 0}M, ${existingProfile.non_monetary_rules?.length || 0}NM` : 'NINGUNO (nuevo)'}`);
+    console.log(`   📦 Perfil existente en DB: ${existingProfile ? `${existingProfile.monetary_rules?.length || 0}M, ${existingProfile.non_monetary_rules?.length || 0}NM` : 'NINGUNO (nuevo)'}`);
 
     // Enviar el perfil existente a Python para que lo use como base
     req.body.existing_profile = existingProfile || {};
 
-    console.log(`   ðŸ“¡ Enviando a Python AI Engine...`);
+    console.log(`   📡 Enviando a Python AI Engine...`);
     const { response } = await callAiEngine(req, 'post', '/api/ai/adjustments/feedback', {
       data: req.body,
       timeout: 10000,
@@ -1250,17 +1250,17 @@ router.post('/adjustments/feedback', async (req, res) => {
     });
 
     const result = response.data;
-    console.log(`   âœ… Respuesta de Python: success=${result.success}`);
-    console.log(`   ðŸ“‹ Reglas en updated_profile_schema:`);
+    console.log(`   ✅ Respuesta de Python: success=${result.success}`);
+    console.log(`   📋 Reglas en updated_profile_schema:`);
     console.log(`      - monetary_rules: ${result.updated_profile_schema?.monetary_rules?.length || 0}`);
     console.log(`      - non_monetary_rules: ${result.updated_profile_schema?.non_monetary_rules?.length || 0}`);
-    console.log(`   ðŸ’¡ new_rule_generated: ${result.new_rule_generated || 'N/A'}`);
+    console.log(`   💡 new_rule_generated: ${result.new_rule_generated || 'N/A'}`);
 
     if (result.success && result.updated_profile_schema) {
       // 2. Persistir Perfil en DB
-      console.log(`   ðŸ’¾ Guardando perfil en DB para empresa ${companyId}...`);
+      console.log(`   💾 Guardando perfil en DB para empresa ${companyId}...`);
       const savedProfile = await saveProfile(companyId, result.updated_profile_schema);
-      console.log(`   âœ… Perfil guardado! Verificando reglas guardadas:`);
+      console.log(`   ✅ Perfil guardado! Verificando reglas guardadas:`);
       console.log(`      - monetary_rules: ${savedProfile?.monetary_rules?.length || 0}`);
       console.log(`      - non_monetary_rules: ${savedProfile?.non_monetary_rules?.length || 0}`);
 
@@ -1272,11 +1272,11 @@ router.post('/adjustments/feedback', async (req, res) => {
       await logEvent(companyId, req.body, eventId);
 
       if (recentConflicts.length > 0) {
-        result.warnings.push(`CONFLICTO: Otro usuario adaptÃ³ esta cuenta recientemente. La regla queda en REVISIÃ“N ADMIN.`);
+        result.warnings.push(`CONFLICTO: Otro usuario adaptó esta cuenta recientemente. La regla queda en REVISIÓN ADMIN.`);
       }
 
-      // Devolver el perfil guardado para asegurar que el frontend tiene la versiÃ³n correcta.
-      // Esto es crucial para la Fase 1: CorrecciÃ³n de la Persistencia.
+      // Devolver el perfil guardado para asegurar que el frontend tiene la versión correcta.
+      // Esto es crucial para la Fase 1: Corrección de la Persistencia.
       res.json({ ...result, updated_profile_schema: savedProfile });
 
     } else {
@@ -1330,7 +1330,7 @@ router.delete('/adjustments/chronology/:companyId/cleanup', async (req, res) => 
       [req.params.companyId, req.params.companyId]
     );
 
-    console.log(`ðŸ§¹ Limpiados ${result.changes} eventos duplicados de cronología`);
+    console.log(`🧹 Limpiados ${result.changes} eventos duplicados de cronología`);
     res.json({ success: true, message: 'Duplicados eliminados', cleaned: result.changes });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1372,7 +1372,7 @@ router.post('/adjustments/confirm', async (req, res) => {
   }
 });
 
-// ðŸ”” DASHBOARD DE MONITOREO GROQ - NUEVOS ENDPOINTS
+// 🔔 DASHBOARD DE MONITOREO GROQ - NUEVOS ENDPOINTS
 
 // GET /api/ai/monitor/dashboard - Dashboard completo de uso
 router.get('/monitor/dashboard', async (req, res) => {
@@ -1392,7 +1392,7 @@ router.get('/monitor/dashboard', async (req, res) => {
   }
 });
 
-// GET /api/ai/monitor/stats - EstadÃ­sticas rÃ¡pidas
+// GET /api/ai/monitor/stats - Estadísticas rápidas
 router.get('/monitor/stats', async (req, res) => {
   try {
     const stats = groqMonitor.getUsageStats();
@@ -1459,7 +1459,7 @@ router.get('/monitor/alerts', async (req, res) => {
   }
 });
 
-// ðŸ§  MAHORAGA CONTROL ENDPOINTS - Sistema de Seguridad
+// 🧠 MAHORAGA CONTROL ENDPOINTS - Sistema de Seguridad
 
 // GET /api/ai/mahoraga/status - Estado actual de Mahoraga
 router.get('/mahoraga/status', async (req, res) => {
@@ -1475,7 +1475,7 @@ router.get('/mahoraga/status', async (req, res) => {
   }
 });
 
-// POST /api/ai/mahoraga/activate - Activar Mahoraga para una operaciÃ³n
+// POST /api/ai/mahoraga/activate - Activar Mahoraga para una operación
 router.post('/mahoraga/activate', async (req, res) => {
   try {
     const { operation, userId, context } = req.body;
@@ -1492,7 +1492,7 @@ router.post('/mahoraga/activate', async (req, res) => {
       success: true,
       activation,
       message: activation.status === 'PENDING_USER_CONFIRMATION'
-        ? 'ActivaciÃ³n pendiente de confirmaciÃ³n del usuario'
+        ? 'Activación pendiente de confirmación del usuario'
         : 'Mahoraga activado exitosamente'
     });
   } catch (error) {
@@ -1516,7 +1516,7 @@ router.post('/mahoraga/confirm', async (req, res) => {
     res.json({
       success: true,
       activation,
-      message: 'ActivaciÃ³n confirmada exitosamente'
+      message: 'Activación confirmada exitosamente'
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1539,14 +1539,14 @@ router.post('/mahoraga/reject', async (req, res) => {
     res.json({
       success: true,
       activation,
-      message: 'ActivaciÃ³n rechazada'
+      message: 'Activación rechazada'
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// POST /api/ai/mahoraga/change-mode - Cambiar modo de operaciÃ³n
+// POST /api/ai/mahoraga/change-mode - Cambiar modo de operación
 router.post('/mahoraga/change-mode', async (req, res) => {
   try {
     const { newMode, userId, reason } = req.body;
@@ -1585,7 +1585,7 @@ router.post('/mahoraga/emergency-stop', async (req, res) => {
     res.json({
       success: true,
       emergency_stop: result,
-      message: 'ðŸ›‘ MODO DE EMERGENCIA ACTIVADO - Todas las operaciones de Mahoraga detenidas'
+      message: '🛑 MODO DE EMERGENCIA ACTIVADO - Todas las operaciones de Mahoraga detenidas'
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1611,7 +1611,7 @@ router.get('/mahoraga/history', async (req, res) => {
   }
 });
 
-// GET /api/ai/mahoraga/can-activate - Verificar si se puede activar una operaciÃ³n
+// GET /api/ai/mahoraga/can-activate - Verificar si se puede activar una operación
 router.get('/mahoraga/can-activate', async (req, res) => {
   try {
     const { operation, userId, accounts } = req.query;
@@ -1619,7 +1619,7 @@ router.get('/mahoraga/can-activate', async (req, res) => {
     if (!operation) {
       return res.status(400).json({
         success: false,
-        error: 'Se requiere el parÃ¡metro operation'
+        error: 'Se requiere el parámetro operation'
       });
     }
 
@@ -1639,7 +1639,7 @@ router.get('/mahoraga/can-activate', async (req, res) => {
   }
 });
 
-// ðŸ§  SISTEMA DE RECONOCIMIENTO Y APRENDIZAJE
+// 🧠 SISTEMA DE RECONOCIMIENTO Y APRENDIZAJE
 
 // GET /api/ai/recognition/status - Estado de aprendizaje de Mahoraga
 router.get('/recognition/status', async (req, res) => {
@@ -1705,7 +1705,7 @@ router.get('/mahoraga/maturity/:companyId', async (req, res) => {
   }
 });
 
-// GET /api/ai/recognition/teach/:phase - EnseÃ±ar una fase especÃ­fica
+// GET /api/ai/recognition/teach/:phase - Enseñar una fase específica
 router.get('/recognition/teach/:phase', async (req, res) => {
   try {
     const { phase } = req.params;
@@ -1742,7 +1742,7 @@ router.post('/recognition/advance', async (req, res) => {
   }
 });
 
-// GET /api/ai/recognition/preview - Preview de bÃºsquedas antes de ejecutar
+// GET /api/ai/recognition/preview - Preview de búsquedas antes de ejecutar
 router.get('/recognition/preview', async (req, res) => {
   try {
     const { operation, accounts, complexity, data_size } = req.query;
@@ -1750,7 +1750,7 @@ router.get('/recognition/preview', async (req, res) => {
     if (!operation) {
       return res.status(400).json({
         success: false,
-        error: 'Se requiere el parÃ¡metro operation'
+        error: 'Se requiere el parámetro operation'
       });
     }
 
@@ -1766,14 +1766,14 @@ router.get('/recognition/preview', async (req, res) => {
       success: true,
       preview,
       warnings: preview.resource_usage.api_calls_estimated > 10 ?
-        ['Alto nÃºmero de llamadas API - considerar procesamiento por lotes'] : []
+        ['Alto número de llamadas API - considerar procesamiento por lotes'] : []
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /api/ai/recognition/knowledge/:aspect - Obtener conocimiento especÃ­fico del sistema
+// GET /api/ai/recognition/knowledge/:aspect - Obtener conocimiento específico del sistema
 router.get('/recognition/knowledge/:aspect', async (req, res) => {
   try {
     const { aspect } = req.params;
@@ -1814,8 +1814,8 @@ router.get('/mahoraga/insights', async (req, res) => {
     if (tb && Math.abs(tb.total_debit - tb.total_credit) > 0.01) {
       insights.push({
         type: 'warning',
-        title: 'AsimetrÃ­a en Partida Doble',
-        message: `Se detectÃ³ una diferencia de Bs ${(tb.total_debit - tb.total_credit).toFixed(2)} en el balance global. Mahoraga sugiere revisar el asiento inicial.`,
+        title: 'Asimetría en Partida Doble',
+        message: `Se detectó una diferencia de Bs ${(tb.total_debit - tb.total_credit).toFixed(2)} en el balance global. Mahoraga sugiere revisar el asiento inicial.`,
         skill: 'AuditBalance'
       });
     }
@@ -1826,7 +1826,7 @@ router.get('/mahoraga/insights', async (req, res) => {
       insights.push({
         type: 'info',
         title: 'Aprendizaje Pendiente',
-        message: 'Mahoraga aÃºn no ha aprendido suficientes patrones de cuentas para esta empresa. Realiza ajustes manuales para entrenar la rueda.',
+        message: 'Mahoraga aún no ha aprendido suficientes patrones de cuentas para esta empresa. Realiza ajustes manuales para entrenar la rueda.',
         skill: 'SystemRecognition'
       });
     }
