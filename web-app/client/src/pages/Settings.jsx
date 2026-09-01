@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useCompany } from '../context/CompanyContext';
 import BackupManager from '../components/BackupManager';
+import { useToast } from '../components/ToastProvider';
 import API_URL from '../api';
 
 // Default ARS Profile
@@ -69,6 +70,7 @@ const INITIAL_DEPRECIATION_RULES = [
 
 export default function Settings() {
     const { selectedCompany, refreshCompanies } = useCompany();
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState('data'); // 'data', 'profiles', 'mahoraga'
     const [healing, setHealing] = useState(false);
     const [healResult, setHealResult] = useState(null);
@@ -145,7 +147,7 @@ export default function Settings() {
         };
         localStorage.setItem(editingProfile.key, JSON.stringify(profileData));
         setEditingProfile(null);
-        alert('Perfil actualizado correctamente.');
+        toast.success('Perfil actualizado correctamente.');
     };
 
     const cloneProfile = (sourceProfile) => {
@@ -164,7 +166,7 @@ export default function Settings() {
         localStorage.setItem(newKey, JSON.stringify(newProfileData));
         setShowCloneModal(null);
         setTargetCompanyId('');
-        alert(`Perfil #${newId} creado exitosamente.`);
+        toast.success(`Perfil #${newId} creado exitosamente.`);
     };
 
     const loadInitialProfile = async () => {
@@ -246,10 +248,10 @@ export default function Settings() {
 
             await axios.post(`${API_URL}/api/ai/profile/${selectedCompany.id}`, { profile_json: updatedProfile });
             setCompanyProfile(updatedProfile); // Optimistic update
-            alert('Configuración de depreciación guardada correctamente.');
+            toast.success('Configuración de depreciación guardada correctamente.');
         } catch (error) {
             console.error("Error saving depreciation config:", error);
-            alert('Error al guardar configuracion.');
+            toast.error('Error al guardar configuracion.');
         } finally {
             setSavingConfig(false);
         }
@@ -382,7 +384,7 @@ export default function Settings() {
             await axios.post(`${API_URL}/api/ai/mahoraga/config/${selectedCompany.id}`, { active_pages: newPages });
         } catch (error) {
             console.error("Error saving page config:", error);
-            alert("Error al guardar configuración de páginas");
+            toast.error("Error al guardar configuración de páginas");
         } finally {
             setSavingConfig(false);
         }
@@ -455,22 +457,22 @@ export default function Settings() {
     };
 
     const handleModeChange = async () => {
-        if (!selectedMode || !modeChangeReason.trim()) return alert('Selecciona un modo y proporciona una razón');
+        if (!selectedMode || !modeChangeReason.trim()) return toast.warning('Selecciona un modo y proporciona una razón');
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/change-mode`, { newMode: selectedMode, userId: 'admin', reason: modeChangeReason });
-            alert(`Modo cambiado exitosamente a ${selectedMode}`);
+            toast.success(`Modo cambiado exitosamente a ${selectedMode}`);
             setSelectedMode(''); setModeChangeReason(''); setShowModeChange(false);
             fetchMahoragaStatus();
-        } catch (error) { alert('Error al cambiar modo: ' + error.response?.data?.error); }
+        } catch (error) { toast.error('Error al cambiar modo: ' + error.response?.data?.error); }
     };
 
     const handleEmergencyStop = async () => {
         if (!confirm('¿Estás seguro de activar la PARADA DE EMERGENCIA? Esto detendrá TODAS las operaciones de Mahoraga.')) return;
         try {
             await axios.post(`${API_URL}/api/ai/mahoraga/emergency-stop`, { userId: 'admin', reason: 'Emergency stop from dashboard' });
-            alert('PARADA DE EMERGENCIA ACTIVADA');
+            toast.warning('PARADA DE EMERGENCIA ACTIVADA');
             fetchMahoragaStatus();
-        } catch (error) { alert('Error en parada de emergencia: ' + error.response?.data?.error); }
+        } catch (error) { toast.error('Error en parada de emergencia: ' + error.response?.data?.error); }
     };
 
     const handleSearch = async (e) => {

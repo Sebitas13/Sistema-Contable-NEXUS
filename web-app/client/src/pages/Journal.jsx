@@ -11,9 +11,11 @@ import AdjustmentWizard from '../pages/AdjustmentWizard.jsx';
 import { exportToPDF, exportToExcel, generatePDFDoc } from '../utils/exportUtils';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { getFiscalYearDetails, MONTH_NAMES_SHORT } from '../utils/fiscalYearUtils';
+import { useToast } from '../components/ToastProvider';
 export default function Journal() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
+    const toast = useToast();
     const [transactions, setTransactions] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ export default function Journal() {
             setShowDetailModal(true);
         } catch (error) {
             console.error('Error fetching transaction details:', error);
-            alert('Error al cargar los detalles de la transacción');
+            toast.error('Error al cargar los detalles de la transacción');
         }
     };
 
@@ -246,15 +248,15 @@ export default function Journal() {
         e.preventDefault();
 
         if (Math.abs(totals.debit - totals.credit) > 0.01) {
-            alert('El asiento no cuadra. El Debe debe ser igual al Haber.');
+            toast.warning('El asiento no cuadra. El Debe debe ser igual al Haber.');
             return;
         }
         if (formData.entries.length === 0) {
-            alert('Debe agregar al menos una cuenta.');
+            toast.warning('Debe agregar al menos una cuenta.');
             return;
         }
         if (formData.entries.some(e => !e.accountId)) {
-            alert('Todas las líneas deben tener una cuenta válida seleccionada.');
+            toast.warning('Todas las líneas deben tener una cuenta válida seleccionada.');
             return;
         }
 
@@ -291,7 +293,7 @@ export default function Journal() {
             });
         } catch (error) {
             console.error('Error saving transaction:', error);
-            alert('Error al guardar el asiento');
+            toast.error('Error al guardar el asiento');
         }
     };
 
@@ -304,7 +306,7 @@ export default function Journal() {
                 fetchTransactions();
             } catch (error) {
                 console.error('Error deleting transaction:', error);
-                alert('Error al eliminar el asiento');
+                toast.error('Error al eliminar el asiento');
             }
         }
     };
@@ -347,7 +349,7 @@ export default function Journal() {
             setShowModal(true);
         } catch (error) {
             console.error('Error loading transaction for edit:', error);
-            alert('Error al cargar el asiento para editar');
+            toast.error('Error al cargar el asiento para editar');
         }
     };
 

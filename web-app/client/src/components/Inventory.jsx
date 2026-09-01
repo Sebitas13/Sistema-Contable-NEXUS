@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { exportToPDF, exportToExcel, importFromExcel } from '../utils/exportUtils';
 import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
+import { useToast } from './ToastProvider';
 
 export default function Inventory() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
+    const toast = useToast();
 
     const [items, setItems] = useState([]);
     const [costCenters, setCostCenters] = useState([]);
@@ -81,7 +83,7 @@ export default function Inventory() {
             resetForm();
             fetchData();
         } catch (error) {
-            alert(error.response?.data?.error || "Error al guardar el artículo");
+            toast.error(error.response?.data?.error || "Error al guardar el artículo");
         }
     };
 
@@ -110,7 +112,7 @@ export default function Inventory() {
             });
             fetchData();
         } catch (error) {
-            alert("Error al registrar movimiento");
+            toast.error("Error al registrar movimiento");
         }
     };
 
@@ -123,7 +125,7 @@ export default function Inventory() {
                 setShowHistoryModal(true);
             }
         } catch (error) {
-            alert("Error al cargar historial");
+            toast.error("Error al cargar historial");
         }
     };
 
@@ -193,11 +195,11 @@ export default function Inventory() {
                     initial_cost: parseFloat(row['Costo Inicial'] || 0)
                 });
             }
-            alert(`Se importaron ${data.length} artículos exitosamente`);
+            toast.success(`Se importaron ${data.length} artículos exitosamente`);
             fetchData();
         } catch (error) {
             console.error('Error importing inventory:', error);
-            alert('Error importando inventario. Verifica el formato del archivo.');
+            toast.error('Error importando inventario. Verifica el formato del archivo.');
         }
 
         e.target.value = null;

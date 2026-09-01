@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useCompany } from '../context/CompanyContext';
 import inventoryService from '../services/inventoryService';
 import Inventory from '../components/Inventory';
+import { useToast } from '../components/ToastProvider';
 
 export default function CostCenters() {
     const { selectedCompany } = useCompany();
     const companyId = selectedCompany?.id;
+    const toast = useToast();
 
     const [costCenters, setCostCenters] = useState([]);
     const [distributionModels, setDistributionModels] = useState([]);
@@ -65,7 +67,7 @@ export default function CostCenters() {
             setFormData({ code: '', name: '', type: 'Analytic', is_active: 1 });
             fetchData();
         } catch (error) {
-            alert(error.response?.data?.error || "Error al guardar el centro de costo");
+            toast.error(error.response?.data?.error || "Error al guardar el centro de costo");
         }
     };
 
@@ -74,7 +76,7 @@ export default function CostCenters() {
 
         const totalPct = modelData.entries.reduce((sum, entry) => sum + parseFloat(entry.percentage || 0), 0);
         if (Math.abs(totalPct - 100) > 0.01) {
-            alert(`La suma de los porcentajes debe ser exactamente 100%. Actual: ${totalPct}%`);
+            toast.warning(`La suma de los porcentajes debe ser exactamente 100%. Actual: ${totalPct}%`);
             return;
         }
 
@@ -87,7 +89,7 @@ export default function CostCenters() {
             setModelData({ name: '', description: '', entries: [] });
             fetchData();
         } catch (error) {
-            alert(error.response?.data?.error || "Error al guardar el modelo de distribución");
+            toast.error(error.response?.data?.error || "Error al guardar el modelo de distribución");
         }
     };
 

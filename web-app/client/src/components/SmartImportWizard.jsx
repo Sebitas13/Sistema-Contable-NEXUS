@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useCompany } from '../context/CompanyContext';
 import { AccountPlanProfile } from '../utils/AccountPlanProfile';
+import { useToast } from './ToastProvider';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -50,6 +51,7 @@ const getUniversalLevel = (code, analysis, config) => {
 };
 function SmartImportWizard({ onClose, onSuccess }) {
     const { selectedCompany } = useCompany();
+    const toast = useToast();
     const [step, setStep] = useState(1);
     const [file, setFile] = useState(null);
     const [workbook, setWorkbook] = useState(null);
@@ -1025,7 +1027,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                 message += `• Código ${code}: posiciones ${positions.join(', ')}\n`;
             });
             message += `\nTotal de códigos con duplicados: ${Object.keys(duplicateDetails).length}`;
-            alert(message);
+            toast.warning(message);
         }
 
         // 2. Análisis con IA / Backend (La "Nueva Tecnología")
@@ -2145,7 +2147,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                         config: structureConfig
                                                                     };
                                                                     localStorage.setItem(`struct_profile_${nextId}`, JSON.stringify(profileData));
-                                                                    alert(`¡Perfil #${nextId} guardado exitosamente!`);
+                                                                    toast.success(`¡Perfil #${nextId} guardado exitosamente!`);
                                                                 }
                                                             }}>
                                                                 <i className="bi bi-save me-1"></i> Guardar Perfil

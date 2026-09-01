@@ -10,12 +10,14 @@ import { getFiscalYearDetails } from '../utils/fiscalYearUtils';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import MahoragaWheel from '../components/MahoragaWheel';
+import { useToast } from '../components/ToastProvider';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export default function ExchangeRate() {
     const { selectedCompany } = useCompany();
+    const toast = useToast();
     const [rates, setRates] = useState([]);
     const [loading, setLoading] = useState(true);
     const fileInputRef = useRef(null);
@@ -100,7 +102,7 @@ export default function ExchangeRate() {
                 fetchRates();
             } catch (error) {
                 console.error('Error deleting exchange rate:', error);
-                alert('Error al eliminar el tipo de cambio.');
+                toast.error('Error al eliminar el tipo de cambio.');
             }
         }
     };
@@ -173,11 +175,11 @@ export default function ExchangeRate() {
             setLoading(true);
             const year = fiscalYearDetails?.year || gestion;
             const response = await axios.delete(`${API_URL}/api/exchange-rates/year/${year}?companyId=${selectedCompany.id}`);
-            alert(`Se eliminaron ${response.data.deletedCount} registros de tipo de cambio del año ${year}.`);
+            toast.success(`Se eliminaron ${response.data.deletedCount} registros de tipo de cambio del año ${year}.`);
             await fetchRates();
         } catch (error) {
             console.error('Error deleting exchange rate data:', error);
-            alert('Error al eliminar los datos de tipo de cambio. Revisa la consola.');
+            toast.error('Error al eliminar los datos de tipo de cambio. Revisa la consola.');
         } finally {
             setLoading(false);
         }
@@ -200,11 +202,11 @@ export default function ExchangeRate() {
                     setImportSheets(wb.SheetNames);
                     setImportConfig(prev => ({ ...prev, sheet: wb.SheetNames[0] }));
                     setShowImportModal(true);
-                } catch (err) { alert('Error al leer el archivo Excel.'); }
+                } catch (err) { toast.error('Error al leer el archivo Excel.'); }
             };
             reader.readAsBinaryString(file);
         } else {
-            alert('Formato de archivo no soportado. Use Excel.');
+            toast.warning('Formato de archivo no soportado. Use Excel.');
         }
         e.target.value = null;
     };
@@ -317,13 +319,13 @@ export default function ExchangeRate() {
 
             if (clientSideErrors.length > 0) {
                 console.warn('[Validación en Cliente Falló]', clientSideErrors);
-                alert(`Se encontraron ${clientSideErrors.length} errores de formato o rango. No se enviaron datos. Revisa la consola (F12).`);
+                toast.warning(`Se encontraron ${clientSideErrors.length} errores de formato o rango. No se enviaron datos. Revisa la consola (F12).`);
                 setIsImporting(false);
                 return;
             }
 
             if (ratesToImport.length === 0) {
-                alert('No se encontraron registros válidos para importar.');
+                toast.warning('No se encontraron registros válidos para importar.');
                 setIsImporting(false);
                 return;
             }
@@ -349,12 +351,16 @@ export default function ExchangeRate() {
                 console.warn('Errores de importación (Servidor):', allServerErrors);
             }
 
-            alert(alertMessage);
+            if (totalErrors > 0) {
+                toast.warning(alertMessage);
+            } else {
+                toast.success(alertMessage);
+            }
             fetchRates();
             setShowImportModal(false);
         } catch (error) {
             console.error('Error durante la importación:', error);
-            alert('Ocurrió un error durante la importación: ' + error.message);
+            toast.error('Ocurrió un error durante la importación: ' + error.message);
         } finally {
             setIsImporting(false);
         }
@@ -396,7 +402,7 @@ export default function ExchangeRate() {
                     fetchRates(); // Refetch to update map and view
                 } catch (error) {
                     console.error('Error saving exchange rate:', error);
-                    alert('Error al guardar el valor.');
+                    toast.error('Error al guardar el valor.');
                     setCurrentValue(initialValue); // Revert on error
                 }
             } else if (currentValue === '' && initialValue !== '') {

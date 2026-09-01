@@ -6,10 +6,12 @@ import { useCompany } from '../context/CompanyContext';
 import { exportToExcel } from '../utils/exportUtils';
 import SmartImportWizard from '../components/SmartImportWizard';
 import MahoragaWheel from '../components/MahoragaWheel';
+import { useToast } from '../components/ToastProvider';
 
 export default function Accounts() {
     const navigate = useNavigate();
     const { selectedCompany } = useCompany();
+    const toast = useToast();
     const [accounts, setAccounts] = useState([]);
     const [filteredAccounts, setFilteredAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -141,20 +143,20 @@ export default function Accounts() {
         e.preventDefault();
 
         if (!selectedCompany) {
-            alert('⚠️ No hay una empresa seleccionada.');
+            toast.warning('No hay una empresa seleccionada.');
             return;
         }
 
         // Validar código único
         const isUnique = await validateUniqueCode(formData.code);
         if (!isUnique) {
-            alert(`⚠️ El código "${formData.code}" ya existe. Por favor usa un código diferente.`);
+            toast.warning(`El código "${formData.code}" ya existe. Por favor usa un código diferente.`);
             return;
         }
 
         // Validar que el código no esté vacío
         if (!formData.code.trim() || !formData.name.trim()) {
-            alert('⚠️ El código y nombre son obligatorios.');
+            toast.warning('El código y nombre son obligatorios.');
             return;
         }
 
@@ -173,9 +175,9 @@ export default function Accounts() {
         } catch (error) {
             console.error('Error saving account:', error);
             if (error.response?.status === 409) {
-                alert('⚠️ Ya existe una cuenta con este código.');
+                toast.warning('Ya existe una cuenta con este código.');
             } else {
-                alert('❌ Error guardando cuenta: ' + (error.response?.data?.error || error.message));
+                toast.error('Error guardando cuenta: ' + (error.response?.data?.error || error.message));
             }
         }
     };
@@ -200,7 +202,7 @@ export default function Accounts() {
                 fetchAccounts();
             } catch (error) {
                 console.error('Error deleting account:', error);
-                alert('Error eliminando cuenta');
+                toast.error('Error eliminando cuenta');
             }
         }
     };
@@ -212,10 +214,10 @@ export default function Accounts() {
                 try {
                     await axios.delete(`${API_URL}/api/accounts/all?companyId=${selectedCompany.id}`);
                     fetchAccounts();
-                    alert('✅ Plan de cuentas eliminado correctamente.');
+                    toast.success('Plan de cuentas eliminado correctamente.');
                 } catch (error) {
                     console.error('Error deleting all accounts:', error);
-                    alert('❌ Error eliminando el plan de cuentas.');
+                    toast.error('Error eliminando el plan de cuentas.');
                 }
             }
         }
@@ -294,7 +296,7 @@ export default function Accounts() {
             setShowPDFPreview(true);
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('Error generando PDF. Verifique la consola para más detalles.');
+            toast.error('Error generando PDF. Verifique la consola para más detalles.');
         }
     };
 

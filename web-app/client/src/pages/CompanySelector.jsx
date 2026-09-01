@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useCompany } from '../context/CompanyContext';
 import CompanyCard from '../components/CompanyCard';
+import { useToast } from '../components/ToastProvider';
 import API_URL from '../api';
 
 // Emblema 3D de Mahoraga en el hero, diferido (no entra en el bundle principal).
@@ -15,6 +16,7 @@ const MahoragaWheel3D = lazy(() => import('../three/MahoragaWheel3D'));
 export default function CompanySelector() {
     const navigate = useNavigate();
     const { companies, loading, companiesError, retryCompanies, deleteCompany, refreshCompanies, createCompany, updateCompany, selectCompany } = useCompany();
+    const toast = useToast();
 
     // Constantes de Tipos Societarios y Actividades
     const SOCIETAL_TYPES = [
@@ -98,16 +100,16 @@ export default function CompanySelector() {
 
     const handleDelete = async (company) => {
         if (company.id === 1) {
-            alert('No se puede eliminar la empresa predeterminada');
+            toast.warning('No se puede eliminar la empresa predeterminada');
             return;
         }
 
         if (window.confirm(`¿Estás seguro de eliminar "${company.name}"? Todos los datos asociados se eliminarán permanentemente.`)) {
             const result = await deleteCompany(company.id);
             if (result.success) {
-                alert('Empresa eliminada exitosamente');
+                toast.success('Empresa eliminada exitosamente');
             } else {
-                alert('Error al eliminar la empresa: ' + result.error);
+                toast.error('Error al eliminar la empresa: ' + result.error);
             }
         }
     };
@@ -125,7 +127,7 @@ export default function CompanySelector() {
             resetForm();
             refreshCompanies();
         } else {
-            alert('Error: ' + result.error);
+            toast.error('Error: ' + result.error);
         }
     };
 

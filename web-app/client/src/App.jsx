@@ -19,6 +19,7 @@ import DataForge from './DataForge/DataForge';
 import FinancialStatements from './pages/FinancialStatements';
 import Settings from './pages/Settings';
 import CommandPalette from './components/CommandPalette';
+import { ToastProvider } from './components/ToastProvider';
 import { motion } from 'framer-motion';
 import { useState, lazy, Suspense } from 'react';
 
@@ -280,6 +281,7 @@ function AppLayout() {
 
 function App() {
     return (
+        <ToastProvider>
         <AuthProvider>
         <CompanyProvider>
             <Router>
@@ -456,6 +458,7 @@ function App() {
             </Router>
         </CompanyProvider>
         </AuthProvider>
+        </ToastProvider>
     );
 }
 

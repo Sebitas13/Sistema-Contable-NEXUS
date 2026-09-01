@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { exportToPDF, exportToExcel, importFromExcel } from '../utils/exportUtils';
+import { useToast } from '../components/ToastProvider';
 
 export default function FixedAssets() {
+    const toast = useToast();
     const [assets, setAssets] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
@@ -120,10 +122,10 @@ export default function FixedAssets() {
             }));
 
             setAssets([...assets, ...importedAssets]);
-            alert(`Se importaron ${importedAssets.length} activos fijos exitosamente`);
+            toast.success(`Se importaron ${importedAssets.length} activos fijos exitosamente`);
         } catch (error) {
             console.error('Error importing assets:', error);
-            alert('Error importando activos. Verifica el formato del archivo.');
+            toast.error('Error importando activos. Verifica el formato del archivo.');
         }
 
         e.target.value = null;

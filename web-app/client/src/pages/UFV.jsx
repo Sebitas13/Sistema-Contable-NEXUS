@@ -8,12 +8,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 // Importar API_URL explícitamente para evitar errores en producción
 import API_URL from '../api';
 import MahoragaWheel from '../components/MahoragaWheel';
+import { useToast } from '../components/ToastProvider';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export default function UFV() {
     const { selectedCompany } = useCompany();
+    const toast = useToast();
     const [ufvData, setUfvData] = useState([]);
     const [loading, setLoading] = useState(true);
     const fileInputRef = useRef(null);
@@ -147,7 +149,7 @@ export default function UFV() {
 
     const handleDeleteAll = async () => {
         if (!selectedCompany) {
-            alert('No hay empresa seleccionada');
+            toast.warning('No hay empresa seleccionada');
             return;
         }
 
@@ -158,11 +160,11 @@ export default function UFV() {
         try {
             setLoading(true);
             const response = await axios.delete(`${API_URL}/api/ufv/year/${year}?companyId=${selectedCompany.id}`);
-            alert(`Se eliminaron ${response.data.deletedCount} registros UFV del año ${year}.`);
+            toast.success(`Se eliminaron ${response.data.deletedCount} registros UFV del año ${year}.`);
             await fetchUFV(year);
         } catch (error) {
             console.error('Error deleting UFV data:', error);
-            alert('Error al eliminar los datos UFV. Revisa la consola.');
+            toast.error('Error al eliminar los datos UFV. Revisa la consola.');
         } finally {
             setLoading(false);
         }
@@ -189,11 +191,11 @@ export default function UFV() {
                     setImportSheets(wb.SheetNames);
                     setImportConfig(prev => ({ ...prev, sheet: wb.SheetNames[0] }));
                     setShowImportModal(true);
-                } catch (err) { alert('Error al leer el archivo Excel.'); }
+                } catch (err) { toast.error('Error al leer el archivo Excel.'); }
             };
             reader.readAsBinaryString(file);
         } else {
-            alert('Formato de archivo no soportado. Use Excel o PDF.');
+            toast.warning('Formato de archivo no soportado. Use Excel o PDF.');
         }
         e.target.value = null;
     };
@@ -395,7 +397,7 @@ export default function UFV() {
             }
 
             if (ufvRecords.length === 0) {
-                alert('No se encontraron registros válidos para importar.');
+                toast.warning('No se encontraron registros válidos para importar.');
                 setIsImporting(false);
                 return;
             }
@@ -410,7 +412,11 @@ export default function UFV() {
                 alertMessage += `\nSe encontraron ${errorCount} errores. Revisa la consola para más detalles.`;
                 console.warn('Errores de importación de UFV:', errors);
             }
-            alert(alertMessage);
+            if (errorCount > 0) {
+                toast.warning(alertMessage);
+            } else {
+                toast.success(alertMessage);
+            }
 
             // Refrescar datos usando el año detectado o el año actual
             const refreshYear = importConfig.yearFilter || dataYear || year;
@@ -422,7 +428,7 @@ export default function UFV() {
             setImportWorkbook(null);
         } catch (error) {
             console.error('Error durante la importación:', error);
-            alert('Ocurrió un error durante la importación. Revisa la consola.');
+            toast.error('Ocurrió un error durante la importación. Revisa la consola.');
         } finally {
             setIsImporting(false);
         }
@@ -457,7 +463,7 @@ export default function UFV() {
 
         const handleSave = async () => {
             if (!selectedCompany) {
-                alert('No hay empresa seleccionada');
+                toast.warning('No hay empresa seleccionada');
                 return;
             }
 
@@ -476,7 +482,7 @@ export default function UFV() {
                     console.log('UFV data refreshed');
                 } catch (error) {
                     console.error('Error saving UFV value:', error);
-                    alert('Error al guardar el valor.');
+                    toast.error('Error al guardar el valor.');
                     setCurrentValue(initialValue); // Revert on error
                 }
             } else if (currentValue === '' && initialValue !== '') {
