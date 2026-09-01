@@ -14,6 +14,12 @@ import { createPortal } from 'react-dom';
  *       <div className="modal-body">…</div>
  *       <div className="modal-footer">…</div>
  *   </NexusModal>
+ *
+ * ⚠️ IMPORTANTE: los children (y props) se EVALÚAN aunque isOpen sea false
+ * (JSX se construye siempre). Si el contenido referencia un objeto que solo
+ * existe al abrir el modal (p. ej. selectedTransaction.date), hay que
+ * envolverlo:  {selectedTransaction && (<> … </>)}  — como hacía el patrón
+ * viejo {cond && <div>…</div>}.
  */
 
 const SIZE_CLASS = { sm: 'modal-sm', md: '', lg: 'modal-lg', xl: 'modal-xl' };

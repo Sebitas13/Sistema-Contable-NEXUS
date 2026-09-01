@@ -985,6 +985,8 @@ export default function Settings() {
                 size="lg"
                 contentClassName="border-primary shadow-lg"
             >
+                {editingProfile && (
+                    <>
                 <div className="modal-body">
                                 <div className="row g-3 mb-4">
                                     <div className="col-md-6">
@@ -1072,6 +1074,8 @@ export default function Settings() {
                     <button className="btn btn-outline-secondary text-white" onClick={() => setEditingProfile(null)}>Cancelar</button>
                     <button className="btn btn-primary" onClick={saveProfileEdit}><i className="bi bi-save me-1"></i>Guardar</button>
                 </div>
+                    </>
+                )}
             </NexusModal>
 
             <NexusModal

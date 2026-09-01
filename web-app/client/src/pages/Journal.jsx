@@ -1099,6 +1099,8 @@ export default function Journal() {
                 icon="bi-receipt"
                 size="xl"
             >
+                {selectedTransaction && (
+                    <>
                 <div className="modal-body">
                                 <div className="row mb-3">
                                     <div className="col-md-3">
@@ -1174,6 +1176,8 @@ export default function Journal() {
                         Cerrar
                     </button>
                 </div>
+                    </>
+                )}
             </NexusModal>
 
             {/* Export Modal */}
