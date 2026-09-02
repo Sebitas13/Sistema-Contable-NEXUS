@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import { format, parseISO } from 'date-fns';
@@ -10,10 +10,11 @@ import CompanyCard from '../components/CompanyCard';
 import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
 import NexusModal from '../components/NexusModal';
+import HeroWheel from '../components/HeroWheel';
 import API_URL from '../api';
 
-// Emblema 3D de Mahoraga en el hero, diferido (no entra en el bundle principal).
-const MahoragaWheel3D = lazy(() => import('../three/MahoragaWheel3D'));
+// Emblema de presentación (SVG + capas CSS): nítido en todas las pantallas,
+// sin el peso de WebGL en la pantalla de bienvenida.
 
 export default function CompanySelector() {
     const navigate = useNavigate();
@@ -323,9 +324,7 @@ export default function CompanySelector() {
             {/* Hero Section */}
             <div className="company-hero">
                 <div className="company-hero-content d-flex flex-column flex-md-row align-items-center justify-content-center gap-3 gap-md-4">
-                    <Suspense fallback={null}>
-                        <MahoragaWheel3D size={120} />
-                    </Suspense>
+                    <HeroWheel size={170} />
                     <div className="text-center text-md-start">
                         <h1 className="company-hero-title">
                             <i className="bi bi-buildings me-3"></i>
