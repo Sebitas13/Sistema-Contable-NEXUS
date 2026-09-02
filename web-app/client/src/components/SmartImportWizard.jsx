@@ -916,9 +916,12 @@ function SmartImportWizard({ onClose, onSuccess }) {
     // Función para análisis con IA (Orquestador Cognitivo)
     const analyzeWithAI = async (accounts) => {
         try {
-            // Usamos selectedCompany del scope del componente, no llamamos al hook aquí
+            if (!selectedCompany?.id) {
+                console.warn('[AI] Sin empresa activa, se omite análisis IA');
+                return null;
+            }
             const response = await axios.post(`${API_URL}/api/ai/orchestrator/orchestrate`, {
-                companyId: selectedCompany?.id || 1,
+                companyId: selectedCompany.id,
                 accounts: accounts.map(acc => ({
                     code: acc.code,
                     name: acc.name,
@@ -988,7 +991,10 @@ function SmartImportWizard({ onClose, onSuccess }) {
             seen.add(code);
 
             const typeInfo = determineType(code, name);
-            const level = calculateLevel(code) || 1; // Ensure level is at least 1
+            // El nivel debe coincidir SIEMPRE con el que se calculará al importar
+            // (getUniversalLevel usa el análisis + config); antes preview e import
+            // podían mostrar niveles distintos.
+            const level = getUniversalLevel(code, planAnalysis, structureConfig) || 1;
             const parentCode = calculateParent(code);
 
             preview.push({
@@ -999,7 +1005,8 @@ function SmartImportWizard({ onClose, onSuccess }) {
                 confidence: typeInfo.confidence,
                 level: level,
                 parent_code: parentCode,
-                isDuplicate: dups.includes(code)
+                // Marcar solo la 2ª+ ocurrencia (la primera es válida)
+                isDuplicate: seen.size > 0 && dups.includes(code) && preview.some(p => p.code === code)
             });
         });
 
@@ -1200,6 +1207,16 @@ function SmartImportWizard({ onClose, onSuccess }) {
     };
 
     const performImport = async () => {
+        if (!selectedCompany?.id) {
+            toast.warning('No hay empresa activa para importar.');
+            return;
+        }
+        // Guard: importar un plan vacío no es un "éxito".
+        if (!previewData || previewData.length === 0) {
+            toast.warning('No hay cuentas para importar. Revisa el paso anterior.');
+            return;
+        }
+
         setImporting(true);
         setImportProgress(0);
 
@@ -1209,25 +1226,6 @@ function SmartImportWizard({ onClose, onSuccess }) {
         let success = 0, fails = 0;
 
         try {
-            // Persist plan structure to company before importing accounts
-            // Use structureConfig to respect user's changes (e.g. switching from Sep to Long)
-            if (structureConfig) {
-                await axios.put(`${API_URL}/api/companies/${selectedCompany.id}`, {
-                    code_mask: structureConfig.hasSeparator ?
-                        Array.from({ length: structureConfig.levelCount }).map((_, i) => '#'.repeat(structureConfig.levelLengths[i] - (i > 0 ? structureConfig.levelLengths[i - 1] : 0))).join(structureConfig.separator) :
-                        '#'.repeat(structureConfig.levelLengths[structureConfig.levelCount - 1]),
-                    plan_structure: JSON.stringify({
-                        regex: structureConfig.hasSeparator ? `^\\d+(?:\\${structureConfig.separator}\\d+)*$` : '^\\d+$',
-                        separator: structureConfig.hasSeparator ? structureConfig.separator : null,
-                        levelsCount: structureConfig.levelCount,
-                        levelLengths: structureConfig.levelLengths,
-                        levelIncrements: structureConfig.levelIncrements,
-                        behavior: planAnalysis?.behavior || { strictlyNumerical: true }
-                    })
-                });
-                console.log('Company structure persisted successfully');
-            }
-
             // Pre-calculate all data including hierarchy
             const accountsToImport = previewData.map(row => {
                 // Determine type (use rule if available, otherwise auto)
@@ -1268,16 +1266,19 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
                 const batch = accountsToImport.slice(i, i + batchSize);
 
-                // Usar el nuevo endpoint BULK
-                await axios.post(`${API_URL}/api/accounts/bulk`, {
+                // Usar el endpoint BULK y LEER el resultado real: el servidor cuenta
+                // successCount/errorCount por lote (duplicados, filas inválidas, etc.).
+                // Antes se asumía éxito de todo el lote y el wizard mentía 100%.
+                const response = await axios.post(`${API_URL}/api/accounts/bulk`, {
                     companyId: selectedCompany.id,
                     accounts: batch
                 }, {
                     cancelToken: cancelTokenSource.token
                 });
 
-                // Asumimos éxito del lote si no lanza error (la transacción es todo o nada)
-                success += batch.length;
+                const resData = response.data || {};
+                success += (resData.successCount ?? batch.length);
+                fails += (resData.errorCount ?? 0);
 
                 setImportProgress(Math.round(((i + batch.length) / total) * 100));
 
@@ -1285,11 +1286,35 @@ function SmartImportWizard({ onClose, onSuccess }) {
                 await new Promise(resolve => setTimeout(resolve, 10));
             }
 
-            // Success feedback
+            // Persistir la estructura SOLO si el import terminó sin lanzar errores
+            // (antes se hacía ANTES del import: un fallo a mitad dejaba la empresa
+            // con estructura nueva y cuentas a medias).
+            if (structureConfig) {
+                try {
+                    await axios.put(`${API_URL}/api/companies/${selectedCompany.id}`, {
+                        code_mask: structureConfig.hasSeparator ?
+                            Array.from({ length: structureConfig.levelCount }).map((_, i) => '#'.repeat(structureConfig.levelLengths[i] - (i > 0 ? structureConfig.levelLengths[i - 1] : 0))).join(structureConfig.separator) :
+                            '#'.repeat(structureConfig.levelLengths[structureConfig.levelCount - 1]),
+                        plan_structure: JSON.stringify({
+                            regex: structureConfig.hasSeparator ? `^\\d+(?:\\${structureConfig.separator}\\d+)*$` : '^\\d+$',
+                            separator: structureConfig.hasSeparator ? structureConfig.separator : null,
+                            levelsCount: structureConfig.levelCount,
+                            levelLengths: structureConfig.levelLengths,
+                            levelIncrements: structureConfig.levelIncrements,
+                            behavior: planAnalysis?.behavior || { strictlyNumerical: true }
+                        })
+                    });
+                } catch (structureErr) {
+                    console.error('No se pudo persistir la estructura de la empresa:', structureErr.message);
+                    toast.warning('Cuentas importadas, pero la estructura de la empresa no se pudo actualizar.');
+                }
+            }
+
+            // Feedback real del resultado
             if (fails === 0) {
-                // Simple alert or toast could go here
+                toast.success(`${success} cuentas importadas correctamente.`);
             } else {
-                setError(`Importación completada con ${fails} errores.`);
+                toast.warning(`Importadas ${success} cuentas · ${fails} con error (duplicadas o inválidas).`);
             }
 
             if (onSuccess) onSuccess();
@@ -1297,9 +1322,10 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
         } catch (error) {
             if (axios.isCancel(error)) {
-                console.log('Import cancelled');
+                toast.info('Importación cancelada.');
             } else {
-                setError('Error en la importación: ' + error.message);
+                console.error('Error en la importación:', error);
+                toast.error('Error en la importación: ' + (error.response?.data?.error || error.message));
             }
         } finally {
             setImporting(false);
@@ -1311,9 +1337,9 @@ function SmartImportWizard({ onClose, onSuccess }) {
     const updateRule = (prefix, type) => {
         setGroupRules(prev => {
             const updated = prev.map(r => r.prefix === prefix ? { ...r, type } : r);
-            // Update both preview types and level 1 accounts display
+            // Preview usa las reglas actualizadas (antes leía groupRules viejo por closure)
             setTimeout(() => {
-                updatePreviewTypes();
+                updatePreviewTypes(updated);
                 updateLevel1AccountsDisplay(updated);
             }, 0);
             return updated;
@@ -1324,9 +1350,8 @@ function SmartImportWizard({ onClose, onSuccess }) {
         if (newRulePrefix.trim()) {
             setGroupRules(prev => {
                 const updated = [...prev, { prefix: newRulePrefix.trim(), type: newRuleType }];
-                // Update both preview types and level 1 accounts display
                 setTimeout(() => {
-                    updatePreviewTypes();
+                    updatePreviewTypes(updated);
                     updateLevel1AccountsDisplay(updated);
                 }, 0);
                 setNewRulePrefix('');
@@ -1340,9 +1365,8 @@ function SmartImportWizard({ onClose, onSuccess }) {
     const deleteRule = (prefix) => {
         setGroupRules(prev => {
             const updated = prev.filter(r => r.prefix !== prefix);
-            // Update both preview types and level 1 accounts display
             setTimeout(() => {
-                updatePreviewTypes();
+                updatePreviewTypes(updated);
                 updateLevel1AccountsDisplay(updated);
             }, 0);
             return updated;
@@ -1352,9 +1376,8 @@ function SmartImportWizard({ onClose, onSuccess }) {
     const updateRulePrefix = (oldPrefix, newPrefix) => {
         setGroupRules(prev => {
             const updated = prev.map(r => r.prefix === oldPrefix ? { ...r, prefix: newPrefix } : r);
-            // Update both preview types and level 1 accounts display
             setTimeout(() => {
-                updatePreviewTypes();
+                updatePreviewTypes(updated);
                 updateLevel1AccountsDisplay(updated);
             }, 0);
             return updated;
@@ -1362,11 +1385,12 @@ function SmartImportWizard({ onClose, onSuccess }) {
     };
 
     // Function to update preview data types based on current group rules
-    const updatePreviewTypes = () => {
+    const updatePreviewTypes = (rulesOverride) => {
+        const rules = rulesOverride || groupRules;
         setPreviewData(prev => prev.map(row => {
             // Find matching rule based on first digit of code
             const firstDigit = row.code.charAt(0);
-            const matchingRule = groupRules.find(rule => rule.prefix === firstDigit);
+            const matchingRule = rules.find(rule => rule.prefix === firstDigit);
 
             if (matchingRule) {
                 // Use rule type instead of auto-detected type
@@ -1399,7 +1423,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
         <NexusModal
             isOpen
             onClose={onClose}
-            title={<>Asistente de Importación <span className="text-white-50 ms-2">Paso {step === 3.5 ? 3 : step} de 4</span></>}
+            title={<>Asistente de Importación <span className="text-white-50 ms-2">Paso {step === 1 ? 1 : step === 2 ? 2 : step === 3 ? 3 : step === 3.5 ? 4 : 5} de 5</span></>}
             icon="bi-magic text-primary"
             size="xl"
             contentClassName="shadow-lg"
@@ -1437,12 +1461,12 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                         </div>
                                         <div className="col-md-4">
                                             <label className="form-label">Página Inicio</label>
-                                            <input type="number" className="form-control" value={pdfRange.startPage || ''} onChange={e => setPdfRange({ ...pdfRange, startPage: parseInt(e.target.value) || 2 })} />
+                                            <input type="number" className="form-control bg-dark text-white border-secondary" value={pdfRange.startPage || ''} onChange={e => setPdfRange({ ...pdfRange, startPage: parseInt(e.target.value) || 2 })} />
                                             <small className="text-muted">Por defecto: 2 (salta portada)</small>
                                         </div>
                                         <div className="col-md-4">
                                             <label className="form-label">Página Fin</label>
-                                            <input type="number" className="form-control" value={pdfRange.endPage || ''} onChange={e => setPdfRange({ ...pdfRange, endPage: parseInt(e.target.value) || null })} placeholder="Todas" />
+                                            <input type="number" className="form-control bg-dark text-white border-secondary" value={pdfRange.endPage || ''} onChange={e => setPdfRange({ ...pdfRange, endPage: parseInt(e.target.value) || null })} placeholder="Todas" />
                                             <small className="text-muted">Dejar vacío para procesar todas</small>
                                         </div>
                                         <div className="col-md-4 d-flex align-items-end">
@@ -1497,13 +1521,13 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                     <>
                                         <div className="col-md-6">
                                             <label className="form-label">Columna Código</label>
-                                            <select className="form-select" value={columnMapping.code} onChange={e => setColumnMapping({ ...columnMapping, code: parseInt(e.target.value) })}>
+                                            <select className="form-select bg-dark text-white border-secondary" value={columnMapping.code} onChange={e => setColumnMapping({ ...columnMapping, code: parseInt(e.target.value) })}>
                                                 {rawData[0]?.data.map((_, i) => <option key={i} value={i}>Columna {String.fromCharCode(65 + i)}</option>)}
                                             </select>
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label">Columna Nombre</label>
-                                            <select className="form-select" value={columnMapping.name} onChange={e => setColumnMapping({ ...columnMapping, name: parseInt(e.target.value) })}>
+                                            <select className="form-select bg-dark text-white border-secondary" value={columnMapping.name} onChange={e => setColumnMapping({ ...columnMapping, name: parseInt(e.target.value) })}>
                                                 {rawData[0]?.data.map((_, i) => <option key={i} value={i}>Columna {String.fromCharCode(65 + i)}</option>)}
                                             </select>
                                         </div>
@@ -1535,7 +1559,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label">Columna Nombre</label>
-                                            <select className="form-select" value={columnMapping.name} onChange={e => setColumnMapping({ ...columnMapping, name: parseInt(e.target.value) })}>
+                                            <select className="form-select bg-dark text-white border-secondary" value={columnMapping.name} onChange={e => setColumnMapping({ ...columnMapping, name: parseInt(e.target.value) })}>
                                                 {rawData[0]?.data.map((_, i) => <option key={i} value={i}>Columna {String.fromCharCode(65 + i)}</option>)}
                                             </select>
                                         </div>
@@ -1591,7 +1615,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                     <div className="mb-3">
                                                         <label className="form-label small text-muted">Carácter Separador</label>
                                                         <div className="input-group">
-                                                            <select className="form-select"
+                                                            <select className="form-select bg-dark text-white border-secondary"
                                                                 value={['.', '-', '/'].includes(structureConfig.separator) ? structureConfig.separator : 'other'}
                                                                 onChange={e => {
                                                                     const val = e.target.value;
@@ -1603,7 +1627,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                 <option value="other">Otro...</option>
                                                             </select>
                                                             {(!['.', '-', '/'].includes(structureConfig.separator)) && (
-                                                                <input type="text" className="form-control" placeholder="Ej: *" maxLength="1" style={{ maxWidth: '60px' }}
+                                                                <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Ej: *" maxLength="1" style={{ maxWidth: '60px' }}
                                                                     value={structureConfig.separator}
                                                                     onChange={e => setStructureConfig({ ...structureConfig, separator: e.target.value })} />
                                                             )}
@@ -1630,7 +1654,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                     </div>
 
                                                     {structureConfig.useCustomLengths && (
-                                                        <div className="p-2 bg-white border rounded animate__animated animate__fadeIn">
+                                                        <div className="p-2 bg-dark bg-opacity-50 border rounded animate__animated animate__fadeIn">
                                                             <div className="d-flex justify-content-between align-items-center mb-2">
                                                                 <label className="form-label small text-muted mb-0">Longitud Acumulada</label>
                                                                 <div>
@@ -1648,7 +1672,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                 {structureConfig.levelLengths.slice(0, structureConfig.levelCount).map((len, idx) => (
                                                                     <div key={idx} className="text-center">
                                                                         <label className="d-block text-muted" style={{ fontSize: '0.6rem' }}>N{idx + 1}</label>
-                                                                        <input type="number" className="form-control form-control-sm p-0 text-center border-primary"
+                                                                        <input type="number" className="form-control form-control-sm p-0 text-center border-primary bg-dark"
                                                                             style={{ width: '35px', fontSize: '0.8rem', height: '25px' }}
                                                                             value={len}
                                                                             onChange={e => {
@@ -1679,11 +1703,11 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                         </div>
                                                     </div>
 
-                                                    <div className="d-flex gap-2 flex-wrap bg-white p-2 rounded border">
+                                                    <div className="d-flex gap-2 flex-wrap bg-dark bg-opacity-50 p-2 rounded border">
                                                         {structureConfig.levelLengths.slice(0, structureConfig.levelCount).map((len, idx) => (
                                                             <div key={idx} className="text-center">
                                                                 <label className="d-block text-muted fw-bold" style={{ fontSize: '0.65rem' }}>N{idx + 1}</label>
-                                                                <input type="number" className="form-control form-control-sm p-1 text-center border-primary"
+                                                                <input type="number" className="form-control form-control-sm p-1 text-center border-primary bg-dark"
                                                                     style={{ width: '45px', fontSize: '0.9rem' }}
                                                                     value={len}
                                                                     onChange={e => {
@@ -1718,12 +1742,12 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                         </div>
                                         <div className="card-body p-3">
                                             <div className="input-group mb-2">
-                                                <span className="input-group-text bg-white"><i className="bi bi-keyboard"></i></span>
-                                                <input type="text" className="form-control" placeholder="Escribe un código para probar (ej: 1.1.0)"
+                                                <span className="input-group-text bg-dark bg-opacity-50"><i className="bi bi-keyboard"></i></span>
+                                                <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Escribe un código para probar (ej: 1.1.0)"
                                                     value={testCode} onChange={e => setTestCode(e.target.value)} />
                                             </div>
                                             {testCode && (
-                                                <div className="d-flex gap-3 justify-content-center mt-2 p-2 bg-light rounded">
+                                                <div className="d-flex gap-3 justify-content-center mt-2 p-2 bg-dark bg-opacity-50 rounded">
                                                     <div className="text-center">
                                                         <small className="text-muted d-block">Nivel Detectado</small>
                                                         <span className="badge bg-primary fs-6">{calculateLevel(testCode)}</span>
@@ -1742,8 +1766,8 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                     </div>
 
                                     {/* Live File Preview */}
-                                    <div className="card">
-                                        <div className="card-header bg-light py-2">
+                                    <div className="card bg-dark border-secondary text-white">
+                                        <div className="card-header bg-secondary bg-opacity-25 py-2">
                                             <small className="fw-bold text-muted">Muestra del Archivo (Primeros 5)</small>
                                         </div>
                                         <div className="card-body p-0">
@@ -1765,7 +1789,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                 return (
                                                                     <tr key={i}>
                                                                         <td className="font-monospace">{code}</td>
-                                                                        <td><span className="badge bg-light text-dark border">{calculateLevel(code)}</span></td>
+                                                                        <td><span className="badge bg-secondary bg-opacity-25 text-white-50 border">{calculateLevel(code)}</span></td>
                                                                         <td className="text-muted small">{calculateParent(code) || '-'}</td>
                                                                     </tr>
                                                                 );
@@ -1787,7 +1811,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                         }
                                         setStep(3);
                                     }}>Atrás</button>
-                                    <button className="btn btn-success btn-lg" onClick={generatePreview}>
+                                    <button className="btn btn-premium btn-lg px-5" onClick={generatePreview}>
                                         Continuar a Validación <i className="bi bi-arrow-right ms-2"></i>
                                     </button>
                                 </div>
@@ -1837,18 +1861,18 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                             <div className="row g-3">
                                                 <div className="col-md-5 border-end">
                                                     <label className="form-label small text-muted mb-1">Perfil Global Detectado</label>
-                                                    <div className="p-2 bg-light rounded border font-monospace mb-2 d-flex justify-content-between align-items-center">
+                                                    <div className="p-2 bg-dark bg-opacity-50 rounded border font-monospace mb-2 d-flex justify-content-between align-items-center">
                                                         <span className="text-primary fw-bold" style={{ fontSize: '1.2rem' }}>{planAnalysis.mask}</span>
                                                         <i className="bi bi-robot text-primary fs-5" title="Detección Automática"></i>
                                                     </div>
                                                     <div className="d-flex flex-wrap gap-1 mt-2">
                                                         {planAnalysis.behavior.strictlyNumerical && (
-                                                            <span className="badge bg-light text-dark border-info"># Numérico</span>
+                                                            <span className="badge bg-secondary bg-opacity-25 text-white-50 border-info"># Numérico</span>
                                                         )}
                                                         {planAnalysis.separator && (
-                                                            <span className="badge bg-light text-dark border-info">Sep: "{planAnalysis.separator}"</span>
+                                                            <span className="badge bg-secondary bg-opacity-25 text-white-50 border-info">Sep: "{planAnalysis.separator}"</span>
                                                         )}
-                                                        <span className="badge bg-light text-dark border-info">{structureConfig.levelCount || planAnalysis.levelsCount || 1} Niveles</span>
+                                                        <span className="badge bg-secondary bg-opacity-25 text-white-50 border-info">{structureConfig.levelCount || planAnalysis.levelsCount || 1} Niveles</span>
                                                     </div>
                                                 </div>
                                                 <div className="col-md-7">
@@ -1877,7 +1901,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
                                                             return (
                                                                 <div key={lidx} className="col-6">
-                                                                    <div className="p-2 border rounded bg-light bg-opacity-50 h-100">
+                                                                    <div className="p-2 border rounded bg-dark bg-opacity-50 bg-opacity-50 h-100">
                                                                         <div className="d-flex justify-content-between align-items-start mb-1">
                                                                             <span className="badge bg-secondary" style={{ fontSize: '0.6rem' }}>L{level.level}</span>
                                                                             <small className="fw-bold">{level.chars} {level.chars === 1 ? 'dígito' : 'dígitos'}</small>
@@ -1923,7 +1947,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                     onClick={() => setStructureConfig(p => ({ ...p, levelCount: Math.max(1, p.levelCount - 1) }))}>
                                                                     <i className="bi bi-dash"></i>
                                                                 </button>
-                                                                <input type="text" className="form-control text-center bg-white" value={structureConfig.levelCount} readOnly />
+                                                                <input type="text" className="form-control text-center bg-dark bg-opacity-50" value={structureConfig.levelCount} readOnly />
                                                                 <button className="btn btn-outline-secondary" type="button"
                                                                     onClick={() => {
                                                                         const currentCount = structureConfig.levelCount;
@@ -1940,7 +1964,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                         </div>
                                                         <div className="col-md-3">
                                                             <label className="form-label small fw-bold">Separador</label>
-                                                            <input type="text" className="form-control form-control-sm text-center"
+                                                            <input type="text" className="form-control form-control-sm text-center bg-dark border-secondary"
                                                                 value={structureConfig.separator} maxLength="1"
                                                                 onChange={e => setStructureConfig({ ...structureConfig, separator: e.target.value })} />
                                                         </div>
@@ -1950,7 +1974,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                 {structureConfig.levelLengths.slice(0, structureConfig.levelCount).map((l, i) => (
                                                                     <div key={i} className="text-center">
                                                                         <small className="d-block text-muted" style={{ fontSize: '0.6rem' }}>N{i + 1}</small>
-                                                                        <input type="number" className="form-control form-control-sm p-0 text-center border-primary"
+                                                                        <input type="number" className="form-control form-control-sm p-0 text-center border-primary bg-dark"
                                                                             style={{ width: '40px' }} value={l} title={`Longitud Nivel ${i + 1}`}
                                                                             onChange={e => {
                                                                                 const nl = [...structureConfig.levelLengths];
@@ -1967,7 +1991,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                 {Array.from({ length: structureConfig.levelCount }).map((_, i) => (
                                                                     <div key={i} className="text-center">
                                                                         <small className="d-block text-muted" style={{ fontSize: '0.6rem' }}>INC{i + 1}</small>
-                                                                        <input type="number" className="form-control form-control-sm p-0 text-center border-success"
+                                                                        <input type="number" className="form-control form-control-sm p-0 text-center border-success bg-dark"
                                                                             style={{ width: '40px' }} value={structureConfig.levelIncrements?.[i] || 1}
                                                                             onChange={e => {
                                                                                 const ni = [...(structureConfig.levelIncrements || [])];
@@ -2091,7 +2115,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
 
                                                                         return levels.map((lvl, idx) => (
                                                                             <div key={idx} className="col-4 col-md-3 col-lg-2">
-                                                                                <div className={`bg-white bg-opacity-10 p-2 rounded border ${colors[idx % colors.length]} text-center h-100 shadow-sm position-relative`} style={{ minHeight: '80px', transition: 'all 0.3s ease' }}>
+                                                                                <div className={`bg-dark bg-opacity-50 bg-opacity-10 p-2 rounded border ${colors[idx % colors.length]} text-center h-100 shadow-sm position-relative`} style={{ minHeight: '80px', transition: 'all 0.3s ease' }}>
                                                                                     {lvl.isMatch && (
                                                                                         <span className="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-warning text-dark border border-dark border-opacity-25 shadow-sm" style={{ fontSize: '0.65rem', zIndex: 2 }}>
                                                                                             <i className="bi bi-cpu-fill"></i> DETECTADO
@@ -2123,7 +2147,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                         </div>
 
                                                         <div className="col-12 text-center mt-3">
-                                                            <button className="btn btn-info btn-sm px-4 shadow-sm" onClick={generatePreview}>
+                                                            <button className="btn btn-outline-info btn-sm px-4" onClick={generatePreview}>
                                                                 <i className="bi bi-arrow-repeat me-1"></i> Recalcular Vista Previa Completa
                                                             </button>
                                                             <button className="btn btn-outline-success btn-sm ms-2" onClick={() => {
@@ -2182,11 +2206,13 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                         if (key.startsWith('struct_profile_')) {
                                                                             try {
                                                                                 const data = JSON.parse(localStorage.getItem(key));
-                                                                                const company = companies.find(c => String(c.id) === String(data.companyId));
+                                                                                // Solo conocemos la empresa activa en este contexto:
+                                                                                // los perfiles globales se etiquetan como plantilla.
+                                                                                const isGlobal = String(data.companyId) === 'global';
                                                                                 profiles.push({
                                                                                     key,
                                                                                     ...data,
-                                                                                    companyName: company?.name || (data.companyId === 'global' ? '🌍 Plantilla Global' : `ID: ${data.companyId}`)
+                                                                                    companyName: isGlobal ? '🌍 Plantilla Global' : (String(data.companyId) === String(selectedCompany?.id) ? selectedCompany?.name : `ID: ${data.companyId}`)
                                                                                 });
                                                                             } catch (e) { console.error("Error parsing profile", key); }
                                                                         }
@@ -2200,7 +2226,7 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                     }
 
                                                                     return profiles.map(p => (
-                                                                        <tr key={p.key} className={String(p.companyId) === String(selectedCompany?.id) ? 'table-primary-subtle' : ''}>
+                                                                        <tr key={p.key} className={String(p.companyId) === String(selectedCompany?.id) ? 'bg-primary bg-opacity-25' : ''}>
                                                                             <td className="ps-3">
                                                                                 <div className="d-flex align-items-center gap-2">
                                                                                     <span className="badge bg-dark text-info border border-info" style={{ fontSize: '0.6rem' }}>#{p.id}</span>
@@ -2277,12 +2303,12 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                 <div className="row g-2 align-items-end mb-3">
                                                     <div className="col-md-3">
                                                         <label className="form-label small">Dígito</label>
-                                                        <input type="text" className="form-control form-control-sm" placeholder="1-9"
+                                                        <input type="text" className="form-control form-control-sm bg-dark text-white border-secondary" placeholder="1-9"
                                                             value={newRulePrefix} onChange={e => setNewRulePrefix(e.target.value)} maxLength="1" />
                                                     </div>
                                                     <div className="col-md-4">
                                                         <label className="form-label small">Tipo</label>
-                                                        <select className="form-select form-select-sm" value={newRuleType} onChange={e => setNewRuleType(e.target.value)}>
+                                                        <select className="form-select form-select-sm bg-dark text-white border-secondary" value={newRuleType} onChange={e => setNewRuleType(e.target.value)}>
                                                             {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                                         </select>
                                                     </div>
@@ -2315,12 +2341,12 @@ function SmartImportWizard({ onClose, onSuccess }) {
                                                                 return (
                                                                     <tr key={idx}>
                                                                         <td>
-                                                                            <input type="text" className="form-control form-control-sm text-center"
+                                                                            <input type="text" className="form-control form-control-sm text-center bg-dark border-secondary"
                                                                                 value={rule.prefix} onChange={e => updateRulePrefix(rule.prefix, e.target.value)}
                                                                                 maxLength="1" style={{ width: '40px' }} />
                                                                         </td>
                                                                         <td>
-                                                                            <select className="form-select form-select-sm" value={rule.type}
+                                                                            <select className="form-select form-select-sm bg-dark text-white border-secondary" value={rule.type}
                                                                                 onChange={e => updateRule(rule.prefix, e.target.value)}>
                                                                                 {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                                                             </select>
