@@ -66,7 +66,9 @@ function computeInitialState() {
         enabled,
         dpr: [1, Math.min(window.devicePixelRatio || 1, 1.5)],
         paused: document.visibilityState === 'hidden',
-        particleCount: strong ? 2600 : 1600,
+        // Conteos conservadores: el fondo es decorativo; menos partículas
+        // = menos presión de GPU en laptops (donde ocurre el context lost).
+        particleCount: strong ? 1600 : 1000,
     };
 }
 

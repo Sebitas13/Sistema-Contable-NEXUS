@@ -25,6 +25,24 @@ export const CompanyProvider = ({ children }) => {
     useEffect(() => { selectedCompanyRef.current = selectedCompany; }, [selectedCompany]);
     useEffect(() => () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); }, []);
 
+    // Watchdog: el spinner de carga NUNCA puede colgarse para siempre.
+    // (Causa real vista en producción: el fondo WebGL perdía el contexto GPU
+    // y bloqueaba el hilo; la app quedaba en "Cargando empresas..." sin salir.)
+    // A los 12 s, si loading sigue en true, se fuerza la salida: el banner
+    // de error + auto-retry toma el control y la app SIEMPRE responde.
+    const loadingRef = useRef(true);
+    useEffect(() => { loadingRef.current = loading; }, [loading]);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (loadingRef.current) {
+                setLoading(false);
+                setCompaniesError('El servidor tarda más de lo normal en responder. Reintentando automáticamente…');
+                scheduleCompaniesRetry();
+            }
+        }, 12000);
+        return () => clearTimeout(timer);
+    }, []);
+
     // Auto-retry con backoff mientras el servidor despierta (máx. 20s entre intentos).
     const scheduleCompaniesRetry = () => {
         if (retryTimerRef.current) clearTimeout(retryTimerRef.current);

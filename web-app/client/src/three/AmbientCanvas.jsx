@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useLocation } from 'react-router-dom';
 import * as THREE from 'three';
@@ -214,10 +214,23 @@ export default function AmbientCanvas() {
     const { enabled, dpr, paused, particleCount } = useGLQuality();
     const location = useLocation();
     const color = useMemo(() => hueForPath(location.pathname), [location.pathname]);
+    // Seguro ante pérdida del contexto GPU ("THREE.WebGLRenderer: Context Lost"):
+    // si el driver crashea (común en laptops con doble GPU), degradamos a CSS
+    // de forma PERMANENTE — sin reintentos que bloqueen el hilo principal.
+    const [glLost, setGlLost] = useState(false);
 
-    if (!enabled) {
+    if (!enabled || glLost) {
         return <CssFallback color={color} />;
     }
+
+    const handleCreated = ({ gl }) => {
+        if (!gl || !gl.domElement) return;
+        const onLost = (event) => {
+            event.preventDefault(); // permite restauración futura del contexto
+            setGlLost(true);        // nunca más WebGL en esta sesión
+        };
+        gl.domElement.addEventListener('webglcontextlost', onLost, false);
+    };
 
     return (
         <div
@@ -233,7 +246,17 @@ export default function AmbientCanvas() {
                 dpr={dpr}
                 frameloop={paused ? 'never' : 'always'}
                 camera={{ position: [0, 0, 14], fov: 60 }}
-                gl={{ antialias: false, powerPreference: 'high-performance', alpha: true }}
+                gl={{
+                    antialias: false,
+                    // 'default' en vez de 'high-performance': evita forzar la GPU
+                    // discreta en laptops, que es donde más ocurre el context lost.
+                    powerPreference: 'default',
+                    alpha: true,
+                    // Si WebGL solo está disponible por software (SwiftShader),
+                    // falla la creación y el error boundary degrada a CSS.
+                    failIfMajorPerformanceCaveat: true
+                }}
+                onCreated={handleCreated}
                 style={{ background: 'transparent' }}
             >
                 <Nebula count={particleCount} targetColor={color} />

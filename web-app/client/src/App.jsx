@@ -8,11 +8,29 @@ import CommandPalette from './components/CommandPalette';
 import { ToastProvider } from './components/ToastProvider';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { motion } from 'framer-motion';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, Component } from 'react';
 
 // Fondo WebGL inmersivo cargado de forma diferida: nunca bloquea el arranque
 // ni entra en el bundle principal (React.lazy + dynamic import).
 const AmbientCanvas = lazy(() => import('./three/AmbientCanvas'));
+
+// El fondo 3D es decorativo: si WebGL falla en una máquina (context lost,
+// driver sin soporte, GPU débil), se apaga SOLO — la app sigue intacta.
+class AmbientBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { failed: false };
+    }
+    static getDerivedStateFromError() {
+        return { failed: true };
+    }
+    componentDidCatch(error) {
+        console.warn('Fondo 3D desactivado (no crítico):', error && error.message);
+    }
+    render() {
+        return this.state.failed ? null : this.props.children;
+    }
+}
 
 // Code splitting por ruta: cada página es un chunk independiente que se
 // descarga al navegar. Login y CompanySelector quedan eager (primeras pantallas).
@@ -311,7 +329,11 @@ function App() {
         <CompanyProvider>
             <Router>
                 <Suspense fallback={null}>
-                    {isLargeScreen && <AmbientCanvas />}
+                    {isLargeScreen && (
+                        <AmbientBoundary>
+                            <AmbientCanvas />
+                        </AmbientBoundary>
+                    )}
                 </Suspense>
                 <Routes>
                     <Route path="/login" element={<Login />} />
