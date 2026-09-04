@@ -1,0 +1,6541 @@
+
+===== PAGINA 1 =====
+MANUAL DE CUENTAS
+DE CONTABILIDAD 
+PARA EL SECTOR PÚBLICO
+GESTIÓN 2024
+
+===== PAGINA 2 =====
+ 
+    
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+La Paz, 2024
+Ministerio de Economía y Finanzas Públicas 
+ 
+Viceministerio de Presupuesto y Contabilidad Fiscal 
+Manual de Cuentas 
+del Sector Público 
+ 
+===== PAGINA 3 =====
+ 
+ 
+ 
+  
+===== PAGINA 4 =====
+ 
+ 
+ÍNDICE 
+ 
+ 
+ 
+I. PLAN DE CUENTAS 6-16 
+II. DESCRIPCIÓN DE LAS CUENTAS 19-39 
+III. DINÁMICA DE LAS CUENTAS 43-171 
+   
+ 
+ 
+===== PAGINA 5 =====
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+===== PAGINA 6 =====
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+La Paz, 2024 
+ 
+ 
+Ministerio de Economía y Finanzas Públicas 
+ 
+Viceministerio de Presupuesto y Contabilidad Fiscal 
+I. Plan de Cuentas 
+del Sector Público 
+===== PAGINA 7 =====
+ 
+6 
+ 
+1 ACTIVO 
+ 
+11 ACTIVO CORRIENTE 
+ 
+111 Disponible 
+ 
+1111 Caja 
+1112 Bancos 
+11121 Cuenta Única del Tesoro1 
+11122 Cuentas Fiscales en el BCB M/N 
+11123 Cuentas Fiscales en el BCB M/E 
+11124 Cuentas Fiscales y Otras en la Banca Privada M/N 
+11125 Cuentas Fiscales y Otras en la Banca Privada M/E 
+11126 Cuentas en el Exterior del País 
+11127 Fondos en Custodia y en Garantía 
+11128 Fondos en la CUT2 
+11129 Otras Cuentas 
+1113 Fondos Rotativos 
+ 
+112 Inversiones Financieras a Corto Plazo 
+ 
+1121 Inversiones Temporales 
+11211 Depósitos a Plazo Fijo 
+11212 Fondos en Fideicomiso 
+11213 Otras Inversiones Temporales 
+ 
+1122 Títulos y Valores a Corto Plazo 
+11221 Letras del Tesoro a Corto Plazo 
+11222 Bonos del Tesoro a Corto Plazo 
+11223 Otros Títulos y Valores a Corto Plazo 
+ 
+1123 (Previsión por Pérdidas en Inversiones Financieras a Corto 
+Plazo) 
+ 
+113 Exigible a Corto Plazo 
+ 
+1131 Cuentas a Cobrar a Corto Plazo 
+ 
+1132 Otras Cuentas a Cobrar a Corto Plazo 
+11321 Cuentas a Cobrar de Gestiones Anteriores 
+11322 Otras Cuentas a Cobrar a Corto Plazo 
+ 
+1133 Documentos y Efectos a Cobrar a Corto Plazo 
+11331 Documentos y Efectos a Cobrar a Corto Plazo 
+11332 Documentos y Efectos a Cobrar Morosos a Corto 
+Plazo 
+ 
+1134 Otros Documentos y Efectos a Cobrar a Corto Plazo 
+ 
+1 De uso exclusivo de las Instituciones que operan Cuentas Únicas de Tesorería 
+2 De uso exclusivo de las Instituciones Públicas Descentralizadas 
+===== PAGINA 8 =====
+ 
+7 
+ 
+1135 Concesión de Préstamos a Corto Plazo al Sector Público No 
+Financiero 
+11351 A Organismos de la Administración Central (Órgano 
+Ejecutivo) 
+11352 A Instituciones Públicas Descentralizadas 
+11353 A Gobiernos Autónomos Departamentales 
+11354 A Gobiernos Autónomos Municipales 
+11355 A Instituciones de Seguridad Social 
+11356 A Empresas Públicas No Financieras Nacionales 
+11357 A Empresas Públicas No Financieras Regionales 
+11358  A Empresas Públicas No Financieras Municipales 
+11359  A Otras 
+ 
+1136 Concesión de Préstamos a Corto Plazo al Sector Público 
+Financiero y a los Sectores Privado y Externo 
+11361 A Instituciones Públicas Financieras No Bancarias 
+11362 A Instituciones Públicas Financieras Bancarias 
+11363 Al Sector Privado 
+11364 Al Sector Externo 
+ 
+1137 Anticipos a Corto Plazo 
+1138 Fondos en Depósito por Garantías y Otros 
+1139 Fondos en Avance 
+ 
+114 (Previsión para Incobrables a Corto Plazo)3 
+ 
+115 Bienes de Consumo 
+ 
+1151 Inventarios de Materias Primas, Materiales y Suministros 
+1152 Inventarios de Productos 
+1153 Existencia de Productos Estratégicos 
+1154 (Previsión para Pérdidas de Inventarios) 
+ 
+116 Otros Activos Corrientes 
+ 
+1161 Activos Diferidos a Corto Plazo 
+1162 Bienes en Tránsito 
+1163 Otros Activos a Corto Plazo 
+ 
+117 Activos Virtuales 
+ 
+ 
+12 ACTIVO NO CORRIENTE 
+ 
+121 Exigible a Largo Plazo 
+ 
+1211 Cuentas a Cobrar a Largo Plazo 
+1212 Otras Cuentas a Cobrar a Largo Plazo 
+1213 Documentos y Efectos a Cobrar a Largo Plazo 
+ 
+3 De uso exclusivo de las Empresas Públicas bajo normativa específica. 
+===== PAGINA 9 =====
+ 
+8 
+ 
+1214 Otros Documentos y Efectos a Cobrar a Largo Plazo 
+1215 Concesión de Préstamos a Largo Plazo al Sector Público No 
+Financiero 
+12151 A Organismos de la Administración Central (Órgano 
+Ejecutivo) 
+12152 A las Instituciones Públicas Descentralizadas 
+12153 A Gobiernos Autónomos Departamentales 
+12154 A Gobiernos Autónomos Municipales 
+12155 A Instituciones de Seguridad Social 
+12156 A Empresas Públicas No Financieras Nacionales 
+12157 A Empresas Públicas No Financieras Regionales 
+12158 A Empresas Públicas No Financieras Municipales 
+12159  A Otras 
+ 
+1216 Concesión de Préstamos a Largo Plazo al Sector Público 
+Financiero y Sectores Privado y Externo 
+12161 A Instituciones Públicas Financieras No Bancarias 
+12162 A Instituciones Públicas Financieras Bancarias 
+12163 Al Sector Privado 
+12164 Al Sector Externo 
+ 
+1217 Anticipos a Largo Plazo 
+1218 (Previsión para Incobrables a Largo Plazo)4 
+ 
+122 Inversiones Financieras a Largo Plazo 
+ 
+1221 Acciones y Participaciones de Capital 
+12211 En Empresas Privadas Nacionales 
+12212 En Empresas Públicas no Financieras 
+12213 En Instituciones Públicas Financieras  
+12214 En Organismos Internacionales 
+12215 En Otras del Sector Externo 
+ 
+1222 Títulos y Valores a Largo Plazo 
+12221 Letras del Tesoro a Largo Plazo 
+12222 Bonos del Tesoro a Largo Plazo 
+12223 Otros Títulos y Valores a Largo Plazo 
+ 
+1223 Fondos en Fideicomiso 
+1224 Patrimonio Neto de Instituciones Descentralizadas y 
+Empresas5 
+1225 (Previsión por Pérdidas en Inversiones Financieras a LP) 
+ 
+123 Activo Fijo (Bienes de Uso) 
+ 
+1231 Activo Fijo en Operación 
+12311 Edificios 
+12312 Equipo de Oficina y Muebles 
+ 
+4 De uso exclusivo de las Empresas Públicas bajo normativa específica. 
+5 De uso exclusivo del Órgano Ejecutivo 
+===== PAGINA 10 =====
+ 
+9 
+ 
+12313 Maquinaria y Equipo de Producción 
+12314 Equipo de Transporte, Tracción y Elevación 
+12315 Equipo Médico y de Laboratorio 
+12316 Equipos de Comunicaciones 
+12317 Equipo Educacional y Recreativo 
+12318 Otra Maquinaria y Equipo 
+ 
+1232 Tierras y Terrenos 
+ 
+1233 Activo Biológico 
+12331 De Origen Animal 
+12332 De Origen Vegetal 
+ 
+1234 Otros Activos Fijos 
+ 
+1235 Construcciones en Proceso de Bienes de Dominio Privado 
+12351 Construcciones y Mejoras de Viviendas 
+12352 Construcciones y Mejoras para Defensa y Seguridad 
+12353 Construcciones y Mejoras de Otros Bienes de 
+Dominio Privado 
+12354 Supervisión de Construcciones y Mejoras de Bienes 
+de Dominio Privado 
+ 
+1236 Construcciones en Proceso de Bienes de Dominio Público 
+12361 Construcciones en Proceso de Bienes de Dominio 
+Público 
+12362 Supervisión de Construcciones y Mejoras de Bienes 
+de Dominio Público 
+ 
+1237 Estudios y Proyectos para Construcción de Bienes 
+Nacionales 
+12371 De Dominio Privado 
+12372 De Dominio Público 
+ 
+1238 Construcciones en Proceso por Administración Propia 
+ 
+124 (Depreciación Acumulada del Activo Fijo) 
+ 
+1241 (Edificios) 
+1242 (Equipo de Oficina y Muebles) 
+1243 (Maquinaria y Equipo de Producción) 
+1244 (Equipo de Transporte Tracción y Elevación) 
+1245 (Equipo Médico y de Laboratorio) 
+1246 (Equipo de Comunicaciones) 
+1247 (Equipo Educacional y Recreativo) 
+1248 (Otra Maquinaria y Equipo) 
+1249 (Activo Biológico) 
+12491 (De Origen Animal) 
+12492 (De Origen Vegetal) 
+ 
+125 Activo Intangible  
+ 
+===== PAGINA 11 =====
+ 
+10 
+ 
+126 (Amortización Acumulada del Activo Intangible) 
+ 
+127 Activos Diferidos a Largo Plazo 
+===== PAGINA 12 =====
+ 
+11 
+ 
+PASIVO 
+ 
+21 PASIVO CORRIENTE 
+ 
+211 Obligaciones a Corto Plazo 
+ 
+2111 Cuentas a Pagar a Corto Plazo 
+2112 Contratistas a Pagar a Corto Plazo 
+2113 Sueldos y Salarios a Pagar a Corto Plazo 
+2114 Aportes y Retenciones a Pagar a Corto Plazo 
+21141 Aportes Patronales a Pagar a Corto Plazo 
+21142 Retenciones a Pagar a Corto Plazo 
+21143 Aportes Patronales a Pagar de Entidades 
+Descentralizadas a Corto Plazo6 
+21144 Retenciones a Pagar de Entidades Descentralizadas 
+a Corto Plazo7 
+2115 Pensiones y Jubilaciones a Pagar a Corto Plazo 
+2116 Impuestos y Otros Derechos Obligatorios a Pagar a Corto 
+Plazo 
+21161 Impuestos a Pagar a Corto Plazo 
+21162 Regalías a Pagar a Corto Plazo 
+21163 Tasas, Multas y Otros Derechos Obligatorios a Pagar 
+a Corto Plazo 
+2117 Amortización, Intereses y Comisiones de la Deuda Pública a 
+Pagar 
+21171 Amortización de la Deuda Pública Interna 
+21172 Amortización de la Deuda Pública Externa 
+21173 Intereses Deuda Interna 
+21174 Intereses Deuda Externa 
+21175 Comisiones y Otros Gastos de la Deuda Pública 
+Interna 
+21176 Comisiones y Otros Gastos de la Deuda Pública 
+Externa 
+21177 Intereses por Mora y Multas de la Deuda Pública 
+Interna 
+21178 Intereses por Mora y Multas de la Deuda Pública 
+Externa 
+2118 Transferencias a Pagar 
+21181 A Organismos de la Administración Central (Órgano 
+Ejecutivo) 
+21182 A Instituciones Públicas Descentralizadas 
+21183 A Gobiernos Autónomos Departamentales 
+21184 A Gobiernos Autónomos Municipales 
+21185 A Instituciones de Seguridad Social 
+21186 A Empresas Públicas 
+21187 A Instituciones Financieras Bancarias y no Bancarias 
+21188 Al Sector Privado 
+ 
+6-7 De uso exclusivo del Órgano Ejecutivo 
+ 
+===== PAGINA 13 =====
+ 
+12 
+ 
+21189 Al Sector Externo 
+2119 Otras cuentas a Pagar a Corto Plazo 
+ 
+212 Deuda Documentada a Pagar a Corto Plazo 
+ 
+2121 Documentos a Pagar a Corto Plazo 
+2122 Otros Documentos a Pagar a Corto Plazo 
+2123 Préstamos Internos a Pagar a Corto Plazo 
+2124 Préstamos Externos a Pagar a Corto Plazo 
+ 
+213 Pasivos Diferidos a Corto Plazo 
+ 
+214 Previsiones y Reservas Técnicas de Corto Plazo 
+ 
+2141 Previsiones para Beneficios Sociales a Corto Plazo 
+2142 Reservas Técnicas a Corto Plazo 
+2143 Otras Previsiones a Corto Plazo 
+ 
+215 Fondos Recibidos en Custodia y en Garantía 
+ 
+2151 Fondos Recibidos en Custodia 
+2152 Fondos Recibidos en Garantía 
+2153 Fondos de Terceros Recibidos en la CUT 
+2154 Fondos Recibidos en Fideicomiso a Corto Plazo 
+ 
+216 Otros Pasivos de Corto Plazo 
+ 
+217 Deuda Administrativa de Ejercicios Anteriores 
+ 
+22 PASIVO NO CORRIENTE 
+ 
+221 Obligaciones a Largo Plazo 
+ 
+2211 Cuentas a Pagar a Largo Plazo 
+2212 Otras Cuentas a Pagar a Largo Plazo 
+ 
+222 Deuda Documentada a Pagar a Largo Plazo 
+ 
+2221 Documentos a Pagar a Largo Plazo 
+2222 Otros Documentos y Efectos a Pagar a Largo Plazo 
+ 
+223 Deuda Pública 
+ 
+2231 Deuda Pública Interna 
+2232 Deuda Pública Externa 
+ 
+224 Pasivos Diferidos a Largo Plazo 
+ 
+225 Previsiones y Reservas Técnicas a Largo Plazo 
+ 
+2251 Previsiones para Beneficios Sociales a Largo Plazo 
+===== PAGINA 14 =====
+ 
+13 
+ 
+2252 Reservas Técnicas a Largo Plazo 
+2253 Otras Previsiones a Largo Plazo 
+ 
+226 Fondos Recibidos en Fideicomiso a Largo Plazo 
+ 
+2 PATRIMONIO 
+ 
+31 PATRIMONIO INSTITUCIONAL  
+ 
+311 Capital 
+ 
+3111 Capital Institucional 
+3112 Aportes por Capitalizar 
+3113 Transferencias y Donaciones de Capital 
+3114 Afectaciones Patrimoniales  
+ 
+312 Reservas 
+ 
+313 Reservas por Revalúos Técnicos de Activos Fijos 
+ 
+314 Ajuste Global del Patrimonio 
+ 
+315 Resultados 
+ 
+3151 Resultados Acumulados de Ejercicios Anteriores 
+3152 (Resultados Afectados a Construcciones De Bienes de 
+Dominio Público) 
+3153 Resultado del ejercicio 
+3154 Resultados Afectados por Inversiones no Capitalizables 
+ 
+316 Ajuste de Capital 
+ 
+317 Ajuste de Reservas Patrimoniales 
+ 
+32 PATRIMONIO PÚBLICO 
+ 
+4 RESULTADOS POR EXPOSICION A LA INFLACION 
+ 
+41 RESULTADO POR EXPOSICIÓN A LA INFLACIÓN  
+ 
+42 AJUSTE POR INFLACIÓN Y TENENCIA DE BIENES 
+ 
+5 RECURSOS CORRIENTES 
+ 
+51 INGRESOS TRIBUTARIOS 
+ 
+511 Renta Interna 
+512 Renta Aduanera 
+513 Impuestos Municipales 
+514 Impuestos Departamentales 
+===== PAGINA 15 =====
+ 
+14 
+ 
+52 VENTA DE BIENES Y SERVICIOS 
+ 
+521 Venta de Bienes 
+522 Venta de Servicios 
+ 
+53 REGALÍAS 
+ 
+531 Regalías Mineras 
+532 Regalías de Hidrocarburos 
+5321 Regalías Nacionales 
+5322 Regalías Departamentales 
+ 
+533 Regalías Agropecuarias 
+534 Otras Regalías 
+ 
+54 OTROS INGRESOS 
+ 
+541 Tasas 
+542 Derechos 
+543 Patentes y Concesiones 
+544 Contribuciones por Mejoras 
+545 Multas 
+546 Intereses Penales 
+547 Ganancias en Operaciones Cambiarias 
+548 Renta Consular 
+549 Otros 
+ 
+55 INTERESES Y OTRAS RENTAS DE LA PROPIEDAD 
+ 
+551 Intereses por Depósitos 
+552 Intereses por Valores 
+553 Otros Intereses 
+554 Dividendos 
+555 Alquiler de Tierras y Terrenos 
+556 Derechos sobre Bienes Intangibles 
+557 Alquiler de Edificios y/o Equipos 
+558 Ingresos Financieros 
+ 
+56 CONTRIBUCIONES A LA SEGURIDAD SOCIAL 
+ 
+561 Contribuciones Obligatorias 
+5611 Contribuciones Obligatorias Patronales 
+5612 Contribuciones Obligatorias Laborales 
+ 
+562 Contribuciones Voluntarias 
+ 
+57 TRANSFERENCIAS CORRIENTES RECIBIDAS 
+ 
+571 Del Sector Privado 
+572 Del Sector Público no Financiero 
+ 
+===== PAGINA 16 =====
+ 
+15 
+ 
+573 Del Sector Público Financiero 
+574 Del Sector Externo 
+ 
+58 DONACIONES CORRIENTES RECIBIDAS 
+ 
+581 Donaciones Internas 
+582 Donaciones Externas 
+ 
+59 INGRESOS POR CLASIFICAR 
+ 
+591 Ingresos de Impuestos Internos por Clasificar 
+592 Renta Aduanera por Clasificar 
+593 Otros Ingresos por Clasificar 
+594 Ingresos de Crédito Interno por Clasificar 
+595 Recuperación de Deuda Interna por Clasificar 
+596 Ingresos de Hidrocarburos por Clasificar 
+597 TGN-Otros por Clasificar 
+598 Recursos Específicos por Clasificar 
+599 Ingresos de Donación Externa por Clasificar 
+  
+6 GASTOS CORRIENTES 
+ 
+61 GASTOS DE CONSUMO 
+ 
+611 Sueldos y Salarios 
+612 Aportes Patronales 
+6121 Aportes Patronales al Seguro Social 
+6122 Aportes Patronales para Vivienda 
+6123 Otros Aportes Patronales 
+ 
+613 Beneficios Sociales  
+6131 Indemnizaciones 
+6132 Desahucio 
+6133 Otros Beneficios Sociales 
+ 
+614 Costo de Bienes y Servicios 
+6141 Costo de Servicios no Personales 
+6142 Costo de Materiales y Suministros 
+ 
+615 Impuestos  
+6151 Impuestos Renta Interna 
+6152 Renta Aduanera 
+6153 Impuestos Municipales 
+ 
+616 Regalías, Patentes, Tasas, Multas y Otros  
+6161 Regalías 
+6162 Patentes 
+6163 Tasas, Multas y Otros 
+ 
+ 
+ 
+===== PAGINA 17 =====
+ 
+16 
+ 
+617 Depreciación y Amortización 
+6171 Depreciación Activo Fijo 
+6172 Amortización Activo Intangible 
+ 
+62 INTERESES Y OTRAS RENTAS DE LA PROPIEDAD 
+ 
+621 Intereses, Comisiones y Otros Gastos 
+6211 Intereses Deuda Interna 
+6212 Comisiones y Otros Gastos Deuda Interna 
+6213 Intereses Deuda Externa 
+6214 Comisiones y Otros Gastos Deuda Externa 
+6215 Otros Intereses 
+ 
+622 Alquileres 
+6221 Alquiler de Tierras y Terrenos 
+6222 Otros Alquileres 
+ 
+623 Derechos sobre Bienes Intangibles 
+ 
+63 PRESTACIONES DE LA SEGURIDAD SOCIAL 
+ 
+64 PREVISIONES Y PÉRDIDAS EN OPERACIONES CAMBIARIAS 
+ 
+641 Previsiones y Reservas Técnicas 
+6411 Previsiones para Pérdidas por Cuentas Incobrables 
+6412 Previsiones para Pérdidas de Inventario 
+6413 Previsiones de Reservas Técnicas 
+6414 Previsiones para Pérdidas en Inversiones Financieras 
+ 
+642 Pérdidas en Operaciones Cambiarias 
+ 
+65 TRANSFERENCIAS OTORGADAS 
+ 
+651 Al Sector Privado 
+652 Al Sector Público no Financiero 
+653 Al Sector Público Financiero 
+654 Al Sector Externo 
+ 
+66 COMISIONES, BONIFICACIONES Y OTROS SOBRE VENTAS 
+ 
+661 Comisiones sobre Ventas 
+662 Bonificaciones sobre Ventas 
+ 
+67 OTROS GASTOS 
+ 
+7 CUENTAS DE CIERRE 
+ 
+71 RESUMEN DE INGRESOS Y GASTOS 
+ 
+ 
+===== PAGINA 18 =====
+ 
+17 
+ 
+8 CUENTAS DE ORDEN 
+ 
+81 CUENTAS DE ORDEN DEUDORAS 
+  
+811 Garantías y Avales  
+812 Préstamos y Convenios Contratados por Desembolsar 
+813 Títulos y Valores Recibidos 
+814 Valores Fiscales e Impresos en Depósito 
+815 Títulos y Valores Entregados 
+816 Valores Fiscales e Impresos Entregados 
+817 Bienes recibidos en Depósito 
+818 Deudores de Gastos a Rendir 
+819 Otras Cuentas de Orden Deudoras 
+ 
+8191 Convenios de Contraparte por Ejecutar 
+8192 Reembolsos por Ejecutar 
+8193 Bienes de Dominio Publico 
+8194 Acciones Telefónicas-Proyectos de Inversión 
+8195 Activo Fijo-Proyectos de Inversión 
+8196 Activos Intangibles-Proyectos de Inversión 
+8199 Otras Cuentas Deudoras 
+ 
+82 CUENTAS DE ORDEN – ACREEDORAS 
+ 
+821 Contingencia por Garantías y Avales  
+822 Recursos de Préstamos y Convenios Contratados por Ejecutar 
+823 Responsabilidad por Títulos y Valores Recibidos  
+824 Responsabilidad por Valores Fiscales e Impresos en Depósito 
+825 Contingencia por Títulos y Valores Entregados 
+826 Contingencia por Valores Fiscales e Impresos Entregados 
+827 Responsabilidad por Bienes Recibidos en Depósito 
+828 Responsabilidad por Deudores de Gastos a Rendir 
+829 Otras Cuentas de Orden Acreedoras 
+ 
+8291 Convenios de Contraparte Suscritos 
+8292 Reembolsos Pendientes 
+8293 Responsabilidad por los Bienes de Dominio Publico 
+8294 Responsabilidad por Acciones Telefónicas-Proyecto de 
+Inversión 
+8295 Responsabilidad por Activo Fijo-Proyectos de Inversión 
+8296 Responsabilidad por Activo Intangible-Proyectos de Inversión 
+8299 Otras Cuentas Acreedoras 
+ 
+===== PAGINA 19 =====
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+La Paz, 2024 
+Ministerio de Economía y Finanzas Públicas 
+ 
+Viceministerio de Presupuesto y Contabilidad Fiscal 
+II. Descripción de 
+las Cuentas del 
+Sector Público 
+===== PAGINA 20 =====
+ 
+16 
+ 
+ 
+1. ACTIVO 
+Integrado por el conjunto de bienes y derechos cuantificables, derivados de transacciones o 
+de hechos propios del ente contable, capaces de permitir la prestación de servicios, 
+producción de bienes o de ingresos económico s y financieros razonablemente esperados 
+durante el desarrollo de la gestión. Incluye este grupo gastos cuya apropiación, por diversas 
+razones, se difiere para gestiones futuras. 
+ 
+11 ACTIVO CORRIENTE 
+Son los bienes y derechos que por su naturaleza se espera convertir en efectivo, en otra 
+partida del activo o consumirse, dentro de los doce meses, o menos, de realizada la 
+transacción. 
+ 
+111 Disponible: Grupo de cuentas del activo que comprende la existencia en poder 
+del ente de moneda de curso legal, moneda extranjera, cheques, giros bancarios y 
+postales a la vista; depósitos y colocaciones temporales de excedentes de efectivo sin 
+restricciones en entidades bancarias. 
+ 
+1111 Caja: Comprende el dinero efectivo en moneda nacional y extranjera de 
+poder cancelatorio ilimitado, cheques y otros valores legales, que no están 
+sujetos a ningún tipo de restricción. 
+ 
+1112 Bancos: Comprende el dinero en moneda nacional y extranjera 
+depositado en entidades bancarias, de poder cancelatorio legal ilimitado y, que 
+no están sujetos a ningún tipo de restricción. 
+ 
+11121 Cuenta Única del Tesoro: Cuenta de uso exclusivo de las 
+entidades públicas que administren una Cuenta Única del Tesoro 
+(CUT), representativa de los movimientos y saldo de la cuenta única. 
+De libre disponibilidad de los titulares de las libretas. Su saldo es la 
+sumatoria de las libretas que la componen. Tratándose de Gobiernos 
+Autónomos Municipales se denominará Cuenta Única Municipal 
+(CUM), de los Gobiernos Autónomos Departamentales se denominará 
+Cuenta Única de la Gobernación (CUG) y de las Universidades Públicas 
+se denominará Cuenta Única Universitaria (CUU). 
+ 
+11122 Cuentas Fiscales en el BCB M/N: Cuentas bancarias fiscales en 
+moneda nacional, aperturadas en el Banco Central de Bolivia, de uso 
+de las tesorerías, Ministerios de Estado  del Órgano Ejecutivo , e 
+instituciones públicas. 
+ 
+11123 Cuentas Fiscales en el BCB M/E: Cuentas bancarias fiscales 
+aperturadas en el Banco Central de Bolivia, correspondientes a 
+convenios con organismos del exterior por créditos externos, 
+donaciones externas y otros financiamientos en moneda extranjera. 
+11124 Cuentas Fiscales y otras en la Banca Privada M/N: Cuentas 
+Bancarias fiscales en moneda nacional, autorizadas por el Tesoro 
+General de la Nación y de otros organismos privados cuyos recursos 
+financian gastos del sector público, abiertas en instituciones de la red 
+bancaria nacional privada. 
+ 
+===== PAGINA 21 =====
+ 
+17 
+ 
+11125 Cuentas Fiscales y Otras en la Banca Privada M/E: Cuentas 
+bancarias fiscales en moneda extranjera, autorizadas por el Tesoro 
+General de la Nación y de otros organismos privados cuyos recursos 
+financian gastos del sector público, abiertas en instituciones de la red 
+bancaria nacional privada. 
+ 
+11126 Cuentas en el Exterior del País: Cuentas bancarias residentes 
+en el exterior de entidades públicas autorizadas por el Tesoro General 
+de la Nación. 
+ 
+11127 Fondos en Custodia y en Garantía: Cuentas Bancarias que 
+registran recursos de terceros que las Tesorerías de las entidades 
+públicas retienen temporalmente en custodia o en garantía. 
+ 
+11128 Fondos en la CUT: Cuenta de uso exclusivo de las instituciones 
+públicas descentralizadas y empresas p úblicas. Reflejan en sus 
+estados contables la disponibilidad de fondos en la Cuenta Única del 
+Tesoro. 
+ 
+11129 Otras Cuentas: Cuentas bancarias de naturaleza diferente a las 
+señaladas precedentemente, aperturadas de conformidad a las 
+necesidades propias del ente y, de acuerdo a normas legales y 
+técnicas pertinentes. 
+ 
+1113 Fondos Rotativos: Comprende las cuentas fiscales en moneda 
+nacional y moneda extranjera, en la banca privada, a cargo de un 
+ente/dirección administrativa, útil para financiar necesidades menores e 
+inmediatas de efectivo derivadas de sus actividades. Los fondos fijos o cajas 
+chicas de las empresas públicas, en moneda nacional y moneda extranjera,  
+son parte de los procedimientos operativos de estos fondos rotativos. 
+ 
+112 Inversiones Financieras a Corto Plazo: Comprende colocaciones que se 
+realizan con los recursos excedentes temporales del ente, en títulos o valores públicos 
+y privados, en instituciones financieras o bancarias, cuya recuperación se producirá 
+dentro de los doce meses de concertada la colocación, en arreglo a normas legales 
+en vigencia y según la naturaleza del ente. 
+ 
+1121 Inversiones Temporales: Registra las operaciones realizadas con 
+excedentes transitorios de tesorería, en entidades bancarias o financieras, de 
+disponibilidad inmediata y con el propósito de obtener un beneficio. Comprende 
+las siguientes: 
+ 
+11211 Depósitos a Plazo Fijo 
+11212 Fondos en Fideicomiso 
+11213 Otras Inversiones Temporales 
+ 
+1122 Títulos y Valores a Corto Plazo : Registra las operaciones 
+documentadas, emitidas por terceros, representativas de derechos y deudas, 
+con plazo de realización menor al año de efectuada la transacción. Comprende 
+las siguientes: 
+ 
+===== PAGINA 22 =====
+ 
+18 
+ 
+11221 Letras del Tesoro a Corto Plazo 
+11222 Bonos del Tesoro a Corto Plazo 
+11223 Otros Títulos y Valores a Corto Plazo 
+ 
+1123 (Previsión por Pérdidas en Inversiones Financieras a Corto Plazo) : 
+Comprende la estimación de las variaciones que puedan surgir en la 
+cotización de las inversiones financieras o desvalorización de las mismas a 
+corto plazo. 
+ 
+113 Exigible a Corto Plazo: Grupo de cuentas que representan derechos del ente 
+contra terceros para percibir sumas de dinero y otros bienes y servicios, por concepto 
+de tributos, venta de bienes o servicios, tasas, regalías, locación de inmuebles, 
+adelantos a proveedores o contratistas, cuya realización se producirá dentro de los doce 
+meses de efectuada la transacción. 
+ 
+1131 Cuentas a Cobrar a Corto Plazo: Comprende los derechos de cobro a 
+terceros, provenientes de la potestad del Estado de establecer gravámenes y 
+de la actividad habitual de las entidades públicas, cuya percepción se prevé 
+dentro de los doce meses de su devengamiento. 
+ 
+1132 Otras Cuentas a Cobrar a Corto Plazo: Derechos de cobro originados en 
+operaciones que no suelen suceder o hacerse de costumbre o habitualmente 
+en las entidades públicas, incorpora las cuentas a cobrar de gestiones 
+anteriores, que se generan como resultado de la conversión de los derechos de 
+cobro al cierre del mismo. Comprende las siguientes: 
+ 
+11321 Cuentas a Cobrar de Gestiones Anteriores 
+11322 Otras Cuentas a Cobrar a Corto Plazo 
+ 
+1133 Documentos y Efectos a Cobrar a Corto Plazo : Derechos de cobro 
+documentados de las entidades públicas, representados por letras, pagarés 
+u otro documento legal de pago con plazo menor a doce meses a partir de su 
+emisión. Integra los documentos y efectos a cobrar morosos. Comprende las 
+siguientes: 
+ 
+11331 Documentos y Efectos a Cobrar a Corto Plazo 
+11332 Documentos y Efectos a Cobrar Morosos a Corto Plazo 
+ 
+1134 Otros Documentos y Efectos a Cobrar a Corto Plazo : Derechos de 
+cobro documentados, originados en operaciones que no suelen suceder o 
+hacerse de costumbre o habitualmente en las entidades públicas. 
+ 
+1135 Concesión de Préstamos a Corto Plazo al Sector Público no Financiero: 
+Son préstamos otorgados por las entidades públicas, derivados de sus 
+operaciones ordinarias conforme a normas legales, cuyo vencimiento ocurrirá 
+dentro de los doce meses a partir de su devengamiento. Comprende las 
+siguientes y a otras de posterior creación: 
+ 
+11351 A Organismos de la Administración Central (Órgano Ejecutivo) 
+11352 A Instituciones Públicas Descentralizadas 
+11353 A Gobiernos Autónomos Departamentales 
+===== PAGINA 23 =====
+ 
+19 
+ 
+11354 A Gobiernos Autónomos Municipales 
+11355 A Instituciones de Seguridad Social 
+11356 A Empresas Públicas No Financieras Nacionales 
+11357 A Empresas Públicas No Financieras Regionales 
+11358 A Empresas Públicas No Financieras Municipales 
+11359  A Otras 
+ 
+1136 Concesión de Préstamos a Corto Plazo al Sector Público Financiero y 
+a los Sectores Privado y Externo : Son los préstamos otorgados por las 
+entidades públicas , derivados de sus operaciones ordinarias conforme a 
+normas legales, cuyo vencimiento ocurrirá dentro de los doce meses a partir 
+de su devengamiento. Comprende las siguientes: 
+ 
+11361 A Instituciones Públicas Financieras No Bancarias 
+11362 A Instituciones Públicas Financieras Bancarias 
+11363 Al Sector Privado 
+11364 Al Sector Externo 
+ 
+1137 Anticipos a Corto Plazo: Registra pagos a proveedores y contratistas 
+que serán imputables a las cuentas correspondientes dentro de los próximos 
+doce meses. 
+ 
+1138 Fondos en Depósito por Garantías y Otros: Son fondos de propi edad 
+de las entidades públicas , que han sido depositados o transferidos a otras 
+entidades públicas o privadas como garantías u otras obligaciones 
+institucionales señaladas por norma legal expresa. 
+ 
+1139 Fondos en Avance: Débitos originados por la entrega de fondos con 
+cargo a rendición de cuentas, a un funcionario formalmente autorizado, para 
+que los utilice en el pago de gastos específicamente señalados y de carácter 
+extraordinario. A efecto de presentación de estados financieros, esta cuenta 
+debe ser liquidada al cierre de la gestión fiscal. 
+ 
+114 (Previsión para Incobrables a Corto Plazo) : Representan estimaciones de 
+contingencias de monto incierto, que pueden afectar el patrimonio del ente como 
+consecuencia de la no recuperación de ciertas deudas, tienen i ncidencia en los 
+resultados de la gestión. De uso exclusivo para las Empresas Públicas bajo normativa 
+específica. 
+ 
+115 Bienes de Consumo: Están constituidos por aquellos bienes adquiridos o de 
+producción propia que s erán utilizados de manera directa en las actividades 
+específicas de la entidad. 
+ 
+1151 Inventario de Materias Primas, Materiales y Suministros : Son las 
+existencias de uso general, propiedad del ente destinadas al uso en las 
+operaciones de la misma, de manera directa o a través de su transformación 
+o incorporación en otros bienes que ella elabora. 
+ 
+1152 Inventario de Productos:  En determinadas entidades públicas, 
+empresas públicas y otras llamadas por Ley; son b ienes acabados 
+destinados a su enajenación o terminación respectivamente. 
+===== PAGINA 24 =====
+ 
+20 
+ 
+ 
+1153 Existencia de Productos Estratégicos: Son los productos que revisten 
+especial importancia para el país y que por su naturaleza, características o por 
+el objetivo de su acumulación requieren un registro diferenciado, como ser, 
+existencia de bienes reguladores del mercado  adquiridos por entidade s 
+públicas y/o empresas públicas. 
+ 
+1154 (Previsión para Pérdidas de Inventario ): Son estimaciones de 
+contingencias de monto cierto sobre saldos de las existencias de inventarios, que 
+permiten compensar las pérdidas de inventario por destrucción, deterioro,  
+obsolescencia y otras causas surgidas durante las operaciones ordinarias 
+del ente; son previsiones para cubrir quebrantos donde no exista 
+responsabilidad funcionaria. 
+ 
+116 Otros Activos Corrientes: Comprende bienes y derechos del ente que no han 
+sido categorizados en los grupos anteriores y cuya realización se producirá dentro de 
+los doce meses de su reconocimiento. 
+ 
+1161 Activos Diferidos a Corto Plazo: Gastos pagados por adelantado que 
+van a inci dir en los resultados de los próximos doce meses, tales como 
+seguros, alquileres, intereses y otros. 
+ 
+1162 Bienes en Tránsito: Registra los importes pagados a los proveedores 
+y otros agentes intermediarios por la importación de bienes y compras en el 
+interior del país que se encuentran en tránsito y cuyo derecho propietario ha sido 
+transferido a la entidad pública, esperando recibirlos dentro de los próximos 
+doce meses.  
+ 
+1163 Otros Activos a Corto Plazo: Agrupa activos corrientes no clasificados 
+anteriormente originados en operaciones no recurrentes del ente contable. 
+ 
+117 Activos Virtuales: Comprende recursos de representación digital con valor 
+económico, de tipo transaccional, no cuantificables físicamente que se esperan se 
+consuman en el plazo de hasta un año y que pueden almacenarse electrónicamente. Su 
+valor reside en los derechos y beneficios que su posesión confiere a la entidad tenedora. 
+ 
+12 ACTIVO NO CORRIENTE 
+Son los bienes y derechos tangibles e intangibles y los bienes de uso de posesión continuada, 
+cuya realización se espera efectuar después de los doce meses de realizada la transacción. 
+ 
+121 Exigible a Largo Plazo: Grupo de cuentas que representan derechos del ente 
+contra terceros para percibir sumas de dinero y otros bienes y servicios, por concepto 
+de tributos, venta de bienes o servicios, tasas, regalías, locación de inmuebles, 
+adelantos a proveedores o contratistas, entre otros, cuya realización se produ cirá 
+después de los doce meses de efectuada la transacción. 
+ 
+1211 Cuentas a Cobrar a Largo Plazo: Comprende derechos de cobro a 
+terceros, provenientes de la potestad del Estado de establecer gravámenes y 
+de la actividad habitual de las entidades públicas, cuya percepción se prevé 
+con posterioridad a los doce meses de su devengamiento. 
+===== PAGINA 25 =====
+ 
+21 
+ 
+1212 Otras Cuentas a Cobrar a Largo Plazo: Comprende derechos de cobro 
+de las entidades públicas originados en operaciones que no suelen suceder 
+o hacerse de costumbre o habitualmente. 
+ 
+1213 Documentos y Efectos a Cobrar a Largo Plazo: Son derechos de cobro 
+documentados de las entidades públicas, representados por letras, pagarés 
+u otro documento legal con plazo de doce meses posteriores a partir de su 
+emisión. 
+ 
+1214 Otros Documentos y Efectos a Cobrar a Largo Plazo: Son derechos de 
+cobro documentados, originados en operaciones que no suelen suceder o 
+hacerse de costumbre o habitualmente en las entidades públicas, que se 
+espera sean cobrados doce meses después de su devengamiento. 
+ 
+1215 Concesión de Préstamos a Largo Plazo al Sector Público no Financiero: 
+Son préstamos otorgados por las  entidades públicas, a excepción de las 
+empresas públicas, al sector no financiero, derivados de sus operaciones 
+ordinarias conforme a normas legales, cuyo vencimiento ocurrirá después de 
+los doce meses a partir de su devengamiento. Comprende las siguientes y a 
+otras de posterior creación: 
+ 
+12151 A Organismos de la Administración Central (Órgano Ejecutivo) 
+12152 A las Instituciones Públicas Descentralizadas 
+12153 A Gobiernos Autónomos Departamentales 
+12154 A Gobiernos Autónomos Municipales 
+12155 A Instituciones de Seguridad Social 
+12156 A Empresas Públicas No Financieras Nacionales 
+12157 A Empresas Públicas No Financieras Regionales 
+12158 A Empresas Públicas No Financieras Municipales 
+12159  A Otras 
+ 
+1216 Concesión de Préstamos a Largo Plazo al Sector Público Financiero y 
+Sectores Privado y Externo : Son préstamos otorgados por las entidades 
+públicas, al sector financiero, derivados de sus operaciones ordinarias 
+conforme a normas legales, cuyo vencimiento ocurrirá después de los doce 
+meses a partir de su devengamiento. Comprende las siguientes: 
+ 
+12161 A Instituciones Públicas Financieras No Bancarias 
+12162 A Instituciones Públicas Financieras Bancarias 
+12163 Al Sector Privado 
+12164 Al Sector Externo 
+ 
+1217 Anticipos a Largo Plazo: Registra pagos a proveedores y contratistas del 
+ente que serán imputables a las cuentas correspondientes después de doce 
+meses de su ocurrencia. 
+ 
+1218 (Previsión para incobrables a Largo Plazo): Representan estimaciones 
+de contingencias de monto incierto, que pueden afectar el patrimonio del ente 
+como consecuencia de la no recuperación de ciertas cuentas y documentos, 
+que tienen incidencia en los resultados de la gestión. De uso exclusivo de las 
+Empresas Públicas bajo normativa específica. 
+===== PAGINA 26 =====
+ 
+22 
+ 
+122 Inversiones Financieras a Largo Plazo: Son colocaciones que se realizan con 
+los recursos excedentes del ente, en títulos o valores públicos y privados, en 
+instituciones financieras o bancarias, cuya recuperación se producirá después de los 
+doce meses de concertada la colocación, en arreglo a normas legales en vigencia y 
+según la naturaleza de las entidades públicas. 
+ 
+1221 Acciones y Participaciones de Capital: Incluye los aportes de capital 
+efectuados en empresas y organismos nacionales e internacionales, directos 
+o mediante adquisición de acciones u otros valores representativos de derechos 
+patrimoniales. Comprende las siguientes: 
+ 
+12211 En Empresas Privadas Nacionales 
+12212 En Empresas Públicas no Financieras 
+12213 En Instituciones Públicas Financieras 
+12214 En Organismos Internacionales 
+12215 En Otras del Sector Externo 
+ 
+1222 Títulos y Valores a Largo Plazo:  Integra las operaciones 
+documentadas, emitidas por terceros, representativas de derechos y deudas, 
+con plazo de realización superior al año de efectuada la transacción. 
+Comprende las siguientes: 
+ 
+12221 Letras del Tesoro a Largo Plazo 
+12222 Bonos del Tesoro a Largo Plazo 
+12223 Otros Títulos y Valores a Largo Plazo 
+ 
+1223 Fondos en Fideicomiso: Registra las operaciones relacionadas a los 
+movimientos de efectivo por la colocación y recuperación de fondos públicos 
+del Tesoro General de la Nación que se encuentran en calidad de fideicomiso 
+en un agente de intermediación financiera. 
+ 
+1224 Patrimonio Neto de Instituciones Descentralizadas y Empresas: Integra 
+los importes correspondientes al Patrimonio Neto de las  entidades públicas 
+(excepto las entidades territoriales y universidades), que se incorporan en la 
+contabilidad del Órgano Ejecutivo como una manera de agregar la información 
+patrimonial del Sector Público. De uso exclusivo del Órgano Ejecutivo. 
+ 
+1225 (Previsión por Pérdidas en Inversiones Financieras a Largo Plazo ): 
+Comprende la estimación de las variaciones que puedan surgir en la cotización 
+de las inversiones financieras a largo plazo que contrate el ente en moneda 
+extranjera. 
+ 
+123 Activo Fijo (Bienes de Uso): Comprende los bienes materiales como inmuebles, 
+equipo de oficina y muebles, maquinaria y equipos, como también al activo biológico; 
+adquiridos, producidos por la entidad o recibidos por donación o transferencia, que 
+tienen vida útil superior a los doce meses, es decir no se agotan en su primer uso y 
+su incorporación se realiza con el propósito de ser empleados en sus  operaciones 
+propias y habituales. Se incluyen también las construcciones en proceso que serán 
+objeto de capitalización una vez que se inicie el proceso de construcción de los 
+activos. El valor contable neto, se obtiene deduciendo al valor bruto de las cuentas 
+del activo fijo el monto de la depreciación acumulada. 
+===== PAGINA 27 =====
+ 
+23 
+ 
+1231 Activo Fijo en Operación: Se imputan a esta cuenta, todos los activos 
+fijos adquiridos o construidos, aplicados exclusivamente al uso en las 
+operaciones de la entidad. Comprende las siguientes: 
+ 
+12311 Edificios: Incluye los edificios y sus instalaciones destinados al 
+uso del ente. Comprende las instalaciones unidas permanentemente 
+y que forman parte del mismo, las cuales no pueden instalarse ni 
+removerse sin romper paredes, pisos y techos del inmueble. 
+ 
+12312 Equipo de Oficina y Muebles: Comprende todo el equipamiento 
+y el moblaje necesarios, que facilitan las actividades propias de las 
+entidades públicas en la prestación de servicios  o producción de 
+bienes, para las que fueron creadas. Por ejemplo; escritorios, 
+computadoras, muebles y todos aquellos bienes de uso en oficinas que 
+tengan un costo significativo. 
+ 
+12313 Maquinaria y Equipo de Producción: Incluye los mecanismos y 
+dispositivos necesarios para las tareas de producción de bienes y 
+prestación de servicios de las instituciones y las empresas públicas 
+creadas para estos fines. 
+ 
+12314 Equipo de Transporte, Tracción y Elevación : Incluye los 
+mecanismos; vehículos, tractores, motoniveladoras, asimismo 
+ascensores, escaleras mecánicas, etc. necesarios para las tareas de 
+producción de bienes y de prestación de servicios de las entidades y las 
+empresas públicas creadas para estos fines. 
+ 
+12315 Equipo Médico y de Laboratorio : Incluye los mecanismos, 
+equipamiento, implementos y dispositivos necesarios para las tareas de 
+prestación de servicios de salud de las entidades públicas creadas para 
+este fin. 
+ 
+12316 Equipo de Comunicaciones: Incluye los mecanismos, 
+equipamiento y dispositivos de comunicaciones necesarios para las 
+tareas de prestación de servicios de las entidades públicas. 
+ 
+12317 Equipo Educacional y Recreativo:  Incluye los mecanismos, 
+equipamiento, mobiliario, implementos y dispositivos necesarios para 
+las tareas de enseñanza y recreación de las entidades públicas. 
+ 
+12318 Otra Maquinaria y Equipo: Se imputarán contablemente a esta 
+cuenta los activos no identificados en las subcuentas anteriores. 
+ 
+1232 Tierras  y Terrenos: Comprende los predios adquiridos o incorporados 
+por las entidades para permitir el funcionamiento de las mismas. El costo del 
+terreno sobre el cual  se encuentran las edificaciones institucionales  o de 
+dominio privado se deben registrar en esta cuenta. 
+ 
+1233 Activo Biológico: Registra la adquisición, producción, venta y/o baja 
+de activos agrícolas y de animales ornamentales, de reproducción y trabajo; 
+===== PAGINA 28 =====
+ 
+24 
+ 
+debiendo realizarse inicialmente el reconocimiento de acuerdo a su norma 
+específica. 
+ 
+12331 De Origen Animal 
+12332 De Origen Vegetal 
+ 
+1234 Otros Activos Fijos: Son activos de propiedad del ente que no se 
+encuentran en uso y por tanto no contribuyen a la prestación de servicios ni 
+pueden ser clasificados en las otras cuentas del Activo Fijo. Comprenden 
+también libros, revistas, obras de arte y bienes culturales. E stos activos no 
+se deprecian. 
+ 
+1235 Construcciones en Proceso de Bienes de Dominio Privado: Acumula el 
+costo de la construcción y las mejoras en bienes inmuebles como ser 
+viviendas, oficinas públicas, edificaciones para salud , educación, defensa, 
+seguridad, industria, cultura, etc. que serán de uso institucional o privado 
+facilitando la producción de bienes y/o prestación de servicios. A su 
+conclusión, estos bienes deben ser incorporados como patrimonio privado 
+de las entidades públicas. Se integran, además, cuando sea posible 
+identificarlos por separado, los costos de supervisión de obra o de supervisión 
+de las mejoras. Comprende las siguientes: 
+ 
+12351 Construcciones y Mejoras de Viviendas: Inversiones efectuadas 
+por las entidades públicas creadas para el efecto, en la construcción 
+de viviendas de función social, defensa, seguridad y otras obras que 
+podrían incrementar el valor de las mismas. 
+ 
+12352 Construcciones y Mejoras para Defensa y Seguridad: Costos 
+incurridos en la construcción y mejora de bienes inmuebles e 
+infraestructura, para la prestación de servicios de defensa y seguridad 
+interna, como ser edificios militares y policiales, cuarteles, aeropuertos, 
+etc. para uso de las instituciones militares y policiales. 
+ 
+12353 Construcciones y Mejoras de Otros Bienes de Dominio Privado: 
+Registra los costos incurridos en infraestructura y mejoras tales como 
+escuelas, hospitales, edificios públicos y otros destinados a la prestación 
+de servicios administr ativos, de salud, educación, etc. No 
+corresponden a obras de planes de vivienda, defensa o seguridad. 
+ 
+12354 Supervisión de Construcciones y Mejoras de Bienes de Dominio 
+Privado: Son costos de supervisión en las construcciones nuevas o 
+complementarias y las mejoras en bienes de dominio privado, 
+contratados con terceros. 
+ 
+1236 Construcciones en Proceso de Bienes de Dominio Público: Son costos 
+incurridos en la construcción y supervisión de las obras para la comunidad. 
+Comprende las siguientes: 
+ 
+12361 Construcciones en Proceso de Bienes de Dominio Público : 
+Costos incurridos por la construcción de obras para utilidad y bienestar 
+de la colectividad, tales como caminos, puentes, plazas y otros. Son 
+===== PAGINA 29 =====
+ 
+25 
+ 
+bienes que por la legislación vigente, no pueden ser enajenados. A la 
+conclusión y entrega de estos bienes, deben ser desincorporados del 
+activo afectando la cuenta del Patrimonio Público. 
+ 
+12362 Supervisión de Construcciones y Mejoras de Bienes de 
+Dominio Público : Cuando es posible identificarlos por separado, son 
+costos de supervisión en las construcciones nuevas o complementarias 
+y las mejoras en bienes de dominio privado, contratados con terceros. 
+ 
+1237 Estudios y Proyectos para Construcción de Bienes Nacionales: Costos 
+generados en estudios, proyectos e investigaciones para la construcción de 
+obras nuevas y complementarias, así como las mejoras, que por sus 
+características especiales no deben ser imputados a los resultados del 
+ejercicio. Son proyectos concretos sobre los cuales existe certeza razonable 
+para su concreción en el corto plazo. Comprende las siguientes: 
+ 
+12371 De Dominio Privado: Costos generados en estudios, proyectos 
+e investigaciones para la construcción de obras de uso institucional o 
+privado. 
+ 
+12372 De Dominio Público: Costos generados en estudios, proyectos e 
+investigaciones para la construcción de obras de uso de la comunidad. 
+ 
+1238 Construcciones en Proceso por Administración Propia : Costos 
+generados en salarios, servicios, materiales y otros costos, destinados a la 
+formación de bienes de capital y gestionados por la misma entidad pública. 
+Pueden ser de dominio privado o público. 
+ 
+124 (Depreciación Acumulada del Activo Fijo): Acumula los montos 
+determinados en las sucesivas gestiones fiscales por concepto de la aplicación 
+al costo o a los resultados, de la cuota del valor de los activos depreciables 
+durante su vida útil estimada , debiendo realizarse inicialmente el 
+reconocimiento de acuerdo a su norma específica.  Comprende las cuentas 
+de: 
+ 
+1241 (Edificios) 
+1242 (Equipo de Oficina y Muebles) 
+1243 (Maquinaria y Equipo de Producción) 
+1244 (Equipo de Transporte Tracción y Elevación) 
+1245 (Equipo Médico y de Laboratorio) 
+1246 (Equipo de Comunicaciones) 
+1247 (Equipo Educacional y Recreativo) 
+1248 (Otra Maquinaria y Equipo) 
+1249 (Activo Biológico) 
+12491 (De Origen Animal) 
+12492 (De Origen Vegetal) 
+ 
+125 Activo Intangible: Comprende activos inmateriales, no cuantificables 
+físicamente, su valor reside en los derechos y beneficios que su posesión confiere a 
+la entidad tenedora, como ser derechos de uso de la propiedad intelectual, comercial, 
+industrial y otros de característic a similar. El valor contable neto se obtiene 
+===== PAGINA 30 =====
+ 
+26 
+ 
+deduciendo al valor bruto de las cuentas del activo intangible, el monto de la 
+amortización acumulada. Se imputan a esta cuenta, todos los activos intangibles 
+adquiridos y aplicados exclusivamente al uso en las operaciones de la entidad. 
+ 
+126 (Amortización Acumulada del Activo Intangible): Integra los montos 
+establecidos en las sucesivas gestiones fiscales por concepto de la aplicación al costo 
+o a los resultados, de la cuota del valor de los activos amortizables, durante el período 
+de uso establecido contractualmente o su vida útil estimada. 
+ 
+127 Activos Diferidos a Largo Plazo: Gastos pagados por adelantado que van a 
+incidir en los resultados después de los doce meses de realizada la operación y durante 
+las próximas gestiones, tales como seguros, alquileres, intereses y otros. 
+ 
+2. PASIVO 
+Conjunto de obligaciones ciertas y contingentes, que a la fecha de cierre de la gestión  los 
+terceros adquieren o pueden llegar a adquirir contra el ente contable; se incluyen también las 
+ganancias cuya apropiación, por diversas razones, se difieren para gestiones futuras. 
+ 
+21 PASIVO CORRIENTE 
+Integra todos los grupos y cuentas que reflejan c ompromisos o deudas contraídas , cuyo 
+vencimiento se producirá dentro de los doce meses de pactada la obligación. 
+ 
+211 Obligaciones a Corto Plazo: Son obligaciones del ente  contable, vinculadas 
+con la actividad del mismo, provenientes de transacciones relacionadas con la 
+adquisición de bienes y servicios, remuneraciones, cargas sociales, impuestos, 
+intereses y transferencias, cuyo vencimiento se producirá dentro de los próximos doce 
+meses. 
+ 
+El devengamiento del gasto en el proceso de gestión pública, genera estas 
+obligaciones de pago que tienen la naturaleza de deuda administrativa o deuda 
+flotante. Comprende las cuentas de: 
+ 
+2111 Cuentas a Pagar a Corto Plazo : Comprende las deudas no  
+documentadas con proveedores motivadas por operaciones habituales del 
+ente contable y plazo de vencimiento a menos de un año. Incluye también el 
+reconocimiento de la obligación por el devengamiento en la adquisición de 
+Títulos, Valores, Acciones y Participaciones de Capital. 
+ 
+2112 Contratistas a Pagar a Corto Plazo : Saldos que se adeudan a los 
+contratistas en función al avance de las obras debidamente aprobadas y de 
+conformidad a contratos suscritos. 
+ 
+2113 Sueldos y Salarios a Pagar a Corto Plazo: Montos adeudados por pago 
+de todo tipo de servicios personales, de  naturaleza permanente o no 
+permanente, prestados al ente en relación de dependencia. 
+ 
+2114 Aportes y Retenciones a Pagar a Corto Plazo: Deudas por concepto de 
+cargas sociales y retenciones de las remuneraciones y de otros pagos a favor 
+de terceros, de conformidad al ordenamiento legal vigente. Comprende las 
+siguientes: 
+ 
+===== PAGINA 31 =====
+ 
+27 
+ 
+21141 Aportes Patronales a Pagar a Corto Plazo:  Obligaciones 
+pendientes de pago por concepto de Previsión Social y Otros Aportes 
+patronales originados en los Servicios Personales. 
+ 
+21142 Retenciones a Pagar a Corto Plazo: Obligaciones pendientes de 
+pago por concepto de aportes laborales y otras retenciones a favor de 
+terceros que efectúan las entidades públicas. 
+ 
+21143 Aportes Patronales a Pagar de Entidades Descentralizadas a 
+Corto Plazo:  Son obligaciones del TGN, emergentes de la 
+administración por parte del mismo de las disponibilidades de algunas 
+entidades públicas descentralizadas. Es de uso exclusivo del Órgano 
+Ejecutivo 
+ 
+21144 Retenciones a Pagar de Entidades Descentralizadas a Corto 
+Plazo: Son pasivos del TGN, que se crean como consecuencia de la 
+administración por parte del mismo de las disponibilidades de algunas 
+entidades públicas descentralizadas. Es de uso exclusivo del Órgano 
+Ejecutivo  
+ 
+2115 Pensiones y Jubilaciones a Pagar a Corto Plazo: Son rentas pendientes 
+de pago a una fecha determinada. Es de uso exclusivo del Órgano Ejecutivo e 
+instituciones públicas descentralizadas , con excepción de las Empresas 
+Públicas. 
+ 
+2116 Impuestos y Otros Derechos Obligatorios a Pagar a Corto Plazo : 
+Cuando corresponda, incluye todo tipo de obligaciones fiscales; impuestos, 
+regalías, tasas, multas y otros pendientes de pago de las entidades públicas. 
+Comprende las siguientes: 
+ 
+21161 Impuestos a Pagar a Corto Plazo 
+21162 Regalías a Pagar a Corto Plazo 
+21163 Tasas, Multas y Otros Derechos Obligatorios a Pagar a Corto 
+Plazo 
+ 
+2117 Amortización, Intereses y Comisiones de la Deuda Pública a Pagar : 
+Corresponde a la deuda exigible por el devengamiento de la amortización, 
+intereses y comisiones de la deuda pública interna o externa. Incluye también 
+los intereses por crédito de proveedores o documentos pendientes de pago. 
+Comprende las siguientes: 
+ 
+21171 Amortización de la Deuda Pública Interna 
+21172  Amortización de la Deuda Pública Externa 
+21173 Intereses Deuda Interna 
+21174 Intereses Deuda Externa 
+21175 Comisiones y Otros Gastos de la Deuda Pública Interna 
+21176 Comisiones y Otros Gastos de la Deuda Pública Externa 
+21177 Intereses por Mora y Multa de la Deuda Pública Interna 
+21178 Intereses por Mora y Multa de la Deuda Pública Externa 
+ 
+===== PAGINA 32 =====
+ 
+28 
+ 
+2118 Transferencias a Pagar: Incluye los importes de las transferencias 
+devengadas y pendientes de pago, a entidades públicas, personas particulares 
+y al sector externo. Comprende las siguientes: 
+ 
+21181 A Organismos de la Administración Central (Órgano Ejecutivo) 
+21182 A Instituciones Públicas Descentralizadas 
+21183 A Gobiernos Autónomos Departamentales 
+21184 A Gobiernos Autónomos Municipales 
+21185 A Instituciones de Seguridad Social 
+21186 A Empresas Públicas 
+21187 A Instituciones Financieras Bancarias y no Bancarias 
+21188 Al Sector Privado 
+21189 Al Sector Externo 
+ 
+2119 Otras Cuentas a Pagar a Corto Plazo : Son obligaciones no 
+contempladas en los conceptos anteriores y aquellas deudas por operaciones 
+no ordinarias del ente contable de gestiones anteriores. 
+ 
+212 Deuda Documentada a Pagar a Corto Plazo: Son obligaciones documentadas 
+del ente  contable, vinculadas con la actividad del mismo, provenientes de 
+transacciones relacionadas con la adquisición de bienes y servicios, operaciones 
+documentadas no recurrentes y el endeudamiento de corto plazo interno o externo, 
+cuyo vencimiento se producirá dentro de los próximos doce meses.  
+ 
+La deuda exigible o deuda flotante documentada se registra en este grupo en las 
+cuentas de Documentos a Pagar a Corto Plazo y Otros Documentos a Pagar a Corto 
+Plazo. Comprende las cuentas de: 
+ 
+2121 Documentos a Pagar a Corto Plazo : Obligaciones de pago 
+documentadas, originadas por operaciones corrientes del ente, que vencen 
+dentro de los doce meses de su recepción. 
+ 
+2122 Otros Documentos a Pagar a Corto Plazo: Obligaciones de pago 
+documentadas, originadas en operaciones no corrientes del ente, que vencen 
+dentro de los doce meses de su recepción. 
+ 
+2123 Préstamos Internos a Pagar a Corto Plazo: Deudas contraídas por las 
+entidades públicas, con excepción de las empresas públicas,  con 
+instituciones financieras residentes en el país en operaciones de crédito a 
+menos de un año. Incluye el financiamiento interno que otorga el Banco Central 
+de Bolivia, los títulos emitidos por el TGN, Certificados de Crédito Fiscal y otro 
+tipo de financiamiento. 
+ 
+2124 Préstamos Externos a Pagar Corto Plazo: Comprende las deudas 
+contraídas por las entidades públicas, con excepción de las empresas 
+públicas, con instituciones financieras no residentes en el país en operaciones 
+de crédito a menos de un año. 
+ 
+213 Pasivos Diferidos a Corto Plazo: Ingresos que por concepto de sus 
+operaciones normales ha recibido la institución ant icipadamente, cuyo diferimiento 
+ocurrirá dentro de los doce meses de recibido el recurso. 
+===== PAGINA 33 =====
+ 
+29 
+ 
+214 Previsiones y Reservas Técnicas de Corto Plazo: Son estimaciones de 
+obligaciones creadas por cálculo estimado o actuarial para cubrir gastos ciertos no 
+exigibles a la fecha de balance, que afectan el resultado de la gestión y se espera se 
+efectivicen dentro de los doce meses a partir del cierre de la gestión. Comprende las 
+cuentas de: 
+ 
+2141 Previsiones para Beneficios Sociales a Corto Plazo 
+2142 Reservas Técnicas a Corto Plazo 
+2143 Otras Previsiones a Corto Plazo 
+ 
+215 Fondos Recibidos en Custodia y en Garantía: Son fondos de propiedad ajena; 
+recaudados por cuenta de terceros y aún no transferidos a su titular, comprende 
+efectivo revertido por cheques y órdenes de pago no cobradas por los beneficiarios 
+y recibidos como garantía en cumplimiento de obligaciones contractuales o legales. 
+Comprende las cuentas de: 
+ 
+2151 Fondos Recibidos en Custodia: Dinero de propiedad de terceros, que 
+en cumplimiento de normas legales pertinentes es recibido por las entidades 
+públicas. También efectivo revertido por concepto de cheques y órdenes de 
+pago no cobradas por los beneficiarios. 
+ 
+2152 Fondos Recibidos en G arantía: Fondos recibidos en garantía del 
+cumplimiento de obligaciones contractuales o legales. 
+ 
+2153 Fondos de Terceros Recibidos en la CUT: Efectivo de las Instituciones 
+Descentralizadas, Empresas Públicas y otras entidades públicas, que en marco 
+funcional y operativo de la Cuenta Única del Tesoro son centralizados por los 
+Tesoros que operan bajo la modalidad de Cuenta Única, para el cumplimiento 
+de las órdenes de pago emitidas por los titulares de estos fondos. 
+ 
+2154 Fondos recibidos en Fideicomiso a Corto Plazo: En las entidades 
+autorizadas por Ley, registra las operaciones relacionadas a los movimientos 
+de efectivo por la recepción y devolución de fondos en calidad de fideicomiso, 
+provenientes de fideicomitentes priv ados o públicos. Se espera que la 
+devolución se produzca en un plazo inferior a los doce meses. 
+ 
+216 Otros Pasivos de Corto Plazo: Incluye otras obligaciones ciertas, eventuales y 
+particulares por operaciones de las entidades públicas, cuyo vencimiento se producirá 
+dentro de los doce meses de contraída la deuda y que no se han incluido en los grupos 
+anteriores. 
+ 
+217 Deuda Administrativa de Ejercicios Anteriores: A la fecha de balance, 
+comprende la deuda flotante de ejercicios anteriores a la gestión pasada, que no fue 
+cancelada. 
+ 
+22 PASIVO NO CORRIENTE 
+Son las obligaciones por operaciones ordinarias del ente contable y de crédito público, cuyo 
+vencimiento operará en un plazo mayor a los doce meses de devengada la deuda. Además 
+de las previsiones y reservas técnicas que se espera no serán utilizadas en ese período. 
+ 
+===== PAGINA 34 =====
+ 
+30 
+ 
+221 Obligaciones a Largo Plazo: Son compromisos y deudas contraídas  con 
+terceros que deben ser canceladas en un plazo mayor a los doce meses, no 
+garantizadas por documento y/o operaciones de crédito público. Comprende las 
+cuentas de: 
+ 
+2211 Cuentas a Pagar a Largo Plazo:  Comprende las deudas con 
+proveedores motivadas por operaciones habituales del ente contable y plazo 
+de vencimiento mayor al año. 
+ 
+2212 Otras Cuentas a Pagar a Largo Plazo: Comprende las cuentas a pagar 
+y otras obligaciones no contempladas en los conceptos anteriores y, aquellas 
+deudas por operaciones no ordinarias del ente contable. 
+ 
+222 Deuda Documentada a Pagar a Largo Plazo: Son obligaciones documentadas 
+del ente  contable, vinculadas con la actividad del mismo, provenientes de 
+transacciones relacionadas con la adquisición de bienes, servicios y operaciones no 
+recurrentes cuyo vencimiento se producirá dentro de los próximos doce meses, con 
+excepción de operaciones de Deuda Pública. Comprende las cuentas de: 
+ 
+2221 Documentos a Pagar a Largo Plazo: Obligaciones de pago 
+documentadas, originadas por operaciones corrientes del ente contable, que 
+vencen después de los doce meses de su devengamiento. 
+ 
+2222 Otros Documentos y Efectos a Pagar a Largo Plazo: Obligaciones de 
+pago documentadas, originadas en operaciones no corrientes del ente  
+contable, que vencen dentro de los doce meses de su recepción. 
+ 
+223 Deuda Pública: Integra los montos de las deudas contraídas por emisión de 
+letras, bonos y otros valores y; contratación de empréstitos de largo plazo con 
+instituciones financieras, en cumplimiento a normas legales aplicables.  Es de uso 
+exclusivo del Órgano Ejecutivo  y otras entidades públicas facultadas por Ley . 
+Comprende las cuentas de: 
+ 
+2231 Deuda Pública Int erna: Obligaciones del Gobierno Central y otras 
+entidades públicas autorizadas por Ley, integra saldos acreedores por la 
+colocación de títulos de deuda y empréstitos contratados con residentes en el 
+país. 
+ 
+2232 Deuda Pública Externa: Obligaciones del Gobierno Central y otras 
+entidades autorizadas por Ley, integra saldos acreedores por la colocación de 
+títulos de deuda y empréstitos contratados con no residentes en el país. 
+ 
+224 Pasivos Diferidos a Largo Plazo:  Ingresos que por concepto de sus 
+operaciones normales ha recibido el ente  contable anticipadamente, cuyo 
+diferimiento ocurrirá después de los doce meses de recibido el recurso. 
+ 
+225 Previsiones y Reservas Técnicas a Largo Plazo: Cuentas representativas de 
+cargos preventivos y otras estimadas para ciertas contingencias, cuyo vencimiento se 
+espera se realice después de los doce meses a  partir del cierre de la gestión. 
+Comprende las cuentas de: 
+ 
+===== PAGINA 35 =====
+ 
+31 
+ 
+2251 Previsiones para Beneficios Sociales a Largo Plazo: Son estimaciones 
+de obligaciones creadas para cubrir gastos ciertos no exigibles a la fecha de 
+balance, que afectan el resultado de la gestión. Son gastos de pago futuro a 
+favor de los dependientes, establecidos por normas legales del régimen 
+laboral. 
+ 
+2252 Reservas Técnicas a Largo Plazo: Son estimaciones de situaciones 
+contingentes que pueden originar obligaciones a favor de terceros, 
+determinados mediante métodos de cálculo actuarial. 
+ 
+2253 Otras Previsiones a Largo Plazo: Representan estimación de cargos 
+preventivos por situaciones contingentes, que pueden originar obligaciones de 
+pago de la entidad hacia terceros en el largo plazo. Pueden o no ser de 
+naturaleza laboral. 
+ 
+226 Fondos recibidos en Fideicomiso a Largo Plazo: En las entidades autorizadas 
+por Ley, registra las operaciones relacionadas a los movimientos de efectivo por la 
+recepción y devolución de fondos en calidad de fideicomiso, prov enientes de 
+fideicomitentes privados o públicos. Se espera que la devolución se produzca después 
+de los doce meses de su recepción. 
+ 
+3 PATRIMONIO 
+Representa la diferencia existente entre el total de las cuentas activas y pasivas del ente 
+contable. Está constituido por el patrimonio institucional y el patrimonio público. 
+ 
+31 PATRIMONIO INSTITUCIONAL 
+Comprende la participación del Estado sobre los activos del ente  contable según 
+corresponda a la naturaleza jurídica de la misma, conformando la Hacienda Pública en el 
+caso del Órgano Ejecutivo y el Capital Institucional en el resto de las Entidades Públicas. 
+Se halla integrado por el Capital, Reservas, Ajuste de Capital y los Resultados. 
+ 
+311 Capital: Está constituido por el capital institucional, los aportes por capitalizar y, 
+las transferencias y donaciones de capital recibidas. Comprende las cuentas de: 
+ 
+3111 Capital Institucional: Representado, para el Órgano Ejecutivo, por el 
+patrimonio fiscal o hacienda pública, que es la diferencia entre activos y pasivos 
+del ente contable a la fecha de la primera determinación del patrimonio 
+contable y de las variaciones incorporadas posteriormente; los aportes 
+iniciales de capital públicos y privados tanto como los incrementos al mismo en 
+el resto de las entidades públicas; asimismo, para las empresas públicas, está 
+representado por la diferencia entre sus activos y sus pasivos a la fecha de la 
+primera determinación del patrimonio contable y de las variaciones 
+incorporadas posteriormente. 
+ 
+3112 Aportes por Capitalizar: Son aportes que aún no han recibido la 
+autorización legal para integrar el capital institucional del ente contable. 
+ 
+3113 Transferencias y Donaciones de Capital:  Recursos recibidos como 
+transferencias del sector público o donaciones del sector privado, destinados a 
+gastos de capital institucionales y que aún no han sido integrados al capital 
+institucional. Se registran también en esta cuenta las transferencias de capital 
+===== PAGINA 36 =====
+ 
+32 
+ 
+para las construcciones de bienes nacionales para la comunidad, 
+capitalizables y no capitalizables. 
+ 
+3114 Afectaciones Patrimoniales:  Cuenta de ajuste al patrimonio 
+institucional por operaciones que no corresponden a recursos ni gastos 
+corrientes, de capital o financieros. Representativa de derechos (activos) u 
+obligaciones (pasivos) del largo plazo, que se reconocen y que modifican el 
+patrimonio institucional del ente contable. 
+ 
+312 Reservas: Son segregaciones de los resultados positivos, temporales o 
+permanentes, retenidas por el ente, cuando corresponda, para cumplir un fin 
+determinado de conformidad con normas legales o estatutarias. 
+313 Reservas por Revalúos Técnicos de Activos Fijos: Configuran una extensión 
+cierta del Patrimonio Institucional, se constituyen por el mayor valor asignado a los 
+activos fijos por peritajes realizados de conformidad a normas legales vigentes. 
+ 
+314 Ajuste Global del Patrimonio: Constituyen ajustes de capital por correcciones 
+a la expresión monetaria del Patrimonio Institucional: capital, reservas y resultados, 
+de conformidad a normas legales vigentes. 
+ 
+315 Resultados: Acumula el mayor o menor valor respecto de los ingresos y 
+gastos corrientes en la gestión y en las gestiones anteriores. La exposición de los 
+resultados se afecta por la inversión con recursos corrientes realizada por  el ente 
+contable, en la construcción de bienes de dominio público, además, por los gastos 
+en proyectos no capitalizables. Comprende las siguientes: 
+ 
+3151 Resultados Acumulados de Ejercicios Anteriores: Representa los 
+resultados pos itivos o negativos de gestiones  pasados sin asignación 
+determinada. 
+ 
+3152 (Resultados Afectados a Construcciones de Bienes de Dominio 
+Público): Cuenta reguladora de los resultados que a la fecha de balance, 
+representa el monto invertido en la gestión en la Construcción de Bienes de 
+Dominio Público. 
+ 
+3153 Resultado del Ejercicio: Resultado de la gestión fiscal que al inicio del 
+subsiguiente periodo será asignado a los resultados acumulados. 
+ 
+3154 Resultados Afectados por Inversiones no Capitalizables: Registra los 
+importes cargados a gastos de los proyectos sociales o intangibles que no 
+se capitalizan. La contracuenta de ajuste corresponde a las Transferencias 
+y Donaciones de Capital. 
+ 
+316 Ajuste de Capital: Registra la re expresión  y actualización del Capital 
+Institucional para su adecuada exposición como mantenimiento de capital financiero. 
+ 
+317 Ajuste de Reservas Patrimoniales: Capitaliza las operaciones por la represión 
+y actualización del resto de cuentas contables del Patrimonio Institucional, excepto, 
+los Resultados Acumulados de Gestiones Anteriores y Resultado de la Gestión. 
+ 
+ 
+===== PAGINA 37 =====
+ 
+33 
+ 
+32 PATRIMONIO PÚBLICO 
+Registro de carácter transitorio que refleja las transferencias y donaciones de capital 
+recibidas y parte de los recursos corrientes afectados para la Construcción de Bienes de 
+Dominio Público. Debe ser disminuido en oportunidad en que dichas construcciones se 
+concluyan y entreguen a la comunidad. 
+ 
+4 RESULTADO POR EXPOSICIÓN A LA INFLACIÓN 
+Cuenta de s aldo deudor o acreedor que en el Estado de Resultados, después de 
+establecidos los resultados operativos, reflejará el impacto en el patrimonio por las 
+correcciones a la expresión monetaria de los activos y pasivos no monetarios. 
+ 
+41 RESULTADOS POR EXPOSICIÓN A LA INFLACIÓN 
+Registra los ajustes por efecto de la inflación y por la tenencia de bienes, que deben efectuar 
+las entidades del sector público, excepto las empresas públicas, los mismos que incidirán 
+a través del resultado del ejercicio en el patrimonio de la entidad. 
+ 
+42 AJUSTE POR INFLACIÓN Y TENENCIA DE BIENES 
+Registra los ajustes por efecto de la inflación y por la tenencia de bienes, que deben efectuar 
+las empresas públicas, los mismos que incidirán a través del resultado de la gestión en el 
+patrimonio de la entidad. 
+ 
+5 RECURSOS CORRIENTES 
+Comprenden los diversos ingresos que se obtienen a través de la gestión del ente contable, 
+básicamente son: los ingresos de operación, venta de bienes y servicios, transferencias y 
+donaciones corrientes y; los derivados de la potestad del Estado de establecer gravámenes, 
+tales como: tributos, regalías, tasas y contribuciones a la seguridad social. 
+ 
+51 INGRESOS TRIBUTARIOS 
+Agrupa los gravámenes que el Estado en sus atribuciones, los establece para el cumplimiento 
+de sus fines. Son recursos de renta interna, ad uana y los impuestos de las entidades 
+territoriales autónomas. De uso de las entidades del sector público, con excepción de las 
+empresas públicas. Comprende los grupos de: 
+ 
+511 Renta Interna: Son recursos del Tesoro General de la Nación por concepto de 
+impuestos sobre la propiedad, la renta, el patrimonio, la producción, la compra, venta 
+y utilización de bienes y servicios. 
+ 
+512 Renta Aduanera: Recursos del Tesoro General de la Nación por concepto de 
+gravámenes a la importación y exportación de bienes. 
+ 
+513 Impuestos Municipales: Recursos de los Gobiernos Autónomos Municipales por 
+concepto de impuestos a la propiedad, tenencia y transferencia de bienes. 
+ 
+514 Impuestos Departamentales: Recursos de los Gobiernos Autónomos 
+Departamentales por concepto  de impuestos y otros gravámenes de su 
+competencia. 
+ 
+52 VENTA DE BIENES Y SERVICIOS 
+Recursos provenientes de la venta de bienes o la prestación de servicios de las todas las 
+entidades públicas, particularmente las empresas públicas. Comprende los grupos de: 
+ 
+===== PAGINA 38 =====
+ 
+34 
+ 
+521 Venta de Bienes: Venta de bienes producidos por el ente contable o por terceros 
+producto del giro normal de sus actividades. 
+ 
+522 Venta de Servicios: Ingresos que se derivan de la prestación de servicios por 
+las actividades ordinarias de las entidades públicas, incluye la venta de formularios e 
+impresos que realizan las entidades del sector público. 
+ 
+53 REGALÍAS 
+Recursos provenientes que agregan ingresos por regalías a la explotación de recursos 
+naturales, clasificadas según la naturaleza de la actividad que origina el derecho de su 
+percepción. Comprende los grupos de: 
+ 
+531 Regalías Mineras 
+532 Regalías de Hidrocarburos 
+5321 Regalías Nacionales 
+5322 Regalías Departamentales 
+533 Regalías Agropecuarias  
+534 Otras Regalías  
+ 
+54 OTROS INGRESOS 
+Recursos que se originan por concepto de tasas, derechos, patentes, contribuciones, multas, 
+intereses, ganancia en operaciones cambiarias, renta consular y otros. Integra los grupos de: 
+ 
+541 Tasas 
+542 Derechos 
+543 Patentes y Concesiones 
+544 Contribuciones por Mejoras 
+545 Multas 
+546 Intereses Penales 
+547 Ganancias en Operaciones Cambiarias 
+548 Renta Consular 
+549 Otros 
+ 
+55 INTERESES Y OTRAS RENTAS DE LA PROPIEDAD 
+Comprende los ingresos por intereses, dividendos, alquileres y; derechos sobre bienes 
+intangibles que perciben las entidades públicas; derivados de la propiedad de activos fijos, 
+intangibles y financieros. Comprende los grupos de: 
+ 
+551 Intereses por Depósitos 
+552 Intereses por Valores 
+553 Otros Intereses 
+554 Dividendos 
+555 Alquiler de Tierras y Terrenos 
+556 Derechos sobre Bienes Intangibles 
+557 Alquiler de Edificios y Equipos 
+558 Ingresos Financieros 
+ 
+56 CONTRIBUCIONES A LA SEGURIDAD SOCIAL 
+Son obligaciones a cargo de la población económicamente activa para atender el 
+financiamiento de los distintos regímenes de previsión y asistencia social en beneficio de 
+===== PAGINA 39 =====
+ 
+35 
+ 
+los trabajadores. Son aportes patronales y laborales de naturaleza obligatoria y voluntaria. 
+Comprende los grupos de: 
+ 
+561 Contribuciones Obligatorias 
+5611 Contribuciones Obligatorias Patronales 
+5612 Contribuciones Obligatorias Laborales 
+562 Contribuciones Voluntarias 
+ 
+57 TRANSFERENCIAS CORRIENTES RECIBIDAS 
+Recursos del sector público por concepto de transferencias, originadas en el sector público 
+y privado interno o externo, que p erciben las entidades públicas sin generar 
+contraprestación de bienes y servicios ni obligación de reintegro por parte de la entidad 
+receptora. Comprende los grupos de: 
+ 
+571 Del Sector Privado 
+572 Del Sector Público no Financiero 
+573 Del Sector Público Financiero 
+574 Del Sector Externo 
+ 
+58 DONACIONES CORRIENTES RECIBIDAS 
+Comprende las donaciones efectuadas por el sector privado, gobiernos e instituciones 
+internacionales para el funcionamiento de la entidad, pueden ser internas y externas. Son 
+recursos percibidos sin generar contraprestación de bienes y servicios ni obligación de 
+reintegro por parte de la entidad receptora. Comprende los grupos de: 
+ 
+581 Donaciones Internas 
+582 Donaciones Externas 
+ 
+59 INGRESOS POR CLASIFICAR 
+Son recursos generados por recaudaciones de renta, aduana, operaciones de deuda interna, 
+recaudación por hidrocarburos y otros pendientes de imputación presupuestaria. Son de 
+naturaleza transitoria y deben ser re gularizadas antes del cierre de la gestión fiscal. 
+Comprende los grupos de: 
+ 
+591 Ingresos de Impuestos Internos por Clasificar 
+592 Recaudación Aduanera por Clasificar 
+593 Otros Ingresos por Clasificar 
+594 Ingresos de Crédito Interno por Clasificar 
+595 Recuperación de Deuda Interna por Clasificar 
+596 Ingresos de Hidrocarburos por Clasificar 
+597 TGN Otros por Clasificar 
+598 Recursos Específicos por Clasificar 
+599 Ingresos de Donación Externa por Clasificar 
+ 
+6 GASTOS CORRIENTES 
+Gastos incurridos en la gestión fiscal destinados a la producción de bienes y servicios en 
+cumplimiento de los objetivos de las entidades públicas, además del pago de intereses de la 
+deuda y las transferencias que no involucran una contraprestación efectiva en bienes y 
+servicios. 
+ 
+ 
+===== PAGINA 40 =====
+ 
+36 
+ 
+61 GASTOS DE CONSUMO 
+Son gastos operativos de las entidades públicas para la prestación de los servicios públicos, 
+tales como salarios y cargas sociales, costo de materiales, servicios de terceros, tributos y el 
+consumo del capital fijo. 
+ 
+611 Sueldos y Salarios: Gastos por concepto de servicios personales prestados en 
+calidad de dependencia por servidores públicos de planta y a contrato. Se identifican 
+retribuciones a personal civil y militar. 
+ 
+612 Aportes Patronales: Son cargas sociales originadas en la nómi na y normas 
+legales pertinentes. Comprende las cuentas de: 
+ 
+6121 Aportes Patronales al Seguro Social 
+6122 Aportes Patronales para Vivienda 
+6123 Otros Aportes Patronales 
+ 
+613 Beneficios Sociales: Gastos por beneficios sociales, indemnización y otros, en 
+favor de los servidores públicos señalados por Ley, que inciden en los resultados de 
+la gestión. Son de pago cierto como el desahucio y de previsión para posteriores 
+pagos como la indemnización. Comprende las cuentas de: 
+ 
+6131 Indemnizaciones 
+6132 Desahucio 
+6133 Otros Beneficios Sociales 
+ 
+614 Costo de Bienes y Servicios: Son gastos de la gestión por el uso o consumo 
+de bienes y servicios de terceros para la prestación de servicios públicos y la 
+producción de bienes para la comunidad. Comprende las cuentas de: 
+ 
+6141 Costo de Servicios No Personales: Se registran en esta cuenta los 
+costos de los servicios de carácter no personal, tales como servicios básicos, 
+servicios de transporte y seguros, alquileres, mantenimiento y otros. 
+6142 Costo de Materiales y Suministros: Se registran en esta cuenta los 
+costos de todos los materiales o materias primas y suministros consumidos por 
+la entidad, como alimentos, minerales, textiles y vestuario y otros. 
+ 
+615 Impuestos: Acumula durante el período los gastos por concepto de impuestos 
+de Renta, Aduana y en favor de los Gobiernos Autónomos Municipales que realizan 
+las empresas y las entidades públicas autorizadas por normas legales. Comprende las 
+cuentas de: 
+ 
+6151 Impuestos Renta Interna 
+6152 Renta Aduanera 
+6153 Impuestos Municipales 
+ 
+616 Regalías, Patentes, Tasas, Multas y Otros: Gastos que realizan las entidades 
+públicas por concepto de pago de ciertos privilegios para explotar recursos naturales, 
+para ejercitar una actividad económica y  ciertos gastos de naturaleza tributaria. 
+Comprende las cuentas de: 
+ 
+6161 Regalías 
+===== PAGINA 41 =====
+ 
+37 
+ 
+6162 Patentes 
+6163 Tasas, Multas y Otros 
+ 
+617 Depreciación y Amortización: Gastos del período por la depreciación de los 
+bienes del activo en operación, así como los cargos por la amo rtización del activo 
+intangible. Comprende las cuentas de: 
+ 
+6171 Depreciación Activo Fijo 
+6172 Amortización Activo Intangible 
+ 
+62 INTERESES Y OTRAS RENTAS DE LA PROPIEDAD 
+Gastos  destinados  a  cancelar  los  intereses  por  el  empleo  de  capital  ajeno, expresados 
+en la deuda pública y otros préstamos, por el arrendamiento de tierras y terrenos y, los 
+derechos de uso de los activos intangibles, identificados con la propi edad intelectual, el 
+prestigio de ciertas marcas, etc. 
+ 
+621 Intereses, Comisiones y Otros Gastos: Pagos efectuados y/o g astos 
+devengados en la gestión por concepto del empleo de dinero o capital obtenido en 
+préstamo, que la entidad pública paga a intervalos convenidos. Comprende las 
+cuentas de: 
+ 
+6211 Intereses Deuda Interna 
+6212 Comisiones y Otros Gastos Deuda Interna 
+6213 Intereses Deuda Externa 
+6214 Comisiones y Otros Gastos Deuda Externa 
+6215 Otros Intereses 
+ 
+622 Alquileres: Gastos de las entidades públicas por concepto de uso del suelo 
+de propiedad ajena y otros bienes de uso. Comprende las cuentas de: 
+ 
+6221 Alquiler de Tierras y Terrenos 
+6222 Otros Alquileres 
+ 
+623 Derechos sobre Bienes Intangibles: Pagos o devengamientos que realizan las 
+entidades públicas por el uso de derechos de autor, propiedad industrial, comercial o 
+intelectual. 
+ 
+63 PRESTACIONES DE LA SEGURIDAD SOCIAL 
+Gastos de las entidades públicas en calidad de empleadores, destinados a cumplir obligaciones 
+previstas en el régimen de la seguridad social, como el pago de las asignaciones familiares 
+de natalidad y lactancia. 
+ 
+64 PREVISIONES Y PÉRDIDAS EN OPERACIONES CAMBIARIAS 
+Gastos por concepto de previsiones y reservas técnicas y, pérdidas en operaciones 
+cambiarias, que inciden en los resultados del ejercicio. 
+ 
+641 Previsiones y Reservas Técnicas: Son gastos de previsión para cubrir 
+posteriores pérdidas tales como las pérdidas de inventario. Comprende las cuentas 
+de: 
+ 
+6411 Previsiones para Pérdidas por Cuentas Incobrables 
+===== PAGINA 42 =====
+ 
+38 
+ 
+6412 Previsiones para Pérdidas de Inventario 
+6413 Previsiones de Reservas Técnicas 
+6414 Previsiones para Pérdidas en Inversiones Financieras 
+ 
+642 Pérdidas en Operaciones Cambiarias: Gastos por pérdidas ciertas en las 
+operaciones cambiarias. 
+ 
+65 TRANSFERENCIAS CORRIENTES OTORGADAS 
+Importes otorgados sin contraprestación alguna ni obligación de reintegro por parte de las 
+entidades o personas beneficiarias. Comprende los grupos de: 
+ 
+651 Al Sector Privado 
+652 Al Sector Público no Financiero 
+653 Al Sector Público Financiero 
+654 Al Sector Externo 
+ 
+66 COMISIONES, BONIFICACIONES Y OTROS SOBRE VENTAS 
+Gastos de las empresas públicas por concepto de pago o devengamiento de 
+comisiones y bonificaciones sobre sus ventas. Comprende las cuentas de: 
+ 
+661 Comisiones sobre Ventas 
+662 Bonificaciones sobre Ventas 
+ 
+67 OTROS GASTOS 
+Gastos que pueden incurrirse en las entidades públicas como consecuencia de sus 
+operaciones corrientes y que no corresponden a la clasificación anterior. 
+  
+7 CUENTAS DE CIERRE 
+Cuenta que permite el cierre de las cuentas de recursos y gastos de la gestión fiscal. 
+ 
+71 RESUMEN DE INGRESOS Y GASTOS 
+Resume, todos los recursos y gastos de la gestión fiscal, reflejando el resultado positivo o 
+negativo a ser mostrado en la c uenta de Resultado de la Gestión, a través del Estado de 
+Recursos y Gastos Corrientes, 
+ 
+8 CUENTAS DE ORDEN 
+Registran eventos, que  no representan hech os económico -financieros que alteren el 
+patrimonio y por lo tanto , los resultados del ente  contable, informan sobre circunstancias 
+contingentes o eventuales de importancia, que en determinadas condiciones, pueden 
+producir efectos patrimoniales en la entidad. 
+ 
+81 CUENTAS DE ORDEN-DEUDORAS 
+ 
+811 Garantías y Avales 
+812 Préstamos y Convenios Contratados por Desembolsar 
+813 Títulos y Valores Recibidos 
+814 Valores Fiscales e Impresos en Depósito 
+815 Títulos y Valores Entregados 
+816 Valores Fiscales e Impresos Entregados 
+817 Bienes Recibidos en Depósito 
+818 Deudores de Gastos a Rendir 
+===== PAGINA 43 =====
+ 
+39 
+ 
+819       Otras Cuentas de Orden Deudoras 
+8191 Convenios de Contraparte por Ejecutar 
+8192 Reembolsos por Ejecutar 
+8193 Bienes de Dominio Público 
+8194 Acciones Telefónicas-Proyectos de Inversión 
+8195 Activo Fijo-Proyectos de Inversión 
+8196 Activos Intangibles-Proyectos de Inversión 
+8197 Otras Cuentas Deudoras 
+ 
+82 CUENTAS DE ORDEN-ACREEDORAS 
+ 
+821 Contingencia por Garantías y Avales 
+822 Recursos de Préstamos y Convenios Contratados por Ejecutar 
+823 Responsabilidad por Títulos y Valores Recibidos 
+824 Responsabilidad por Valores Fiscales e Impresos en Depósito 
+825 Contingencia por Títulos y Valores Entregados 
+826 Contingencia por Valores Fiscales e Impresos Entregados 
+827 Responsabilidad por Bienes Recibidos en Depósito 
+828 Responsabilidad por Deudores de Gastos a Rendir 
+829 Otras Cuentas de Orden Acreedoras 
+8291 Convenios de Contraparte Suscritos 
+8292 Reembolsos Pendientes 
+8292 Responsabilidad por los Bienes de Dominio Publico 
+8293 Responsabilidad por Acciones Telefónicas-Proyecto de Inversión 
+8294 Responsabilidad por Activo Fijo-Proyectos de Inversión 
+8295 Responsabilidad por Activo Intangible-Proyectos de Inversión 
+8299 Otras Cuentas Acreedoras 
+===== PAGINA 44 =====
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+La Paz, 2024
+Ministerio de Economía y Finanzas Públicas 
+ 
+Viceministerio de Presupuesto y Contabilidad Fiscal 
+III . DINÁMICA DE LAS 
+CUENTAS DEL PLAN 
+ÚNICO DE CUENTAS DEL 
+SECTOR PÚBLICO 
+===== PAGINA 45 =====
+ 
+43 
+ 
+DINÁMICA DE LAS CUENTAS DEL PLAN ÚNICO DE CUENTAS DEL SECTOR 
+PÚBLICO 
+ 
+ 
+A continua ción se explica detalladamente  el concepto y significado de cada cuenta,  los 
+motivos de sus débitos y créditos, qué representa  su saldo y datos adicionales que apoyan 
+el funcionamiento del sistema de información del ente contable, que es una institución de 
+la Administración Pública, con personería jurídica propia, patrimonio independiente, 
+responsable de administrar recursos y gastos asignados, registrados y diferenciados en el 
+Presupuesto General del Estado. 
+ 
+El formato seguido es el siguiente: 
+ 
+T =     TÍTULO 
+C =     CAPITULO 
+R =     GRUPO 
+C =     CUENTAS 
+SC =  SUBCUENTA 
+ 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ 1 1 1 1 0 
+OBJETO:  
+DÉBITOS CRÉDITOS 
+  
+SALDO: 
+ 
+OBSERVACIONES: 
+ 
+SUBCUENTAS: 
+ 
+===== PAGINA 46 =====
+ 
+44 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+C A J A 1 1 1 1 0 
+OBJETO: Registra los movimientos de dinero efectivo en 
+moneda nacional o extranjera, cheques y otros valores legales 
+recibidos para su depósito en banco. 
+DÉBITOS CRÉDITOS 
+* Por la recepción de dinero 
+efectivo, cheques y otros 
+valores legales. 
+* Por el efectivo y cheques 
+depositados en la Cuenta Única 
+del Tesoro a través del Banco 
+Central de Bolivia. 
+  * Por el efectivo y cheques 
+depositados en cuentas del 
+Banco Central de Bolivia o en la 
+banca privada nacional. 
+    
+SALDO: Deudor, representa el dinero en efectivo, los cheques 
+por cobrar y otros valores legales existentes en caja y 
+pendientes de depósito en cuentas bancarias. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+===== PAGINA 47 =====
+ 
+45 
+ 
+ 
+NOMBRE DE  LA CUENTA CODIGO 
+T C R C SC 
+BA N C O S 1 1 1 2 0 
+OBJETO: Registra el movimiento de fondos, en moneda 
+nacional o extranjera, en las cuentas corrientes fiscales de las 
+entidades públicas, abiertas en la banca privada o el Banco 
+Central de Bolivia, incluye la  Cuenta Única del Tesoro. 
+DÉBITOS CRÉDITOS 
+* Por el depósito de dinero 
+efectivo y cheques 
+provenientes de 
+recaudaciones por la venta de 
+bienes y servicios.  
+* Por los cheques y 
+transferencias emitidas para el 
+pago de gastos corrientes, de 
+capital y servicio de la deuda. 
+* Por las transferencias de 
+dinero efectivo entre cuentas 
+bancarias provenientes de 
+recaudación de renta y 
+aduana. Abonos bancarios por 
+intereses y otros rendimientos. 
+* Por las transferencias de 
+dinero efectivo entre cuentas 
+bancarias provenientes de 
+recaudaciones de renta y 
+aduana. Cargos bancarios por 
+comisiones y otros. 
+* Por el cierre o disminución de 
+fondos rotatorios, por la 
+recuperación de préstamos, 
+colocación de títulos y letras y, 
+otros depósitos no 
+contemplados anteriormente. 
+* Por la constitución, ampliación 
+o reposición de fondos 
+rotatorios, cajas chicas. 
+Concesión de préstamos, 
+redención de títulos/valores y 
+otros créditos no detallados. 
+SALDO: Deudor, representa los fondos disponibles en moneda 
+nacional y extranjera depositados en cuentas corrientes fiscales 
+de las instituciones públicas. De conformidad a la metodología 
+de la Cuenta Única del Tesoro. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes:  
+          11121 Cuenta Única del Tesoro 
+          11122 Cuentas Fiscales en el BCB M/N 
+          11123 Cuentas Fiscales en el BCB M/E 
+          11124 Cuentas Fiscales y otras en la Banca Privada M/N 
+          11125 Cuentas Fiscales y otras en la Banca Privada M/E 
+          11126 Cuentas en el Exterior del País 
+          11127 Fondos en Custodia y en Garantía 
+          11128 Fondos en la CUT 
+          11129 Otras Cuentas 
+===== PAGINA 48 =====
+ 
+46 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS ROTATIVOS 1 1 1 3 0 
+OBJETO: Registra el movimiento de dinero a través de cuentas 
+fiscales bancarias a nombre de una entidad/dirección 
+administrativa, por adelantos de fondos destinados a 
+determinados gastos, de conformidad a normas 
+preestablecidas. Los fondos fijos o cajas chicas de las empresas 
+públicas, en moneda nacional y moneda extranjera, son parte de 
+los procedimientos operativos de estos fondos. 
+DÉBITOS CRÉDITOS 
+* Por la apertura o 
+incremento del fondo 
+rotativo. 
+* Por el cierre, disminución o 
+devolución del Fondo Rotativo.  
+    
+    
+SALDO: Deudor, en caso de presentárselo en los estados 
+financieros, representa el dinero en efectivo, los cheques por 
+cobrar y otros medios de pago existentes en el fondo. 
+OBSERVACIONES: Para poder confrontar correctamente los 
+recursos y gastos del periodo, el fondo debe rendirse por los 
+gastos efectuados, al final de la gestión fiscal. Se deberá abrir 
+cargo de cuenta a los responsables del fondo. 
+SUBCUENTAS: 
+               
+===== PAGINA 49 =====
+ 
+47 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INVERSIONES TEMPORALES 1 1 2 1 0 
+OBJETO: Registra los movimientos por la colocación y retiro de 
+fondos excedentes transitorios con el propósito de obtener un 
+rendimiento financiero dentro de los doce meses de realizada la 
+operación. 
+DÉBITOS CRÉDITOS 
+* Por las colocaciones de 
+efectivo excedente 
+transitorio. 
+* Por los retiros de efectivo. 
+* Por el incremento por la 
+actualización de los fondos 
+colocados en moneda 
+extranjera. 
+* Por la disminución del valor de 
+las inversiones en moneda 
+extranjera, producto de la 
+actualización de las mismas 
+    
+SALDO: Deudor, representa el monto de las colocaciones, por 
+su costo de adquisición o valor al cierre, según corresponda. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes: 
+           11211 Depósitos a Plazo Fijo 
+           11212 Fondos en Fideicomiso 
+           11213 Otras Inversiones Temporales 
+===== PAGINA 50 =====
+ 
+48 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TÍTULOS Y VALORES A CORTO 
+PLAZO 1 1 2 2 0 
+OBJETO: Registra el movimiento de títulos y valores a corto 
+plazo adquiridos por el ente contable. 
+DÉBITOS CRÉDITOS 
+* Por el importe de la 
+adquisición de títulos y 
+valores en moneda nacional 
+y extranjera 
+* Por el importe de su valor 
+contable al momento de la venta, 
+entrega o rescate de los títulos y 
+valores 
+* Por el incremento de su 
+valor al re expresarse  su 
+costo histórico como 
+resultado de los procesos 
+inflacionarios. 
+* Por la disminución de su valor al 
+re expresarse  su costo histórico 
+como resultado de los procesos 
+inflacionarios. 
+    
+SALDO: Deudor, representa el valor de la inversión en los títulos 
+y valores en cartera  
+OBSERVACIONES: Esta cuenta no incluye el monto de los 
+intereses devengados por la inversión. 
+SUBCUENTAS: Comprende las siguientes:  
+           11221 Letras del Tesoro a Corto Plazo 
+           11222 Bonos del Tesoro a Corto Plazo 
+           11223 Otros Títulos y Valores a Corto Plazo 
+===== PAGINA 51 =====
+ 
+49 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(PREVISIÓN POR PÉRDIDAS EN 
+INVERSIONES FINANCIERAS A 
+CORTO PLAZO) 
+1 1 2 3 0 
+OBJETO: Registra las previsiones para posibles pérdidas en la 
+cotización de los Títulos y Valores 
+DÉBITOS CRÉDITOS 
+* Por la aplicación parcial o 
+total de la previsión a las 
+pérdidas producidas. 
+* Por la constitución de las 
+previsiones correspondientes. 
+    
+    
+SALDO: Acreedor. Representa al cierre de la gestión la 
+estimación de futuras pérdidas  en las inversiones financieras a 
+Corto Plazo. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+===== PAGINA 52 =====
+ 
+50 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CUENTAS A COBRAR A CORTO 
+PLAZO 1 1 3 1 0 
+OBJETO: Registra el movimiento de los derechos de cobro a 
+terceros provenientes de la actividad principal de las entidades 
+públicas, cuya percepción se prevé dentro de los doce meses de 
+su devengamiento. 
+DÉBITOS CRÉDITOS 
+* Por los montos a cobrar por 
+concepto de bienes y 
+servicios prestados y otros 
+recursos recurrentes en el 
+momento de su 
+devengamiento. 
+* Por los montos percibidos por 
+concepto de recuperación de los 
+derechos de cobro. 
+* Excepcionalmente por los 
+montos a cobrar por 
+concepto de tributos, cuya 
+exigibilidad sea 
+razonablemente cierta y 
+objetiva al momento de su 
+devengamiento. 
+* Por la cancelación de saldos 
+considerados incobrables. 
+Debitando cuando corresponda 
+las previsiones previamente 
+constituidas. 
+  * Por la documentación de los 
+derechos de cobro a terceros. 
+SALDO: Deudor, representa el monto total de los derechos de 
+cobro devengados a favor del ente y con vencimiento durante la 
+gestión. 
+OBSERVACIONES: Se devengarán en esta cuenta todos los 
+recursos que perciben las entidades públicas, inclusive aquellos 
+conocidos al momento de su percepción y de los recursos por 
+los cuales no existe una contraprestación efectiva. 
+SUBCUENTAS: 
+===== PAGINA 53 =====
+ 
+51 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS CUENTAS A COBRAR A 
+CORTO PLAZO 1 1 3 2 0 
+OBJETO: Registra los movimientos contables por el 
+devengamiento de los derechos de cobro y la percepción de 
+recursos  de las entidades públicas, originados en operaciones 
+no habituales. Registrará también la s cuentas a cobrar de 
+gestiones anteriores. 
+DÉBITOS CRÉDITOS 
+* Por el monto a cobrar 
+correspondiente a las 
+transacciones no habituales 
+del ente contable, por 
+ejemplo, la enajenación de 
+bienes, o exigibilidades que 
+surjan de acciones 
+judiciales.  
+* Por el importe de los ingresos 
+por concepto de cobro de la 
+enajenación de los bienes, de los 
+cobros judiciales, etc. 
+* Por los montos a recuperar 
+de erogaciones por cuenta 
+de terceros, como es el caso 
+del pago de la deuda de otra 
+entidad pública. 
+* Por el importe de los ingresos 
+por concepto de erogaciones a 
+cuenta de terceros, o el ajuste 
+correspondiente. 
+    
+SALDO: Deudor, representa el monto de los derechos de cobro 
+y los desembolsos por cuenta de otras entidades públicas 
+pendientes de recuperación. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes:  
+           11321 Cuentas a Cobrar de Gestiones Anteriores 
+           11322 Otras Cuentas a Cobrar a Corto Plazo 
+  
+               
+===== PAGINA 54 =====
+ 
+52 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DOCUMENTOS Y EFECTOS A 
+COBRAR A CORTO PLAZO 1 1 3 3 0 
+OBJETO: Registra el movimiento de los derechos de cobro 
+documentados de las instituciones públicas, representados por 
+letras, pagarés u otros documentos, con vencimiento dentro de 
+los doce meses de su emisión. 
+DÉBITOS CRÉDITOS 
+* Por el valor nominal de los 
+documentos pactados a 
+cobrar a corto plazo 
+* Por el monto de los documentos 
+cobrados 
+* Por la documentación de 
+una operación al crédito 
+* Por la cancelación de los 
+documentos que resulten 
+incobrables, con cargo a la 
+previsión, cuando corresponda. 
+  * Por la renovación de un 
+documento por otro, a la fecha de 
+su vencimiento. 
+SALDO: Deudor y representa el importe de los documentos 
+pendientes de cobro. 
+OBSERVACIONES: Para efectos de exposición la cuenta debe 
+mostrarse deducida por la Previsión para Incobrables a Corto 
+Plazo 
+SUBCUENTAS: Comprende las siguientes:  
+11331 Documentos y Efectos a Cobrar a Corto Plazo 
+11332 Documentos y Efectos a Cobrar Morosos a Corto Plazo 
+  
+               
+===== PAGINA 55 =====
+ 
+53 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS DOCUMENTOS Y EFECTOS A 
+COBRAR A CORTO PLAZO 1 1 3 4 0 
+OBJETO:  Registra el movimiento de los derechos de cobro 
+documentados de las instituciones públicas, por operaciones 
+que no suelen suceder de costumbre, representados por letras, 
+pagarés u otros documentos, con vencimiento dentro de los 
+doce meses de su emisión. 
+DÉBITOS CRÉDITOS 
+* Por el valor nominal de los 
+documentos pactados a 
+cobrar a corto plazo 
+* Por el monto de los documentos 
+cobrados 
+* Por la documentación de 
+una operación al crédito 
+* Por la cancelación de los 
+documentos que resulten 
+incobrables, con cargo a la 
+previsión, cuando corresponda. 
+  * Por la renovación de un 
+documento por otro, a la fecha de 
+su vencimiento. 
+SALDO: Deudor y representa el importe de los documentos 
+pendientes de cobro. 
+OBSERVACIONES: Para efectos de exposición la cuenta debe 
+mostrarse deducida por la Previsión para incobrables a Corto 
+Plazo 
+SUBCUENTAS: 
+               
+===== PAGINA 56 =====
+ 
+54 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONCESIÓN DE PRÉSTAMOS A 
+CORTO PLAZO AL SECTOR PÚBLICO 
+NO FINANCIERO  
+1 1 3 5 0 
+OBJETO: Registra el movimiento de los préstamos a corto plazo 
+concedidos a instituciones públicas no Financieras. 
+DÉBITOS CRÉDITOS 
+* Por el monto de los 
+préstamos de corto plazo 
+concedidos. 
+* Por el monto de las 
+recuperaciones de los préstamos 
+concedidos. 
+* Por la actualización de los 
+préstamos en moneda 
+extranjera. 
+  
+    
+SALDO: Deudor, representa el monto total de los derechos de 
+cobro a favor del TGN y otros entes públicos autorizados por los 
+préstamos concedidos a corto plazo. 
+OBSERVACIONES: Los montos devengados por los préstamos 
+no incluyen intereses. 
+SUBCUENTAS: Comprende las siguientes y a otras de  
+  posterior creación: 
+          11351 A Organismos de la Administración Central              
+ (Órgano Ejecutivo) 
+          11352 A Instituciones Públicas Descentralizadas 
+          11353 A Gobiernos Autónomos Departamentales 
+          11354 A Gobiernos Autónomos Municipales 
+          11355 A Instituciones de Seguridad Social 
+          11356 A Empresas Públicas no Financieras Nacionales 
+          11357 A Empresas Públicas no Financieras Regionales 
+          11358 A Empresas Públicas no Financieras Municipales  
+          11359 A Otras 
+               
+===== PAGINA 57 =====
+ 
+55 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONCESIÓN DE PRÉSTAMOS A 
+CORTO PLAZO AL SECTOR PÚBLICO 
+FINANCIERO Y A LOS SECTORES 
+PRIVADO Y EXTERNO 
+1 1 3 6 0 
+OBJETO: Registra el movimiento de los préstamos a corto plazo 
+concedidos a instituciones públicas y privadas Financieras. 
+DÉBITOS CRÉDITOS 
+* Por el monto de los 
+préstamos de corto plazo 
+concedidos. 
+* Por el monto de las 
+recuperaciones de los préstamos 
+concedidos. 
+    
+    
+SALDO: Deudor, representa el monto total de los derechos de 
+cobro a favor del TGN y otros entes públicos autorizados, por los 
+préstamos concedidos a corto plazo. 
+OBSERVACIONES: Los montos devengados por los préstamos 
+no incluyen intereses.  
+SUBCUENTAS: Comprende las siguientes: 
+          11361 A Instituciones Públicas Financieras no Bancarias 
+          11362 A Instituciones Públicas Financieras Bancarias 
+          11363 Al Sector Privado 
+          11364 Al Sector Externo 
+               
+===== PAGINA 58 =====
+ 
+56 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ANTICIPOS A CORTO PLAZO 1 1 3 7 0 
+OBJETO: Registra el movimiento por el adelanto de fondos a 
+proveedores, contratistas y otros, una vez perfeccionados los 
+contratos para la provisión de bienes y/o servicios. Serán 
+imputables a las cuentas y/o partidas correspondientes dentro 
+de los doce meses. 
+DÉBITOS CRÉDITOS 
+* Por el adelanto de fondos a 
+los contratistas y 
+proveedores. 
+* Por la recepción de los bienes o 
+servicios cuyo anticipo es tomado 
+como parte de pago. 
+  * Por la devolución del anticipo, al 
+no haberse concretado la compra 
+venta. 
+  * Por la transferencia a Cuentas a 
+Cobrar, al no haberse cumplido 
+los términos de referencia de la 
+compra venta. 
+SALDO: Deudor, representa los montos adelantados 
+pendientes del cumplimiento de la entrega de los bienes o 
+servicios. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+               
+===== PAGINA 59 =====
+ 
+57 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS EN DEPÓSITO POR 
+GARANTÍAS Y OTROS 1 1 3 8 0 
+OBJETO: Registra los movimientos de los fondos en depósito 
+en otras entidades públicas o privadas 
+DÉBITOS CRÉDITOS 
+* Por la colocación de los 
+fondos. 
+* Por la imputación a gastos, 
+cuando los fondos en depósito 
+tenían ese propósito. 
+  * Por la devolución de los fondos 
+depositados, cuando estos 
+cumplieron el objetivo de 
+garantizar alguna obligación del 
+ente. 
+    
+SALDO: Deudor, representa el importe de los fondos 
+depositados por la entidad. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+  
+  
+  
+  
+               
+===== PAGINA 60 =====
+ 
+58 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS EN AVANCE 1 1 3 9 0 
+OBJETO: Registra el movimiento de los fondos que de manera 
+adelantada se entreguen a servidores autorizados y el descargo 
+de los mismos. 
+DÉBITOS CRÉDITOS 
+* Por la entrega de los 
+fondos de conformidad a 
+normas legales vigentes. 
+* Por la rendición documentada de 
+los fondos utilizados. 
+* Por la ampliación del 
+monto de la entrega. 
+* Por la devolución de los fondos 
+no utilizados. 
+    
+SALDO: Deudor, representa los montos pendientes de 
+rendición. 
+OBSERVACIONES: A efectos de una correcta exposición de la 
+información financiera y de los recursos y gastos del período, los 
+fondos en avance deben cerrarse al final de la gestión fiscal. 
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 61 =====
+ 
+59 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(PREVISIÓN PARA INCOBRABLES A  
+CORTO PLAZO) 1 1 4 0 0 
+OBJETO: Registra las previsiones para posibles quebrantos por 
+la incobrabilidad del activo exigible a corto plazo, de conformidad 
+a normas legales vigentes. 
+DÉBITOS CRÉDITOS 
+* Al utilizarse la previsión, 
+cuando se producen  
+incobrables reales, 
+registrados en libros de las 
+cuentas y documentos a 
+cobrar. 
+* Al constituirse la previsión o 
+incrementarse el saldo de la 
+misma, por el monto de los gastos 
+por previsión para cubrir 
+posteriores pérdidas del ejercicio. 
+    
+    
+SALDO: Acreedor, es cuenta regularizadora del activo exigible, 
+representa el valor de las previsiones establecidas para futuras 
+pérdidas en las cuentas y documentos a cobrar. 
+OBSERVACIONES: De uso exclusivo de las Empresas Públicas 
+bajo normativa específica. 
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+ 
+===== PAGINA 62 =====
+ 
+60 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INVENTARIO DE MATERIAS PRIMAS, 
+MATERIALES Y SUMINISTROS 1 1 5 1 0 
+OBJETO: Registra el movimiento de los bienes de consumo 
+utilizados en las actividades específicas del ente contable. 
+DÉBITOS CRÉDITOS 
+* En el momento de la 
+recepción de las materias 
+primas, materiales y 
+suministros, por el costo de 
+adquisición de los mismos. 
+* Por la entrega de los bienes para 
+uso directo, transformación y a 
+favor de terceros. 
+* Por ajustes de las 
+existencias. 
+* Por ajustes de las existencias 
+    
+SALDO: Deudor, representa el total de existencias de 
+materiales, materias primas y suministros disponibles en 
+almacén. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 63 =====
+ 
+61 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INVENTARIO DE PRODUCTOS 1 1 5 2 0 
+OBJETO: Registra el movimiento de los productos terminados 
+utilizados en las actividades específicas del ente contable. 
+DÉBITOS CRÉDITOS 
+* En el momento de la 
+recepción e ingreso al 
+almacén de productos, a su 
+costo. 
+* Por la entrega de los bienes para 
+uso directo, transformación y a 
+favor de terceros. 
+* Por ajustes de las 
+existencias. 
+* Por ajustes de las existencias 
+    
+SALDO: Deudor, representa el total de existencias de productos 
+disponibles en almacén. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 64 =====
+ 
+62 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+EXISTENCIA DE PRODUCTOS 
+ESTRATÉGICOS 1 1 5 3 0 
+OBJETO: Registra el movimiento de los productos estratégicos, 
+utilizados en las actividades específicas del ente contable y que 
+por su naturaleza requieren un registro diferenciado. 
+DÉBITOS CRÉDITOS 
+* En el momento de la 
+recepción de los productos 
+estratégicos, a su costo de 
+adquisición. 
+* Por la transferencia, venta o 
+consumo de los bienes en las 
+actividades propias del ente.   
+* Por ajustes de las 
+existencias. 
+* Por ajustes de las existencias 
+    
+SALDO: Deudor, representa el total de existencias de productos 
+estratégicos disponibles en almacén. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 65 =====
+ 
+63 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(PREVISIÓN PARA PÉRDIDAS DE 
+INVENTARIO) 1 1 5 4 0 
+OBJETO: Registra las previsiones para posibles quebrantos 
+originados en almacén por pérdidas, desvalorización, 
+destrucción, deterioro, mermas, obsolescencia y otras causas y, 
+además, cuando no exista responsabilidad funcionaria. 
+DÉBITOS CRÉDITOS 
+* Al utilizarse la previsión, 
+cuando se producen 
+pérdidas reales registradas 
+en  las existencias e 
+inventarios. 
+* Al constituirse la previsión o 
+incrementarse el saldo de la 
+misma, por el monto de los gastos 
+por previsión para cubrir 
+posteriores pérdidas de la gestión 
+fiscal. 
+    
+    
+SALDO: Acreedor, es cuenta regularizadora de los Bienes de 
+Consumo, representa el valor de las previsiones establecidas 
+para futuras pérdidas de los inventarios en la gestión. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 66 =====
+ 
+64 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACTIVOS DIFERIDOS A CORTO 
+PLAZO 1 1 6 1 0 
+OBJETO: Registra los débitos y créditos por los gastos pagados 
+por adelantado que habrán de incidir en los próximos doce 
+meses.   
+DÉBITOS CRÉDITOS 
+* Por el monto de los gastos 
+devengados y pagados por 
+adelantado.  
+* Por la cuota parte de los gastos 
+diferidos que se aplican a los 
+resultados. 
+    
+    
+SALDO: Deudor, representa el monto de los gastos pagados y 
+activados durante la gestión, pendientes de aplicación a los 
+resultados. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+               
+===== PAGINA 67 =====
+ 
+65 
+ 
+ 
+               
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+BIENES EN TRÁNSITO 1 1 6 2 0 
+OBJETO: Registra los pagos adelantados a proveedores, por 
+compras de bienes que se encuentran en tránsito a nuestros 
+almacenes, que se espera recibirlos dentro de los próximos doce 
+meses.  
+DÉBITOS CRÉDITOS 
+* Por el monto de los pagos 
+adelantados a los 
+proveedores.  
+* Por el valor de los bienes  
+recepcionados que se incorporan 
+al activo institucional. 
+    
+    
+SALDO: Deudor, representa el monto de los gastos devengados 
+por la adquisición de bienes que se encuentran en tránsito. 
+OBSERVACIONES: De uso exclusivo del Órgano Ejecuti vo e 
+instituciones públicas descentralizadas 
+SUBCUENTAS: 
+===== PAGINA 68 =====
+ 
+66 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS ACTIVOS A CORTO PLAZO 1 1 6 3 0 
+OBJETO: Registra los movimientos por débitos y créditos no 
+habituales del ente, por exigibles de corto plazo, bienes de uso 
+no clasificados anteriormente y bienes de uso o consumo 
+desechables con valor económico, cuyo uso, cobro o realización 
+se espera habrá de producirse en el corto plazo. 
+DÉBITOS CRÉDITOS 
+* Por desembolsos que 
+generen derechos a favor 
+del ente, por operaciones no 
+ordinarias. 
+* Por pagos o desembolsos 
+por cuenta de terceros. 
+* Por desembolsos sin 
+imputación que serán 
+regularizados en el ejercicio, 
+de conformidad a normas 
+legales vigentes. 
+* Por el ingreso al almacén, 
+a su valor en libros o de 
+avalúo como material de 
+desecho, de los bienes de 
+uso o consumo en desuso, 
+que se espera sean 
+comercializados o dados de 
+baja. 
+* Por la recuperación  de los 
+exigibles. 
+* Por la recuperación de los 
+fondos pagados o 
+desembolsados. 
+* Por la regularización de los 
+desembolsos. 
+* Por la venta a su valor comercial 
+o baja de los bienes en desuso 
+SALDO: Deudor, representa a una fecha determinada, el 
+monto de los exigibles no recuperados y bienes no realizados. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+ 
+  
+===== PAGINA 69 =====
+ 
+67 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACTIVOS VIRTUALES 1 1 7 0 0 
+OBJETO: Comprende recursos de representación digital con 
+valor económico, de tipo transaccional, no cuantificables 
+físicamente que se esperan se consuman en el plazo de 
+hasta un año y que pueden almacenarse electrónicamente. 
+Su valor reside en los derechos y beneficios que su posesión 
+confiere a la entidad tenedora. 
+DÉBITOS CRÉDITOS 
+* Por la obtención de 
+activos virtuales de tipo 
+transaccional. 
+* Por la valorización 
+positiva. 
+* Por la transferencia. 
+* Por la valorización negativa. 
+  
+  
+  
+SALDO: Deudor, representa el total de activos virtuales. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+ 
+  
+  
+ 
+===== PAGINA 70 =====
+ 
+68 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CUENTAS A COBRAR A LARGO 
+PLAZO 1 2 1 1 0 
+OBJETO: Registra los derechos de cobro del Estado, originados 
+en tributos y otros gravámenes , como también por la venta de 
+bienes y servicios prestados por las entidades públicas. A 
+recuperarse después de los doce meses de su devengamiento. 
+DÉBITOS CRÉDITOS 
+* Por el devengamiento de 
+los derechos de cobro, 
+originados en tributos y otros 
+servicios prestados por las 
+entidades públicas. 
+* Por los montos ingresados en 
+cobranza de los conceptos 
+anotados. 
+  * Por los montos declarados 
+incobrables, de conformidad a 
+normas legales y técnicas 
+pertinentes, cargados a la 
+provisión correspondiente. 
+    
+SALDO: Deudor, representa el monto de los derech os 
+pendientes de cobro del ente contable. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 71 =====
+ 
+69 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS CUENTAS A COBRAR A 
+LARGO PLAZO 1 2 1 2 0 
+OBJETO: Registra los derechos de cobro, a recuperarse 
+después de los doce meses de su devengamiento, originados en 
+operaciones que no suelen suceder de costumbre en las 
+instituciones públicas.  
+DÉBITOS CRÉDITOS 
+* Por el devengamiento de 
+los derechos de cobro, 
+originados en operaciones 
+no habituales. 
+* Por los montos ingresados en 
+cobranza de los conceptos 
+anotados. 
+  * Por los montos declarados 
+incobrables de conformidad a 
+normas legales y técnicas 
+pertinentes, cargados a la 
+provisión correspondiente. 
+    
+SALDO: Deudor, representa el monto de los derech os 
+pendientes de cobro del ente contable. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 72 =====
+ 
+70 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DOCUMENTOS Y EFECTOS A 
+COBRAR A LARGO PLAZO 1 2 1 3 0 
+OBJETO: Registra los derechos de cobro documentados, a 
+recuperarse después de los doce meses de su devengamiento, 
+originados en operaciones habituales del ente contable. 
+DÉBITOS CRÉDITOS 
+* Por el devengamiento de 
+los derechos de cobro 
+documentados, originados 
+en operaciones habituales 
+del ente. 
+* Por los montos ingresados en 
+cobranza de los conceptos 
+anotados. 
+   * Por los montos declarados 
+incobrables, de conformidad a 
+normas legales vigentes, 
+cargados a la provisión 
+correspondiente. 
+    
+SALDO: Deudor, representa el monto de los derechos 
+documentados pendientes de cobro por el ente contable. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 73 =====
+ 
+71 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS DOCUMENTOS Y EFECTOS A 
+COBRAR A LARGO PLAZO 
+1 2 1 4 0 
+OBJETO: Registra los derechos de cobro documentados, a 
+recuperarse después de los doce meses de su devengamiento, 
+originados en operaciones no habituales del ente contable. 
+DÉBITOS CRÉDITOS 
+* Por el devengamiento de 
+los derechos de cobro 
+documentados, originados 
+en operaciones no 
+habituales del ente. 
+* Por los montos ingresados en 
+cobranza de los conceptos 
+anotados. 
+  * Por los montos declarados 
+incobrables, cuando corresponda, 
+cargados a la provisión 
+correspondiente. 
+    
+SALDO: Deudor, representa el monto de los derechos 
+documentados pendientes de cobro por el ente contable. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 74 =====
+ 
+72 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONCESIÓN DE PRÉSTAMOS A 
+LARGO PLAZO AL SECTOR PÚBLICO 
+NO FINANCIERO 
+1 2 1 5 0 
+OBJETO: Registra el movimiento relacionado con los préstamos 
+concedidos al Sector Público no Financiero, cuyo vencimiento 
+ocurrirá después de los doce meses.  
+DÉBITOS CRÉDITOS 
+* Por la concesión de 
+préstamos de conformidad a 
+normas prescritas. 
+* Por los montos recuperados de 
+los préstamos. 
+    
+    
+SALDO: Deudor, representa el monto total de los derechos de 
+cobro a favor del ente, que vencerán después de los doce 
+meses. 
+OBSERVACIONES: La cuenta no debe incluir los intereses por 
+estos préstamos. 
+SUBCUENTAS: Comprende las siguientes y a otras de 
+  posterior creación: 
+           12151 A Organismos de la Administración Central 
+ (Órgano Ejecutivo) 
+           12152 A las Instituciones Públicas Descentralizadas 
+           12153 A Gobiernos Autónomos  Departamentales 
+           12154 A Gobiernos Autónomos  Municipales  
+           12155 A Instituciones de Seguridad Social 
+           12156 A Empresas Públicas no Financieras Nacionales 
+           12157 A Empresas Públicas no Financieras Regionales 
+           12158 A Empresas Públicas no Financieras Municipales 
+           12159 A Otras 
+===== PAGINA 75 =====
+ 
+73 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONCESIÓN DE PRÉSTAMOS A 
+LARGO PLAZO AL SECTOR PÚBLICO 
+FINANCIERO Y SECTORES PRIVADO 
+Y EXTERNO 
+1 2 1 6 0 
+OBJETO: Registra el movimiento relacionado con los préstamos 
+concedidos al Sector Público Financiero, cuyo vencimiento 
+ocurrirá después de los doce meses.  
+DÉBITOS CRÉDITOS 
+* Por la concesión de 
+préstamos que se efectúa 
+de conformidad a normas 
+prescritas. 
+* Por los montos recuperados de 
+los préstamos. 
+* Por la concesión de 
+préstamos que efectúa a 
+través de sus cuentas en 
+fideicomiso de conformidad 
+a normas prescritas. 
+  
+    
+SALDO: Deudor, representa el monto total de los derechos de 
+cobro a favor del ente, que vencerán después de los doce 
+meses. 
+OBSERVACIONES: La cuenta no debe incluir los intereses por 
+estos préstamos. 
+SUBCUENTAS: Comprende las siguientes: 
+           12161 A Instituciones Públicas Financieras no Bancarias 
+           12162 A Instituciones Públicas Financieras Bancarias 
+           12163 Al Sector Privado 
+           12164 Al Sector Externo 
+  
+===== PAGINA 76 =====
+ 
+74 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ANTICIPOS A LARGO PLAZO 1 2 1 7 0 
+OBJETO: Registra el movimiento por el adelanto de fondos a 
+proveedores, contratistas y otros, una vez perfeccionados los 
+contratos para la provisión de bienes y/o servicios que serán 
+provistos después de la gestión fiscal. 
+DÉBITOS CRÉDITOS 
+* Por el adelanto de fondos a 
+los contratistas y 
+proveedores. 
+* Por la recepción de los bienes o 
+servicios cuyo anticipo es tomado 
+como parte de pago. 
+  * Por la devolución del anticipo, al 
+no haberse concretado la compra 
+venta. 
+  * Por la transferencia a Cuentas a 
+Cobrar, al no haberse cumplido 
+los términos de referencia de la 
+compra venta. 
+SALDO: Deudor, representa los montos adelantados 
+pendientes del cumplimiento de la entrega de los bienes o 
+servicios. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+===== PAGINA 77 =====
+ 
+75 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(PREVISIÓN PARA INCOBRABLES A 
+LARGO PLAZO) 1 2 1 8 0 
+OBJETO: Registra las previsiones para posibles quebrantos por 
+la incobrabilidad del activo exigible a largo plazo, de conformidad 
+a normas legales vigentes. 
+DÉBITOS CRÉDITOS 
+* Al utilizarse la previsión, 
+cuando se producen  
+incobrables reales, 
+registrados en libros de las 
+cuentas y documentos a 
+cobrar. 
+* Al constituirse la previsión o 
+incrementarse el saldo de la 
+misma, por el monto de los gastos 
+por previsión para cubrir 
+posteriores pérdidas del ejercicio. 
+    
+    
+SALDO: Acreedor, es cuenta regularizadora del activo exigible, 
+representa el valor de las previsiones establecidas para futuras 
+pérdidas en las cuentas y documentos a cobrar. 
+OBSERVACIONES: De uso exclusivo de las Empresas Públicas 
+bajo normativa específica. 
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 78 =====
+ 
+76 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACCIONES Y PARTICIPACIONES DE 
+CAPITAL 1 2 2 1 0 
+OBJETO: Registra los movimientos por colocaciones de capital, 
+adquisición de acciones u otros valores representativos de 
+capital en empresas y organismos privados o públicos, 
+nacionales o internacionales 
+DÉBITOS CRÉDITOS 
+* Por las colocaciones de 
+capital en empresas 
+privadas o públicas. 
+* Por los retiros del capital 
+aportado. 
+* Por el importe de la 
+adquisición de acciones. 
+* Por la venta, donación o 
+transferencia de las acciones 
+* Por el incremento de valor 
+de las inversiones 
+financieras efectuadas a 
+largo plazo. 
+* Por la disminución del valor de 
+las inversiones financieras. 
+SALDO: Deudor, representa el monto de las inversiones, por su 
+costo de adquisición o valor al cierre, según corresponda. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes: 
+           12211 En Empresas Privadas Nacionales 
+           12212 En Empresas Públicas no Financieras 
+           12213 En Instituciones Públicas Financieras 
+           12214 En Organismos Internacionales 
+           12215 En Otras del Sector Externo 
+===== PAGINA 79 =====
+ 
+77 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TÍTULOS Y VALORES A LARGO 
+PLAZO 1 2 2 2 0 
+OBJETO: Registra el movimiento  de las inversiones en títulos y 
+valores a largo plazo realizadas por la entidad. 
+DÉBITOS CRÉDITOS 
+* Por el importe de la 
+adquisición de títulos y 
+valores en moneda nacional 
+y extranjera 
+* Por el importe de su valor 
+contable al momento de la venta, 
+entrega o rescate de los títulos y 
+valores 
+* Por el incremento de su 
+valor al re expresarse  su 
+costo histórico como 
+resultado de los procesos 
+inflacionarios. 
+* Por la disminución de su valor al 
+re expresarse  su costo histórico 
+como resultado de los procesos 
+inflacionarios. 
+    
+SALDO: Deudor, representa el valor de las inversiones en títulos 
+y valores existentes en cartera. 
+OBSERVACIONES: Esta cuenta no incluye el monto de los 
+intereses devengados por la inversión. 
+SUBCUENTAS: Comprende las siguientes:  
+           12221 Letras del Tesoro a Largo Plazo 
+           12222 Bonos del Tesoro a Largo Plazo 
+           12223 Otros Títulos y Valores a Largo Plazo 
+  
+===== PAGINA 80 =====
+ 
+78 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS EN FIDEICOMISO 1 2 2 3 0 
+OBJETO: Registra el movimiento de las operaciones por la 
+colocación y recuperación de fondos públicos del TGN en 
+calidad de fideicomiso.  
+DÉBITOS CRÉDITOS 
+* Por el valor de los fondos 
+entregados en calidad de 
+fideicomiso. 
+* Por la aplicación de los fondos 
+por parte del fideicomisario, en los 
+fines previstos. 
+* Por el valor de las 
+recuperaciones de los 
+préstamos u otras 
+aplicaciones de los fondos. 
+* Por la liquidación del fondo en 
+fideicomiso. 
+    
+SALDO: Deudor, representa el valor del fondo en fideicomiso 
+disponible para su aplicación por parte del agente financiero. 
+OBSERVACIONES: Esta cuenta es de uso exclusivo del TGN u 
+otras entidades públicas financieras autorizadas para el efecto. 
+SUBCUENTAS:   
+  
+  
+  
+  
+===== PAGINA 81 =====
+ 
+79 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PATRIMONIO NETO DE LAS 
+INSTITUCIONES 
+DESCENTRALIZADAS Y EMPRESAS 
+1 2 2 4 0 
+OBJETO: Registra el movi miento del patrimonio neto de las 
+entidades públicas excepto las entidades territoriales autónomas 
+y universidades, que como parte de las inversiones financieras 
+a largo plazo incorpora el  Órgano Ejecutivo (Nivel C entral del 
+Estado) para la agregación de los Estados Financieros. 
+DÉBITOS CRÉDITOS 
+* Por la incorporación del 
+Patrimonio Neto de los 
+Entes Públicos en la 
+Contabilidad del Órgano 
+Ejecutivo. 
+* Por la disminución del valor de 
+las inversiones, por variación de 
+los patrimonios netos de las 
+instituciones o empresas 
+públicas. 
+* Por el incremento del valor 
+de las inversiones, por 
+variación de los patrimonios 
+netos.   
+    
+SALDO: Deudor, representa el valor en libros de la totalidad de 
+los patrimonios netos. 
+OBSERVACIONES: Esta cuenta es de uso exclusivo del 
+Órgano Ejecutivo. 
+SUBCUENTAS:   
+  
+  
+  
+  
+===== PAGINA 82 =====
+ 
+80 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(PREVISIÓN POR PÉRDIDAS EN 
+INVERSIONES FINANCIERAS A 
+LARGO PLAZO) 
+1 2 2 5 0 
+OBJETO: Registra las previsiones para posibles pérdidas  en la 
+cotización de las inversiones financieras de largo plazo en 
+Acciones y Participaciones de Capital, Títulos y Valores. 
+DÉBITOS CRÉDITOS 
+* Por la aplicación parcial o 
+total de la previsión a las 
+pérdidas producidas en las 
+inversiones financieras. 
+* Por la constitución y ajuste de 
+las previsiones correspondientes. 
+    
+    
+SALDO: Acreedor. Representa al cierre de  la gestión la 
+estimación de futuras pérdidas en las inversiones financieras a 
+Largo Plazo, excepto por el patrimonio neto de las instituciones 
+descentralizadas y empresas públicas. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+===== PAGINA 83 =====
+ 
+81 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACTIVO FIJO EN OPERACIÓN 1 2 3 1 0 
+OBJETO: Registra el movimiento del activo fijo adquirido o 
+construido, aplicado exclusivamente al uso en las operaciones 
+de funcionamiento y/o prestación de servicios del ente contable. 
+DÉBITOS CRÉDITOS 
+* Por el costo de los bienes 
+adquiridos. 
+* Por la venta, donación, 
+transferencia o baja de los bienes 
+a su valor en libros, considerando 
+su depreciación y el resultado de 
+la operación. 
+* Por el costo total de las 
+construcciones terminadas 
+que se incorporan al activo 
+fijo bruto en operación. 
+  
+* Por el valor de las mejoras 
+que prolonguen la vida útil 
+del bien o incrementen su 
+valor. 
+  
+SALDO: Deudor, representa el costo total del activo fijo en uso 
+en las actividades del ente contable. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes: 
+           12311 Edificios 
+           12312 Equipo de Oficina y Muebles 
+           12313 Maquinaria y Equipo de Producción 
+           12314 Equipo de Transporte Tracción y Elevación 
+           12315 Equipo Médico y de Laboratorio 
+           12316 Equipo de Comunicaciones 
+           12317 Equipo Educacional y Recreativo 
+           12318 Otra Maquinaria y Equipo 
+===== PAGINA 84 =====
+ 
+82 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TIERRAS Y TERRENOS 1 2 3 2 0 
+OBJETO: Registra movimientos de los predios en uso 
+institucional. 
+DÉBITOS CRÉDITOS 
+* Por el costo de las tierras y 
+terrenos adquiridos o 
+incorporados al ente. 
+* Por la donación, transferencia, 
+venta o baja de los predios a su 
+valor en libros, considerando 
+además el resultado de la 
+operación. 
+* Por el valor de las mejoras 
+que incrementen su valor. 
+  
+    
+SALDO: Deudor, representa el costo total de los terrenos en uso 
+institucional. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+===== PAGINA 85 =====
+ 
+83 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACTIVO BIOLÓGICO 1 2 3 3 0 
+OBJETO: Registra el movimiento de los animales  o plantas 
+ornamentales, reproductivas o de trabajo en uso de la institución; 
+debiendo realizarse inicialmente el reconocimiento de acuerdo a 
+su norma específica. 
+DÉBITOS CRÉDITOS 
+* Por el costo de los 
+animales o plantas 
+adquiridos. 
+* Por la venta, donación, 
+transferencia o baja de los 
+animales o plantas a su valor en 
+libros, considerando su 
+depreciación y el resultado de la 
+operación. 
+* Por la "alta" de los 
+animales o plantas  
+reproducidos. 
+  
+    
+SALDO: Deudor, representa el costo total de los animales  o 
+plantas en uso en las actividades del ente contable. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes: 
+12331 De Origen Animal 
+12332 De Origen Vegetal 
+ 
+  
+ 
+===== PAGINA 86 =====
+ 
+84 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS ACTIVOS FIJOS 1 2 3 4 0 
+OBJETO: Registra el movimiento de los activos no clasificados 
+en el activo fijo, no depreciables, que no están en uso en las 
+operaciones de funcionamiento y/o prestación de  servicios del 
+ente contable. 
+DÉBITOS CRÉDITOS 
+* Por el costo de los bienes 
+adquiridos. 
+* Por la venta, donación, 
+transferencia o baja de los bienes 
+a su valor en libros, considerando 
+su depreciación y el resultado de 
+la operación. 
+*Por el valor de las mejoras 
+que prolonguen la vida útil 
+de los bienes o incrementen 
+su valor. 
+  
+  
+  
+SALDO: Deudor, representa el costo total de los otros activos 
+fijos no uso en las actividades del ente contable. 
+OBSERVACIONES: Incorpora Bibliotecas, Obras de Arte, etc. 
+SUBCUENTAS:  
+  
+  
+===== PAGINA 87 =====
+ 
+85 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONSTRUCCIONES EN PROCESO DE 
+BIENES DE DOMINIO PRIVADO 
+1 2 3 5 0 
+OBJETO: Registra el movimiento por las inversiones efectuadas 
+en la construcción de Bienes de Dominio Privado o uso 
+institucional, como ser viviendas, construcciones militares y de 
+seguridad, la supervisión de las mismas y otras construcciones. 
+DÉBITOS CRÉDITOS 
+* Por los costos y gastos 
+incurridos en la construcción 
+y/o ejecución de los 
+proyectos. 
+* Por la venta, donación, 
+transferencia o baja de las 
+construcciones 
+  * Por el valor en libros de las 
+construcciones terminadas e 
+incorporadas al activo 
+institucional. 
+  
+  
+SALDO: Deudor, representa el costo total invertido en la 
+construcción de Bienes de Dominio Privado. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes:  
+ 12351 Construcciones y Mejoras de viviendas 
+ 12352 Construcciones y Mejoras para Defensa 
+ Seguridad 
+ 12353 Construcciones y Mejoras de Otros Bienes de 
+ Dominio Privado 
+ 12354 Supervisión de Construcciones y Mejoras de 
+ Bienes de Dominio Privado 
+  
+  
+  
+===== PAGINA 88 =====
+ 
+86 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONSTRUCCIONES EN PROCESO DE 
+BIENES DE DOMINIO PÚBLICO 1 2 3 6 0 
+OBJETO: Registra los costos incurridos durante el proceso de 
+construcción de bienes inmuebles para uso de la comunidad o 
+de dominio público. 
+DÉBITOS CRÉDITOS 
+* Por los costos incurridos 
+en la ejecución de proyectos 
+y construcción de obras. 
+* Por el valor en libros de las 
+construcciones en proceso al 
+finalizar las obras, cuando estas 
+son entregadas a la comunidad. 
+* Al iniciar la construcción de 
+la obra, por el total de los 
+costos incurridos en el 
+diseño de los proyectos de 
+inversión. 
+  
+    
+SALDO: Deudor, representa el total de las inversiones en bienes 
+de dominio público. 
+OBSERVACIONES: Una vez terminada la construcción de los 
+bienes de dominio público y al momento de su desincorporación, 
+la entidad responsable de su custodia y/o mantenimiento deberá 
+registrarlos en cuentas de orden. 
+SUBCUENTAS: Comprende las siguientes: 
+ 12361 Construcciones en Proceso de bienes de Dominio 
+ Público 
+ 12362 Supervisión de Construcciones y Mejoras de 
+ bienes de Dominio Público 
+  
+  
+  
+===== PAGINA 89 =====
+ 
+87 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ESTUDIOS Y PROYECTOS PARA 
+CONSTRUCCION DE BIENES 
+NACIONALES 
+1 2 3 7 0 
+OBJETO: Registra los gastos incurridos en los estudios y 
+diseños de proyectos de inversión para la construcción de 
+bienes de dominio público o privado.  
+DÉBITOS CRÉDITOS 
+* Por los gastos incurridos 
+en los diseños y estudios de 
+inversión. 
+* Por el valor en libros de los 
+estudios y proyectos viables, 
+cargados a las construcciones en 
+proceso al iniciar las obras. 
+  * Por el valor en libros de los 
+estudios y proyectos no viables, 
+cargados a los resultados de 
+manera sistemática. 
+    
+SALDO: Deudor, representa el total de los gastos en estudios y 
+proyectos no concluidos o pendientes de aplicación. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las subcuentas: 
+           12371 De Dominio Privado 
+           12372 De Dominio Público 
+  
+  
+  
+===== PAGINA 90 =====
+ 
+88 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONSTRUCCIONES EN PROCESO 
+POR ADMINISTRACIÓN PROPIA 1 2 3 8 0 
+OBJETO: Registra los costos gestionados por la misma entidad, 
+durante el proceso de construcción de bienes de capital para uso 
+de la entidad o de dominio privado y, para la comunidad o de 
+dominio público. 
+DÉBITOS CRÉDITOS 
+* Por los costos incurridos 
+en la ejecución de proyectos 
+y construcción de obras por 
+administración propia. 
+* Por el valor en libros de las 
+construcciones en proceso al 
+finalizar las obras que se activan 
+o se desincorporan. 
+* Al iniciar la construcción de 
+la obra, por el total de los 
+costos incurridos en el 
+diseño de los proyectos de 
+inversión. 
+  
+    
+SALDO: Deudor, representa el total de las inversiones en bienes 
+de dominio privado y público que se gestionan por la misma 
+entidad. 
+OBSERVACIONES: Una vez terminada la construcción de los 
+bienes de dominio público y al momento de su desincorporación, 
+la entidad responsable de su custodia y/o mantenimiento deberá 
+registrarlos en cuentas de orden. 
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 91 =====
+ 
+89 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(DEPRECIACIÓN ACUMULADA DEL 
+ACTIVO FIJO) 1 2 4 0 0 
+OBJETO: Registra de manera acumulada los montos 
+determinados en las sucesivas gestiones fiscales por concepto de 
+la aplicación al costo o a los resultados, de la cuota del valor de 
+los activos depreciables durante su vida útil estimada, debiendo 
+realizarse inicialmente el reconocimiento de acuerdo a su norma 
+específica. 
+DÉBITOS CRÉDITOS 
+* Por el valor acumulado de 
+los gastos de depreciación 
+de los bienes del activo fijo 
+al momento de su 
+enajenación o baja. 
+* Por el valor de los gastos de 
+depreciación establecidos 
+periódicamente. 
+    
+    
+SALDO: Acreedor,  representa el valor acumulado de los gastos 
+de depreciación que determinan el valor en libros de los bienes 
+del activo fijo en uso. 
+OBSERVACIONES:  
+CUENTAS: Comprende las siguientes: 
+           1241 (Edificios) 
+           1242 (Equipo de Oficina y Muebles) 
+           1243 (Maquinaria y Equipo de Producción) 
+           1244 (Equipo de Transporte Tracción y Elevación) 
+           1245 (Equipo Médico y de Laboratorio) 
+           1246 (Equipo de Comunicaciones) 
+           1247 (Equipo Educacional y Recreativo) 
+           1248 (Otra Maquinaria y Equipo) 
+           1249 (Activo Biológico) 
+12491 (De Origen Animal) 
+12492 (De Origen Vegetal) 
+===== PAGINA 92 =====
+ 
+90 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACTIVO INTANGIBLE 1 2 5 0 0 
+OBJETO: Registra los movimientos relativos a los activos 
+inmateriales que otorgan derechos por el uso de la propiedad 
+comercial, industrial, intelectual y otros de características 
+similares.  
+DÉBITOS CRÉDITOS 
+* Por el costo de los activos 
+intangibles incorporados al 
+patrimonio del ente 
+contable. 
+* Por el costo de los activos 
+vendidos o desincorporados por 
+obsoletos, considerando su 
+amortización acumulada. 
+    
+    
+SALDO: Deudor, representa el total de los activos intangibles 
+que están contribuyendo a las actividades del ente contable. 
+OBSERVACIONES: 
+SUBCUENTAS: 
+  
+===== PAGINA 93 =====
+ 
+91 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+(AMORTIZACIÓN ACUMULADA DEL 
+ACTIVO INTANGIBLE) 1 2 6 0 0 
+OBJETO: Registra de manera acumulada los gastos por la 
+amortización de los bienes inmate riales, determinados en 
+sucesivas gestiones fiscales. 
+DÉBITOS CRÉDITOS 
+* Por el valor acumulado de 
+los gastos de amortización 
+de los bienes inmateriales al 
+momento de su enajenación 
+o baja. 
+* Por el valor de la cuota de gastos 
+de amortización establecidos 
+periódicamente. 
+    
+    
+SALDO: Acreedor, representa el valor acumulado de los gastos 
+de amortización que determinan el valor en libros de los bienes 
+inmateriales en uso. 
+OBSERVACIONES:  
+SUBCUENTAS:  
+  
+===== PAGINA 94 =====
+ 
+92 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ACTIVOS DIFERIDOS A LARGO 
+PLAZO 1 2 7 0 0 
+OBJETO: Registra los débitos y créditos por los gastos pagados 
+por adelantado que habrán de incidir en los próximos ejercicios.   
+DÉBITOS CRÉDITOS 
+* Por el monto de los gastos 
+devengados y pagados por 
+adelantado.  
+* Por la cuota parte de los gastos 
+diferidos que se aplican a los 
+resultados periódicamente. 
+    
+    
+SALDO: Deudor, representa el monto de los gastos devengados 
+y activados, pendientes de aplicación a los resultados de  las 
+gestiones futuras. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 95 =====
+ 
+93 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CUENTAS A PAGAR A CORTO PLAZO 2 1 1 1 0 
+OBJETO: Registra el devengamiento de los gastos por 
+adquisición de bienes y servicios, en operaciones habituales no 
+documentadas, con plazo de vencimiento menor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la 
+transferencia electrónica, 
+nota, cheque o efectivo que 
+paga la obligación. 
+* Por el valor de los gastos 
+devengados en la adquisición de 
+bienes y servicios. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+con los proveedores. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 96 =====
+ 
+94 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONTRATISTAS A PAGAR A CORTO 
+PLAZO 2 1 1 2 0 
+OBJETO: Registra el devengamiento de las obligaciones con los 
+contratistas en función al avance de las obras recepcionadas, 
+que vencen dentro de los doce meses. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la 
+transferencia electrónica, 
+nota, cheque o efectivo que 
+paga la obligación. 
+* Por el valor de las planillas de 
+avance de obras recepcionadas. 
+* Por el monto del anticipo 
+que se descuenta. 
+  
+  
+  
+SALDO: Acreedor, representa el monto total de las obligaciones 
+con los contratistas por la ejecución de obras. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 97 =====
+ 
+95 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+SUELDOS Y SALARIOS A PAGAR A 
+CORTO PLAZO 2 1 1 3 0 
+OBJETO: Registra el devengamiento de las obligaciones con los 
+servidores públicos por concepto de remuneraciones en calidad 
+de dependencia o contrato. Incluyendo las retenciones 
+laborales. 
+DÉBITOS CRÉDITOS 
+* Por el valor de las 
+transferencias electrónicas, 
+cheques o efectivo que 
+cancelan los sueld os y 
+salarios a los servidores  
+públicos. 
+* Por el importe de las p lanillas 
+devengadas de los servidores 
+públicos dependientes. 
+* Por el valor de las 
+retenciones laborales que se 
+efectúan en las órdenes de 
+pago. 
+ 
+   
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por concepto de sueldos y salarios y sus retenciones laborales 
+liquidadas pendientes de pago. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 98 =====
+ 
+96 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+APORTES Y RETENCIONES A PAGAR 
+A CORTO PLAZO 2 1 1 4 0 
+OBJETO: Registra el movimiento de las obligaciones por cargas 
+sociales y retenciones laborales pendientes de pago. 
+DÉBITOS CRÉDITOS 
+* Por el valor de las 
+transferencias electrónicas, 
+cheques o efectivo que 
+cancelan los aportes 
+patronales. 
+* Por el monto de los aportes 
+patronales liquidados sobre 
+planillas. 
+* Por el valor de las 
+transferencias electrónicas, 
+cheques o efectivo que 
+cancelan las obligaciones a 
+favor de los titulares de la 
+retención. 
+* Por el monto de las retenciones 
+laborales que se efectúan en las 
+órdenes de pago. 
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por concepto de Aportes Patronales y  Retenciones Laborales 
+pendientes de pago. 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las siguientes: 
+  21141 Aportes Patronales a Pagar a Corto Plazo 
+ 21142 Retenciones a Pagar a Corto Plazo 
+ 21143 Aportes Patronales a Pagar de Entidades 
+ Descentralizadas a Corto Plazo 
+ 21144 Retenciones a Pagar de Entidades 
+ Descentralizadas a Corto Plazo 
+  
+===== PAGINA 99 =====
+ 
+97 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PENSIONES Y JUBILACIONES A 
+PAGAR A CORTO PLAZO 2 1 1 5 0 
+OBJETO: Registra los montos de las obligaciones por 
+pensiones y jubilaciones y otro tipo de prestaciones pendientes 
+de pago. 
+DÉBITOS CRÉDITOS 
+* Por el valor de las 
+transferencias electrónicas, 
+cheques o efectivo que 
+cancelan las rentas. 
+* Por el monto de los gastos 
+devengados por concepto de 
+rentas del régimen de seguridad 
+social. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por concepto de pensiones y jubilaciones pendientes de pago. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+===== PAGINA 100 =====
+ 
+98 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+IMPUESTOS Y OTROS DERECHOS 
+OBLIGATORIOS A PAGAR A CORTO 
+PLAZO 
+2 1 1 6 0 
+OBJETO: Registra los montos devengados de los tributos y 
+otras obligaciones fiscales  pendientes de pago. 
+DÉBITOS CRÉDITOS 
+* Por el pago de las 
+obligaciones fiscales 
+devengadas. 
+* Por los montos de los impuestos, 
+tasas,  regalías, derechos y otras 
+obligaciones fiscales 
+devengadas. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por concepto de tributos pendientes de pago. 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las siguientes: 
+           21161 Impuestos a Pagar a Corto Plazo 
+           21162 Regalías a Pagar a Corto Plazo 
+           21163 Tasas, Multas y Otros Derechos Obligatorios a 
+Pagar a Corto Plazo 
+  
+  
+               
+===== PAGINA 101 =====
+ 
+99 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+AMORTIZACIÓN, INTERESES Y 
+COMISIONES DE LA DEUDA PÚBLICA 
+A PAGAR 
+2 1 1 7 0 
+OBJETO: Registra el movimiento de gastos devengados, 
+emergentes de la deuda pública, pendientes de pago. 
+DÉBITOS CRÉDITOS 
+* Por los montos pagados en 
+concepto de amortización, 
+intereses y comisiones de la 
+deuda pública. 
+* Por los montos devengados en 
+concepto de amortización, 
+intereses y comisiones de la 
+deuda pública. 
+    
+    
+SALDO: Acreedor, representa el monto devengado de la 
+amortización, intereses y comisiones pendientes de pago. 
+OBSERVACIONES: De uso exclusivo del Órgano Ejecutivo y de 
+las instituciones descentralizadas 
+SUBCUENTAS: Comprende las siguientes: 
+ 21171 Amortización de la Deuda Pública Interna 
+ 21172 Amortización de la Deuda Pública Externa 
+ 21173 Intereses Deuda Interna 
+ 21174 Intereses Deuda Externa 
+ 21175 Comisiones y Otros Gastos de la Deuda Pública 
+ Interna 
+ 21176 Comisiones y Otros Gastos de la Deuda Pública 
+ Externa 
+ 21177 Intereses por Mora y Multas de la Deuda Pública 
+ Interna 
+ 21178 Intereses por Mora y Multas de la Deuda Pública 
+ Externa 
+               
+===== PAGINA 102 =====
+ 
+100 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TRANSFERENCIAS A PAGAR 2 1 1 8 0 
+OBJETO: Registra las operaciones por las transferencias 
+devengadas pendientes de desembolso y  las transferencias 
+automáticas por coparticipación. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+desembolsos a través de 
+medios electrónicos, 
+cheques o efectivo que 
+concretan las transferencias 
+autorizadas. 
+* Por el devengamiento de los 
+importes de las transferencias 
+autorizadas. 
+* Por los montos de la 
+coparticipación tributaria 
+automática, que se 
+regularizan después del flujo 
+de fondos. 
+* Por el devengamiento de los 
+montos de la coparticipación 
+tributaria automática, que se 
+regularizan después del flujo de 
+fondos. 
+    
+SALDO: Acreedor, representa el monto total de las 
+transferencias autorizadas pendientes de desembolso. 
+OBSERVACIONES: La cuenta no contendrá saldos pendientes 
+de transferencias automáticas por coparticipación.  De uso 
+exclusivo del Órgano Ejecutivo y de las instituciones 
+descentralizadas. 
+SUBCUENTAS: Comprende las siguientes subcuentas: 
+ 21181 A Organismos de la Administración Central 
+ (Órgano Ejecutivo) 
+ 21182 A Instituciones Públicas Descentralizadas 
+ 21183 A Gobiernos Autónomos Departamentales 
+ 21184 A Gobiernos Autónomos  Municipales 
+ 21185 A Instituciones de Seguridad Social 
+ 21186 A Empresas Públicas 
+ 21187 A Instituciones Financieras Bancarias y no 
+ Bancarias 
+ 21188 Al Sector Privado 
+ 21189 Al Sector Externo 
+===== PAGINA 103 =====
+ 
+101 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS CUENTAS A PAGAR A 
+CORTO PLAZO 2 1 1 9 0 
+OBJETO: Registra el devengamiento de los gastos no 
+clasificados anteriormente, por operaciones  no habituales, no 
+documentadas y plazo de vencimiento menor al año. También la 
+Deuda Flotante de gestiones anteriores. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la 
+transferencia electrónica, 
+nota, cheque o efectivo que 
+cancela la obligación. 
+* Por el valor de los gastos 
+devengados en ope raciones no 
+habituales del ente contable. 
+  * Por el ajuste contable del saldo 
+de la deuda administrativa o 
+flotante no cancelada ni 
+reclamada en la gestión fiscal. 
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por operaciones de carácter extraordinario. 
+OBSERVACIONES:  
+SUBCUENTAS:  
+ 
+  
+===== PAGINA 104 =====
+ 
+102 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DOCUMENTOS  A PAGAR A CORTO 
+PLAZO 2 1 2 1 0 
+OBJETO: Registra el devengamiento de los gastos por 
+adquisición de bienes y servicios, en operaciones habituales, 
+garantizadas con documentos mercantiles, con plazo de 
+vencimiento menor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la 
+transferencia electrónica, 
+nota, cheque o efectivo que 
+paga la obligación. 
+* Por el valor de los gastos 
+devengados documentados en la 
+adquisición de bienes y servicios. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+documentadas con los proveedores. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+===== PAGINA 105 =====
+ 
+103 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS DOCUMENTOS A PAGAR A 
+CORTO PLAZO 2 1 2 2 0 
+OBJETO: Registra el devengamiento de los gastos en 
+operaciones no habituales, garantizadas con documentos 
+mercantiles, con plazo de vencimiento menor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la 
+transferencia electrónica, 
+nota, cheque o efectivo que 
+paga la obligación. 
+* Por el valor de los gastos 
+devengados documentados en la 
+adquisición de bienes y servicios 
+con vencimientos menores al año. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+documentadas con los proveedores. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+===== PAGINA 106 =====
+ 
+104 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PRÉSTAMOS INTERNOS A PAGAR A 
+CORTO PLAZO 2 1 2 3 0 
+OBJETO: Registra el movimiento de las obligaciones 
+relacionadas con la obtención de préstamos en moneda 
+nacional, con plazo menor a un año. Incluye las operaciones por 
+la emisión de Certificados de Crédito Fiscal.  
+DÉBITOS CRÉDITOS 
+* Por los montos que 
+cancelan total o 
+parcialmente estas 
+obligaciones de corto plazo.                                                                     
+* Por la redención de los 
+Certificados de Crédito 
+Fiscal. 
+* Por el importe de los préstamos 
+a corto plazo.                                                                     
+* Por la emisión de Certificados de 
+Crédito Fiscal, que cancelan 
+obligaciones del TGN. 
+    
+    
+SALDO: Acreedor, representa el valor de las obligaciones en 
+moneda nacional pendientes de pago y  los Certificados de 
+Crédito Fiscal no redimidos.  
+OBSERVACIONES: La cuenta no incluye intereses devengados 
+a pagar, registra las operaciones destinadas a resolver 
+problemas de iliquidez temporal del TGN y de otros entes 
+públicos, autorizados para este tipo de operaciones. 
+SUBCUENTAS:  
+  
+  
+===== PAGINA 107 =====
+ 
+105 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PRÉSTAMOS EXTERNOS A PAGAR A 
+CORTO PLAZO 2 1 2 4 0 
+OBJETO: Registra el movimiento de las obligaciones a menos 
+de un año, relacionadas con la obtención d e préstamos del 
+sector externo de instituciones financieras no residentes en el 
+país.  
+DÉBITOS CRÉDITOS 
+* Por los importes totales o 
+parciales que cancelan las 
+obligaciones contraídas. 
+* Por el importe equivalente en  
+moneda nacional de los 
+préstamos externos obtenidos en 
+moneda extranjera. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por préstamos obtenidos de los agentes finan cieros externos, 
+que son utilizados  para solucionar problemas de liquidez 
+temporal. 
+OBSERVACIONES: La cuenta no incluye intereses.   
+SUBCUENTAS: 
+  
+  
+  
+===== PAGINA 108 =====
+ 
+106 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PASIVOS DIFERIDOS A CORTO 
+PLAZO 2 1 3 0 0 
+OBJETO: Registra el movimiento de los cobros por anticipado 
+para la prestación de servicios o entrega de bienes y también, 
+por los cobros por adelantado de obligaciones no vencidas que 
+se concretaran dentro de los doce meses de recepcionados los 
+fondos. 
+DÉBITOS CRÉDITOS 
+* Por el valor de los servicios 
+prestados o los bienes 
+entregados. 
+* Por los importes ingresados 
+antes de prestados los servicios o 
+entregados los bienes. 
+* Por el importe de la 
+amortización de la deuda a 
+la fecha de su vencimiento. 
+* Por los importes recibidos antes 
+del vencimiento de las 
+obligaciones del deudor. 
+    
+SALDO: Acreedor, representa el monto cobrado por servicios y 
+bienes que se prestarán o entregaran dentro de los doce meses 
+siguientes y también de los montos recibidos por obligaciones 
+cuyo plazo de cumplimiento no venció. 
+OBSERVACIONES:  
+ 
+ 
+SUBCUENTAS: 
+  
+  
+  
+===== PAGINA 109 =====
+ 
+107 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PREVISIONES Y RESERVAS 
+TÉCNICAS DE CORTO PLAZO 2 1 4 0 0 
+OBJETO: Registra el movimiento de cargos preventivos para 
+cubrir gastos ciertos dentro de los doce meses a partir de su 
+creación.  
+DÉBITOS CRÉDITOS 
+* Por el monto cierto del  
+gasto ocurrido en la gestión. 
+* Por el monto de la estimación 
+realizada para la constitución de 
+la previsión. 
+    
+    
+SALDO: Acreedor, representa el monto total de las estimaciones 
+para cubrir gastos ciertos que no son exigibles a la fecha de 
+balance. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes:  
+ 2141 Previsiones para Beneficios Sociales a Corto Plazo 
+ 2142 Reservas Técnicas a Corto Plazo 
+ 2143 Otras Previsiones a Corto Plazo 
+===== PAGINA 110 =====
+ 
+108 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS RECIBIDOS EN CUSTODIA 2 1 5 1 0 
+OBJETO: Registra el movimiento de fondos recibidos en 
+custodia de conformidad a normas legales y por órdenes de 
+pago no cobradas. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los 
+recursos recibidos o la 
+aplicación de los mismos a 
+los fines de la constitución 
+de los fondos. 
+* Por los importes de terceros 
+recibidos en custodia. 
+* Por los montos de repago 
+a los beneficiarios, o 
+también por la disposición 
+de estos recursos al finalizar 
+los plazos de custodia de los 
+mismos, de conformidad a 
+normas legales vigentes. 
+* Por los importes que 
+corresponden a reversión de 
+gastos no cobrados. 
+    
+SALDO: Acreedor, representa el monto total de los recursos 
+recibidos en custodia pendientes de devolución o regularización. 
+OBSERVACIONES:  
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 111 =====
+ 
+109 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS RECIBIDOS EN GARANTÍA 2 1 5 2 0 
+OBJETO: Registra el movimiento de fondos recibidos en 
+garantía de conformidad a normas legales. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los 
+recursos recibidos, o la 
+aplicación de los mismos a 
+los fines de la constitución 
+de la garantía. 
+* Por los importes de terceros 
+recibidos en garantía. 
+    
+    
+SALDO: Acreedor, representa el monto total de los recursos 
+recibidos en garantía pendientes de devolución o aplicación a 
+los fines predeterminados. 
+OBSERVACIONES:  
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 112 =====
+ 
+110 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS DE TERCEROS RECIBIDOS 
+EN LA CUT* 2 1 5 3 0 
+OBJETO: Registra el movimiento de fondos recaudados por las 
+Instituciones Descentralizadas, Empresas y otras entidades 
+públicas que en el marco operativo de la Cuenta Única, son 
+administrados por el TGN. 
+DÉBITOS CRÉDITOS 
+* Por los pagos a 
+beneficiarios ordenados por 
+las entidades públicas 
+titulares de estos recursos. 
+* Por los importes ingresados en 
+la Cuenta Única del Tesoro. 
+    
+    
+SALDO: Acreedor, representa el monto total de los recursos 
+recibidos en la cuenta única, disponibles para soportar órdenes 
+de pagos por parte de los titulares de las mismas. 
+OBSERVACIONES: Un auxiliar identificará a todas las 
+entidades públicas titulares de estos recursos.  
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 113 =====
+ 
+111 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS RECIBIDOS EN 
+FIDEICOMISO A CORTO PLAZO 2 1 5 4 0 
+OBJETO: Registra el movimiento de fondos recibidos y 
+devueltos por las entidades públicas autorizadas por ley en 
+calidad de fideicomiso, provenientes de fideicomitentes privados 
+o públicos, cuya devolución se producirá en el plazo inferior a un 
+año. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los 
+fondos a los fideicomitentes. 
+* Por los importes recibidos en 
+calidad de fideicomiso. 
+  * Por el incremento de los fondos. 
+    
+SALDO: Acreedor, representa el monto total de los recursos 
+recibidos en calidad de fideicomiso. 
+OBSERVACIONES: El auxiliar contable identificará a todas las 
+entidades privadas o públicas titulares de los fondos. 
+SUBCUENTAS:  
+  
+  
+  
+  
+               
+===== PAGINA 114 =====
+ 
+112 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS PASIVOS DE CORTO PLAZO 2 1 6 0 0 
+OBJETO: Registra el movimiento de las obligaciones ciertas, 
+eventuales y particulares no contempladas en clasificaciones 
+anteriores, que vencen dentro de los doce meses. 
+DÉBITOS CRÉDITOS 
+* Por el monto de los pagos 
+efectuados de dichas 
+obligaciones. 
+* Por los montos de deudas 
+devengadas en concepto de 
+obligaciones no contempladas en 
+cuentas anteriores.  
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones  
+a pagar pendientes de cancelación. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+ 
+  
+===== PAGINA 115 =====
+ 
+113 
+ 
+ 
+              
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DEUDA ADMINISTRATIVA DE 
+EJERCICIOS ANTERIORES 2 1 7 0 0 
+OBJETO: Registra la conversión de traspaso de las 
+obligaciones de corto plazo del ejercicio anterior a la deuda 
+administrativa o flotante que vence en el periodo. 
+DÉBITOS CRÉDITOS 
+* Por el monto de los pagos 
+efectuados de dichas 
+obligaciones. 
+* Por el importe de los 
+comprobantes de ejecución de 
+gastos devengados y no pagados 
+al cierre del ejercicio fiscal, por  
+concepto de salarios, servicios, 
+materiales, transferencias y otros 
+pendientes de pago. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+a pagar de gestiones pasadas pendientes de cancelación. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 116 =====
+ 
+114 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CUENTAS A PAGAR A LARGO PLAZO 2 2 1 1 0 
+OBJETO: Registra el devengamient o de los gastos no 
+documentados y plazo de vencimiento mayor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la transferencia 
+electrónica, nota, cheque o 
+efectivo que cancela la 
+obligación. 
+* Por el valor de los gastos 
+devengados en operaciones 
+del ente contable, que vencen 
+a más de un año. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+pendientes de pago mayores a un año. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 117 =====
+ 
+115 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS CUENTAS A PAGAR A 
+LARGO PLAZO 2 2 1 2 0 
+OBJETO: Registra el devengamiento de los gastos por 
+operaciones no habituales, no documentadas  y plazo de 
+vencimiento mayor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la transferencia 
+electrónica, nota, cheque o 
+efectivo que cancela la 
+obligación. 
+* Por el valor de los gastos 
+devengados en operaciones 
+no habituales del ente  
+contable, que vencen a más 
+de un año. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+por operaciones pendientes de carácter extraordinario a más de 
+un año. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 118 =====
+ 
+116 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DOCUMENTOS  A PAGAR A LARGO 
+PLAZO 2 2 2 1 0 
+OBJETO: Registra el devengamiento de los gastos por 
+adquisición de bienes y servi cios, en operaciones habituales  
+garantizadas con documentos mercantiles, con plazo de 
+vencimiento mayor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la transferencia 
+electrónica, nota, cheque o 
+efectivo que paga la obligación. 
+* Por el valor de los gastos 
+devengados documentados 
+en la adquisición de bienes y 
+servicios, con plazos 
+mayores al año. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+documentadas con los proveedores que vencen después del 
+año. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 119 =====
+ 
+117 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS DOCUMENTOS Y EFECTOS A 
+PAGAR A LARGO PLAZO 2 2 2 2 0 
+OBJETO: Registra el devengamiento de los gastos en 
+operaciones no habituales, garantizadas con documentos 
+mercantiles, con plazo de vencimiento mayor al año. 
+DÉBITOS CRÉDITOS 
+* Por el valor de la transferencia 
+electrónica, nota, cheque o 
+efectivo que paga la obligación. 
+* Por el valor de los gastos 
+devengados documentados 
+en la adquisición de bienes y 
+servicios con vencimientos 
+mayores al año. 
+    
+    
+SALDO: Acreedor, representa el monto total de las obligaciones 
+documentadas con los proveedores que vencen después de una 
+gestión fiscal. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 120 =====
+ 
+118 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DEUDA PÚBLICA INTERNA 2 2 3 1 0 
+OBJETO: Registra el devengamiento de la deuda pública 
+interna por la emisión de títulos, bonos, pagarés y otros 
+empréstitos internos de largo plazo, obtenidos por el TGN y otras 
+entidades públicas facultadas por Ley. 
+DÉBITOS CRÉDITOS 
+* Por el importe del 
+devengamiento de las cuotas 
+vencidas que se abonan a la 
+cuenta Amortización de la 
+Deuda Pública Vencida a Pagar. 
+* Por el valor nominal de los 
+títulos y valores emitidos. 
+  * Por el monto de los 
+desembolsos de los 
+empréstitos obtenidos. 
+    
+SALDO: Acreedor, representa el monto total de la deuda pública 
+no vencida pendiente de cancelación. 
+OBSERVACIONES: De uso exclusivo del Órgano Ejecutivo y  
+otras entidades públicas facultadas por Ley. 
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 121 =====
+ 
+119 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DEUDA PÚBLICA EXTERNA 2 2 3 2 0 
+OBJETO: Registra el devengamiento de la deuda pública 
+externa por la emisión de títulos, bonos, y otros empréstitos 
+externos de largo plazo, obtenidos por el TGN. 
+DÉBITOS CRÉDITOS 
+* Por el importe del 
+devengamiento de las cuotas 
+vencidas que se abonan a la 
+cuenta Amortización de la 
+Deuda Pública Vencida a Pagar. 
+* Por el valor nominal de los 
+títulos y valores de deuda 
+pública externa emitidos. 
+  * Por el monto de los 
+desembolsos de los 
+empréstitos externos 
+obtenidos. 
+    
+SALDO: Acreedor, representa el monto total de la deuda pública 
+no vencida pendiente de cancelación. 
+OBSERVACIONES:   
+SUBCUENTAS: 
+  
+  
+  
+  
+  
+               
+===== PAGINA 122 =====
+ 
+120 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PASIVOS DIFERIDOS A LARGO 
+PLAZO 2 2 4 0 0 
+OBJETO: Registra el movimiento de los cobros por anticipado 
+para la prestación de servicios, entrega de bienes y /o 
+obligaciones que se concretaran después de los doce meses de 
+recepcionados los fondos. 
+DÉBITOS CRÉDITOS 
+* Por el valor de los 
+servicios prestados o los 
+bienes entregados. 
+* Por los importes ingresados 
+antes de prestados los servicios 
+o entregados los bienes. 
+* Por el importe de la 
+amortización de la deuda a 
+la fecha de su vencimiento. 
+* Por los importes recibidos antes 
+del vencimiento de las 
+obligaciones del deudor. 
+    
+SALDO: Acreedor, representa el monto cobrado por servicios y 
+bienes que se prestarán o entregar án después de los doce 
+meses siguientes y también de los montos recibidos por 
+obligaciones cuyo plazo de cumplimiento no venció. 
+OBSERVACIONES:  
+SUBCUENTAS: 
+  
+  
+  
+               
+===== PAGINA 123 =====
+ 
+121 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PREVISIONES PARA BENEFICIOS 
+SOCIALES A LARGO PLAZO 2 2 5 1 0 
+OBJETO: Registra el movimiento de cargos preventivos para 
+cubrir gastos ciertos por concepto de beneficios sociales que se 
+espera se realicen después de los doce  meses a partir de su 
+creación. 
+DÉBITOS CRÉDITOS 
+* Por el monto cierto del 
+gasto ocurrido que afecta 
+cuentas de largo plazo. 
+* Por el monto de la estimación 
+realizada para la constitución de 
+la previsión. 
+    
+    
+SALDO: Acreedor, representa el monto total de las estimaciones 
+para cubrir gastos ciertos que no son exigibles a la fecha de 
+balance. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 124 =====
+ 
+122 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESERVAS TÉCNICAS A LARGO 
+PLAZO 2 2 5 2 0 
+OBJETO: Registra el movimiento de cargos preventivos 
+determinados por métodos de cálculo actuarial,  para cubrir 
+gastos contingentes que se espera se realicen después de los 
+doce meses a partir de su creación.  
+DÉBITOS CRÉDITOS 
+* Por el monto cierto del 
+gasto ocurrido que afecta 
+cuentas de largo plazo. 
+* Por el monto de la estimación 
+realizada para la constitución de 
+la previsión. 
+    
+    
+SALDO: Acreedor, representa el monto total de las estimaciones 
+para cubrir posibles gastos que no son exigibles a la fecha de 
+balance. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 125 =====
+ 
+123 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS PREVISIONES A LARGO 
+PLAZO 2 2 5 3 0 
+OBJETO: Registra el movimiento de cargos preventivos para 
+cubrir gastos contingentes no clasificados anteriormente, de 
+naturaleza laboral o no, que se espera se realicen después de 
+los doce meses a partir de su creación.  
+DÉBITOS CRÉDITOS 
+* Por el monto cierto del 
+gasto ocurrido que afecta 
+cuentas de largo plazo. 
+* Por el monto de la estimación 
+realizada para la constitución de 
+la previsión. 
+    
+    
+SALDO: Acreedor, representa el monto total de las estimaciones 
+para cubrir posibles gastos que no son exigibles a la fecha de 
+balance. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+===== PAGINA 126 =====
+ 
+124 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+FONDOS RECIBIDOS EN 
+FIDEICOMISO A LARGO PLAZO 2 2 6 0 0 
+OBJETO: Registra l as operaciones relacionadas con la 
+recepción y devolución de fondos de fideicomitentes privados o 
+públicos que se espera se realicen después de los doce meses 
+a partir de su creación.  
+DÉBITOS CRÉDITOS 
+* Por la devolución parcial o 
+total de los recursos 
+* Por la recepción de los recursos 
+    
+    
+SALDO: Acreedor, representa el importe total en poder de la 
+entidad proveniente de fideicomisos 
+OBSERVACIONES: Cuenta a ser utilizada por las entidades 
+financieras llamadas por Ley 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 127 =====
+ 
+125 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CAPITAL INSTITUCIONAL 3 1 1 1 0 
+OBJETO: Registra los montos representativos del patrimonio 
+fiscal o hacienda pública a la fecha de la primera determinación 
+del patrimonio contable, los aportes iniciales de capital y las 
+variaciones incorporadas posteriormente. 
+DÉBITOS CRÉDITOS 
+* Por la incorporación de 
+pasivos preexistentes a la 
+fecha de la primera 
+determinación del 
+patrimonio contable. 
+* Por la incorporación de activos 
+preexistentes a la fecha de la 
+primera determinación del 
+patrimonio contable. 
+* Por los resultados 
+negativos capitalizados. 
+* Por los aportes 
+complementarios, transferencias 
+y donaciones, reservas y 
+resultados acumulados que se 
+integran al capital institucional. 
+  * Por la capitalización de los 
+importes acumulados en las 
+cuentas de: ajuste global del 
+patrimonio, ajuste de capital y 
+ajuste de reservas de capital. 
+SALDO: Acreedor, representa el capital institucional acumulado 
+del ente. 
+OBSERVACIONES:  
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 128 =====
+ 
+126 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+APORTES POR CAPITALIZAR 3 1 1 2 0 
+OBJETO: Registra los montos representativos de aportes 
+privados o públicos originados en compromisos, normas legales 
+o clausulas estatutarias que la determinan y que todavía no han 
+recibido la autorización correspondiente para integrarse al 
+capital institucional. 
+DÉBITOS CRÉDITOS 
+* Por los importes 
+capitalizados de 
+conformidad a norma legal 
+expresa. 
+* Por los importes de los 
+diferentes conceptos de activo 
+recibidos como aportes de 
+capital. 
+    
+    
+SALDO: Acreedor, representa los montos acumulados  por 
+aportes de capital. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 129 =====
+ 
+127 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TRANSFERENCIAS Y DONACIONES 
+DE CAPITAL 3 1 1 3 0 
+OBJETO: Registra los aportes privados o públicos, cuyo fin es 
+la compra de o construcción de bienes de capital y que todavía 
+no han recibido la autorización correspondiente para integrarse 
+al capital institucional. 
+DÉBITOS CRÉDITOS 
+* Por los importes 
+capitalizados de 
+conformidad a norma legal 
+expresa. 
+* Por los importes de los 
+diferentes conceptos de activo 
+recibidos como aportes de 
+capital. 
+* Por los importes de los 
+proyectos de inversión no 
+capitalizables cargados a 
+gastos. 
+  
+* Por los Proyectos de 
+Construcción de Bienes de 
+Dominio Público, que se 
+constituyen en Patrimonio 
+Público 
+  
+SALDO: Acreedor, representa los montos acumulados 
+pendientes de capitalización y/o ajuste contable por la inversión 
+no capitalizable y los Bienes de Dominio Público. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 130 =====
+ 
+128 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+AFECTACIONES PATRIMONIALES 3 1 1 4 0 
+OBJETO: Registra las operaciones que modifican el patrimonio 
+Institucional que son de naturaleza no corriente. 
+DÉBITOS CRÉDITOS 
+* Por los importes de las 
+operaciones que dan de 
+baja derechos y/o 
+reconocen obligaciones 
+modificando el capital. 
+Ejemplo, baja de la Deuda 
+Pública (Largo Plazo) 
+* Por el importe de los 
+reconocimientos de derechos u 
+obligaciones del ente contable y 
+que modifican el capital. Por 
+ejemplo la alta de bienes. 
+    
+    
+SALDO: Acreedor o deudor, representa el monto neto 
+acumulado, por los ajustes a saldos de las cuentas del activo y 
+pasivo no corrientes que afectaron el Capital Institucional. 
+OBSERVACIONES: No se registrarán ajustes por variaciones 
+en las cuentas corrientes y/o de recursos o gastos. 
+SUBCUENTAS:  
+  
+  
+  
+===== PAGINA 131 =====
+ 
+129 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESERVAS 3 1 2 0 0 
+OBJETO: Registra los montos de las segregaciones temporales 
+o permanentes que afectan a los resultados positivos. 
+ 
+  
+DÉBITOS CRÉDITOS 
+* Por los importes 
+capitalizados. 
+ 
+* Por los importes afectados 
+al cumplimiento de los fines 
+para los que fue creada la 
+reserva.  
+* Por los importes de creación de 
+la reserva. 
+    
+    
+SALDO: Acreedor, representa el importe de la reserva legal, 
+estatutaria o facultativa creada por la entidad y pendientes de 
+aplicación. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 132 =====
+ 
+130 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESERVAS POR REVALÚOS 
+TÉCNICOS DE ACTIVOS FIJOS 3 1 3 0 0 
+OBJETO: Registra los montos por las operaciones que asignan 
+mayor valor a los bienes de uso institucionales a través de 
+revalúos conformando parte del patrimonio. 
+DÉBITOS CRÉDITOS 
+* Por la capitalización de la 
+reserva 
+* Por el importe del revalúo 
+técnico. 
+    
+    
+SALDO: Acreedor, representa el importe de las reservas por los 
+revalúos practicados pendientes de disposición. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 133 =====
+ 
+131 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+AJUSTE GLOBAL DEL PATRIMONIO 3 1 4 0 0 
+OBJETO: Registra los montos  por las operaciones de re 
+expresión o actualización del patrimonio. 
+DÉBITOS CRÉDITOS 
+* Por los importes de la 
+capitalización o absorción 
+de pérdidas. 
+* Por el importe total resultante 
+del ajuste. 
+    
+    
+SALDO: Acreedor, representa el valor de los ajustes practicados 
+pendientes de capitalización o absorción de pérdidas.  
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 134 =====
+ 
+132 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESULTADOS ACUMULADOS DE 
+EJERCICIOS ANTERIORES 3 1 5 1 0 
+OBJETO: Registra los importes por las operaciones que 
+acumulan los resultados positivos o negativos de las gestiones  
+pasadas. 
+DÉBITOS CRÉDITOS 
+* Por el importe negativo del 
+resultado de la gestión. 
+* Por el importe positivo del 
+resultado de la gestión. 
+* Por la capitalización de 
+resultados positivos 
+acumulados.  
+* Por la capitalización de 
+resultados negativos 
+acumulados. 
+    
+SALDO: Deudor o Acreedor, representa el importe acumulado 
+de los resultados positivos o negativos. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 135 =====
+ 
+133 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESULTADOS AFECTADOS A 
+CONSTRUCCIONES DE BIENES DE 
+DOMINIO PÚBLICO 
+3 1 5 2 0 
+OBJETO: Registra los montos devengados en un período que 
+se identifican con la inversión en Bienes de Dominio Público.  
+DÉBITOS CRÉDITOS 
+* Por los importes 
+devengados en la 
+construcción de bienes de 
+dominio público. 
+* Por el importe correspondiente 
+afectando los resultados 
+acumulados de gestiones 
+anteriores, para ajustar 
+anualmente el saldo deudor 
+mostrado al finalizar cada gestión 
+fiscal. 
+    
+    
+SALDO: Deudor, representa el import e acumulado durante la 
+gestión por la inversión en bienes de dominio público con 
+recursos corrientes.  
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 136 =====
+ 
+134 
+ 
+ 
+NOMBRE DE LA CUENTA CÓDIGO 
+T C R C SC 
+RESULTADO DEL EJERCICIO 3 1 5 3 0 
+OBJETO: Registra los importes resultantes de las operaciones 
+del ente durante la gestión en curso, respecto de los recursos y 
+gastos corrientes. 
+DÉBITOS CRÉDITOS 
+* Por el monto en exceso de 
+los gastos respecto a los 
+recursos corrientes., 
+* Por el monto en exceso de los 
+recursos respecto a los gastos 
+corrientes. 
+* Por el monto acumulado 
+en el año, afectando los 
+resultados de gestiones 
+anteriores. 
+* Por el monto acumulado en el 
+año, afectando los resultados de 
+gestiones anteriores. 
+    
+SALDO: Acreedor, representa el mayor valor de los recursos 
+corrientes frente a los gastos corrientes. Deudor, cuando 
+representa el mayor valor de los gastos  corrientes frente a los 
+recursos corrientes.  
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+===== PAGINA 137 =====
+ 
+135 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESULTADOS AFECTADOS POR 
+INVERSIONES NO CAPITALIZABLES 3 1 5 4 0 
+OBJETO: Registra el importe de las inversiones no 
+capitalizables cargadas a gastos corrientes 
+DÉBITOS CRÉDITOS 
+* Por el monto de los 
+proyectos de inversión no 
+capitalizables cargados a 
+gastos, para ajustar el saldo 
+acreedor mostrado al 
+finalizar cada gestión fiscal. 
+* Por el importe correspondiente 
+al ejercicio afectando los 
+resultados acumulados de 
+gestiones anteriores. 
+    
+    
+SALDO: Acreedor, representa el monto de las inversiones no 
+capitalizables cargados a gastos corrientes. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 138 =====
+ 
+136 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+AJUSTE DE CAPITAL 3 1 6 0 0 
+OBJETO: Registra el importe del aumento y disminución de la 
+re expresión del Capital Institucional 
+DÉBITOS CRÉDITOS 
+* Por la capitalización de los 
+ajustes de capital 
+institucional. 
+* Por la re expresión del Capital 
+Institucional. 
+    
+    
+SALDO: Acreedor, representa el monto de las re expresiones 
+del Capital Institucional. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 139 =====
+ 
+137 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+AJUSTE DE RESERVAS 
+PATRIMONIALES 3 1 7 0 0 
+OBJETO: Registra las operaciones por la re expresión  y 
+actualización del resto de cuentas contables del Patrimonio 
+Institucional, excepto, los resultados Acumulados de Gestiones 
+Anteriores y Resultado de la Gestión. 
+DÉBITOS CRÉDITOS 
+* Por los importes de la 
+capitalización o absorción 
+de pérdidas. 
+*  Por el importe total resultante 
+del ajuste.  
+    
+    
+SALDO: Acreedor, representa el valor de los ajustes practicados 
+pendientes de capitalización o absorción de pérdidas.  
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 140 =====
+ 
+138 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PATRIMONIO PÚBLICO 3 2 0 0 0 
+OBJETO: Registra de manera transitoria, los movimientos por 
+transferencias y donaciones de capital recibidas para la 
+construcción de bienes de dominio público y  la parte de los 
+recursos corrientes afectados a este mismo propósito. Registra, 
+a su conclusión, la desincorporación de los bienes de dominio 
+público. 
+DÉBITOS CRÉDITOS 
+* Por el costo de la 
+construcción terminada que 
+se entrega a la comunidad. 
+* Por las transferencias y 
+donaciones de capital recibidas.  
+  * Por el importe de los resultados 
+afectados a las construcciones 
+de dominio público. 
+    
+SALDO: Acreedor, representa el valor de las construcciones en 
+proceso de bienes de dominio público que no fueron entregados 
+a la comunidad. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 141 =====
+ 
+139 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+RESULTADOS POR EXPOSICION A 
+LA INFLACIÓN 4 1 0 0 0 
+OBJETO: Registra los cargos y abonos por efecto de las 
+correcciones a la expresión monetaria de los activos y pasivos 
+no monetarios y en moneda extranjera. 
+DÉBITOS CRÉDITOS 
+* Por los valores 
+establecidos en el ajuste de 
+las cuentas no monetarias, 
+en moneda extranjera y del 
+patrimonio. 
+* Por los valores establecidos en 
+el ajuste de las cuentas no 
+monetarias y en moneda 
+extranjera. 
+    
+    
+SALDO: Acreedor o Deudor, representa el mayor o menor valor 
+obtenido por el ajuste de los efectos inflacionarios en los activos 
+y pasivos no monetarios. 
+OBSERVACIONES: De uso de las entidades del sector público, 
+excepto las empresas públicas 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 142 =====
+ 
+140 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+AJUSTE POR INFLACIÓN Y 
+TENENCIA DE BIENES 4 2 0 0 0 
+OBJETO: Registra los cargos y abonos por efecto de las 
+correcciones a la expresión monetaria de los activos y pasivos 
+no monetarios. 
+DÉBITOS CRÉDITOS 
+* Por los valores 
+establecidos en el ajuste de 
+las cuentas no monetarias. 
+* Por los valores establecidos en 
+el ajuste de las cuentas no 
+monetarias. 
+    
+    
+SALDO: Acreedor o Deudor, representa el mayor o menor valor 
+obtenido por el ajuste de los efectos inflacionarios en los activos 
+y pasivos no monetarios.  
+OBSERVACIONES: De uso exclusivo de las empresas 
+públicas. 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 143 =====
+ 
+141 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INGRESOS TRIBUTARIOS 5 1 0 0 0 
+OBJETO: Registra el valor acumulado de los tributos durante la 
+gestión, que el Estado en el marco de sus atribuciones los 
+establece y percibe. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de 
+tributos, de conformidad a 
+normas legales 
+establecidas y en 
+certificados de crédito fiscal, 
+que efectúan el tesoro 
+nacional y las entidades 
+territoriales y autónomas. 
+* Por el valor de los tributos 
+percibidos por los tesoros 
+nacional y las entidades 
+territoriales autónomas. 
+* Por el importe total 
+acumulado al cierre de la 
+gestión contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+  
+    
+SALDO: Acreedor, representa el valor acumulado de los 
+ingresos tributarios percibidos durante el período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           51100 Renta Interna 
+           51200 Renta Aduanera 
+           51300 Impuestos Municipales 
+           51400 Impuestos Departamentales 
+               
+===== PAGINA 144 =====
+ 
+142 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+VENTA DE BIENES Y SERVICIOS 5 2 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por venta de bienes o prestación de servicios que 
+realizan las entidades públicas. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los 
+ingresos por la venta de 
+bienes y/o servicios. 
+* Por el importe de las ventas de 
+bienes y/o servicios prestados. 
+ * Por el importe total 
+acumulado al cierre de la 
+gestión contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+  
+    
+SALDO: Acreedor, representa el valor acumulado de los 
+ingresos por la venta de bienes y/o servicios percibidos durante 
+el período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           52100 Venta de Bienes 
+           52200 Venta de Servicios 
+ 
+ 
+               
+===== PAGINA 145 =====
+ 
+143 
+ 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+REGALÍAS 5 3 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por concepto de regalías que perciben las entidades 
+señaladas por Ley 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los 
+ingresos por concepto de 
+regalías. 
+* Por el importe de las regalías 
+recibidas. 
+* Por el importe total 
+acumulado al cierre del 
+ejercicio contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+  
+    
+SALDO: Acreedor, representa el valor acumulado de los 
+ingresos por regalías percibidos durante el período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           53100 Regalías Mineras 
+           53200 Regalías de Hidrocarburos 
+                        53210 Regalías Nacionales 
+                        53220 Regalías Departamentales 
+           53300 Regalías Agropecuarias 
+           53400 Otras Regalías 
+===== PAGINA 146 =====
+ 
+144 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS INGRESOS 5 4 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por conceptos de Tasas, Derechos, Patentes, 
+Contribuciones, Multas, Intereses, Ganancias en Operaciones 
+Cambiarias, Renta Consular y otros. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los 
+otros ingresos. 
+* Por el importe de los otros 
+ingresos percibidos. 
+* Por el importe total 
+acumulado al cierre del 
+ejercicio contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+  
+SALDO: Acreedor, representa el valor acumulado de los otros 
+ingresos percibidos durante el período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           54100 Tasas 
+           54200 Derechos 
+           54300 Patentes y Concesiones 
+           54400 Contribuciones por Mejoras 
+           54500 Multas 
+           54600 Intereses Penales 
+           54700 Ganancias en Operaciones Cambiarias 
+           54800 Renta Consular 
+           54900 Otros 
+               
+===== PAGINA 147 =====
+ 
+145 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INTERESES Y OTRAS RENTAS DE LA 
+PROPIEDAD 5 5 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por intereses y rentas de la propiedad. 
+DÉBITOS CRÉDITOS 
+* Por la devolución de los  
+ingresos. 
+* Por el importe de los intereses y 
+rentas percibidas. 
+* Por el importe total 
+acumulado al cierre del 
+ejercicio contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+  
+    
+SALDO: Acreedor, representa el valor acumulado de los 
+ingresos por intereses y rentas percibidos durante el período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           55100 Intereses por Depósitos 
+           55200 Intereses por Valores 
+           55300 Otros Intereses 
+           55400 Dividendos 
+           55500 Alquiler de Tierras y Terrenos 
+           55600 Derechos sobre Bienes Intangibles 
+           55700 Alquiler de Edificios y Equipos 
+           55800 Ingresos Financieros 
+  
+===== PAGINA 148 =====
+ 
+146 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CONTRIBUCIONES A LA SEGURIDAD 
+SOCIAL 5 6 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por concepto de aportes patronales y laborales que 
+perciben las entidades de seguridad social. 
+DÉBITOS CRÉDITOS 
+* Por la devolución y/o 
+compensación de aportes. 
+* Por el valor de los aportes 
+patronales y laborales liquidados, 
+percibidos y/o devengados. 
+* Por el importe total 
+acumulado al cierre de la 
+gestión contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+  
+    
+SALDO: Acreedor, representa el valor acumulado de los 
+ingresos por contribuciones en el régimen de la seguridad social. 
+OBSERVACIONES: Son recursos específicos de las entidades 
+de seguridad social. 
+SUBCUENTAS: Comprende las cuentas de: 
+            56100 Contribuciones Obligatorias 
+                         56110 Contribuciones Obligatorias Patronales 
+                         56120 Contribuciones Obligatorias Laborales 
+            56200 Contribuciones Voluntarias 
+  
+               
+===== PAGINA 149 =====
+ 
+147 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TRANSFERENCIAS CORRIENTES 
+RECIBIDAS 5 7 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por concepto de transferencias recibidas por los entes 
+públicos. 
+DÉBITOS CRÉDITOS 
+* Por el importe total 
+acumulado al cierre del 
+ejercicio, contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+* Por el valor de las 
+transferencias recibidas. 
+    
+    
+SALDO: Acreedor, representa el valor acumulado por concepto 
+de transferencias recibidas. 
+OBSERVACIONES:. 
+SUBCUENTAS: Comprende las cuentas de: 
+            57100 Del Sector Privado 
+            57200 Del Sector Público no Financiero 
+            57300 Del Sector Público Financiero 
+            57400 Del Sector Externo 
+  
+               
+===== PAGINA 150 =====
+ 
+148 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DONACIONES CORRIENTES 
+RECIBIDAS 5 8 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos por concepto de donaciones recibidas por los entes 
+públicos. 
+DÉBITOS CRÉDITOS 
+* Por el importe total 
+acumulado al cierre de la 
+gestión, contra una cuenta 
+que resume los ingresos y 
+gastos corrientes. 
+* Por el valor de las donaciones 
+recibidas. 
+    
+    
+SALDO: Acreedor, representa el valor acumulado por concepto 
+de donaciones recibidas. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           58100 Donaciones Internas 
+           58200 Donaciones Externas 
+  
+               
+===== PAGINA 151 =====
+ 
+149 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INGRESOS POR CLASIFICAR 5 9 0 0 0 
+OBJETO: Registra el valor acumulado durante la gestión de los 
+ingresos pendientes de clasificación o identificación. 
+DÉBITOS CRÉDITOS 
+* Por los importes de los 
+recursos corrientes ya 
+clasificados en sus rubros 
+correspondientes. 
+* Por el valor de las 
+recaudaciones pendientes de 
+clasificación recibidas. 
+   
+    
+SALDO: Acreedor, representa el valor acumulado por concepto 
+de recursos pendientes de clasificación. 
+OBSERVACIONES: Esta cuenta, correctamente, debería 
+cerrarse identificando conceptos que la originaron y no contra la 
+cuenta que resume los ingresos y gastos del período. 
+SUBCUENTAS: Comprende las cuentas de: 
+           59100 Ingresos de Impuestos Internos por Clasificar 
+           59200 Recaudación Aduanera por Clasificar 
+           59300 Otros Ingresos por Clasificar 
+           59400 Ingresos de Crédito Interno por Clasificar 
+           59500 Recuperación de Deuda Interna por Clasificar 
+           59600 Ingresos de Hidrocarburos por Clasificar 
+           59700 TGN - Otros por Clasificar 
+           59800 Recursos Específicos por Clasificar 
+           59900 Ingresos de Donación Externa por Clasificar 
+===== PAGINA 152 =====
+ 
+150 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+SUELDOS Y SALARIOS 6 1 1 0 0 
+OBJETO: Registra los gastos devengados por remuneraciones 
+del personal permanente y no permanente. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+sueldos, salarios y jornales 
+devengados para ejecutar 
+las actividades operativas. 
+* Por el total acumulado de los 
+sueldos, salarios y jornales, al 
+cierre de la gestión, contra la 
+cuenta que resume los ingresos y 
+gastos. 
+* Por el importe de los 
+sueldos, salarios y jornales 
+devengados, que en calidad 
+de donación, asistencia 
+técnica o crédito y en 
+actividades corrientes que 
+reciben las entidades 
+públicas. 
+  
+    
+SALDO: Deudor, representa el valor acumulado  de las 
+remuneraciones devengadas en un período determinado. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+===== PAGINA 153 =====
+ 
+151 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+APORTES PATRONALES 6 1 2 0 0 
+OBJETO: Registra los gastos devengados por concepto de 
+cargas sociales. 
+DÉBITOS CRÉDITOS 
+* Por el importe de las 
+cargas sociales 
+devengadas para ejecutar 
+las actividades operativas. 
+* Por el total acumulado de las 
+cargas sociales, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado  de las cargas 
+sociales devengadas por un período determinado. 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las siguientes: 
+           6121 Aportes Patronales al Seguro Social 
+           6122 Aportes Patronales para Vivienda 
+           6123 Otros Aporte Patronales 
+               
+===== PAGINA 154 =====
+ 
+152 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+BENEFICIOS SOCIALES 6 1 3 0 0 
+OBJETO: Registra los gastos devengados por concepto de 
+indemnizaciones, desahucio y otros beneficios señalados por 
+Ley. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+beneficios sociales 
+devengados de la gestión. 
+* Por el total acumulado de los 
+beneficios sociales devengados, 
+al cierre de la gestión, contra la 
+cuenta que resume los ingresos y 
+gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de los 
+beneficios sociales devengados por un período determinado. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes: 
+           61310 Indemnizaciones 
+           61320 Desahucio 
+           61330 Otros Beneficios Sociales 
+               
+===== PAGINA 155 =====
+ 
+153 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+COSTO DE BIENES Y SERVICIOS 6 1 4 0 0 
+OBJETO: Registra los gastos devengados por consumo de 
+materias primas, materiales y suministros y, los servicios de 
+carácter no personal recibidos de terceros. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+bienes de consumo 
+utilizados en las actividades 
+de la entidad. 
+* Por el total acumulado de los 
+bienes y servicios consumidos, al 
+cierre de la gestión, contra la 
+cuenta que resume los ingresos y 
+gastos. 
+* Por el costo de los 
+servicios de terceros 
+recibidos durante las 
+actividades del ente 
+contable. 
+  
+* Por el costo de los bienes 
+y servicios recibidos en 
+calidad de donación, 
+transferencia, asistencia 
+técnica o crédito, de 
+naturaleza corriente, que ya 
+fueron aplicados a las 
+operaciones de la entidad. 
+  
+SALDO: Deudor, representa el valor acumulado de los bienes y 
+servicios devengados por un período determinado. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las siguientes: 
+           61410 Costo de Servicios No Personales 
+           61420 Costo de Materiales y Suministros 
+ 
+===== PAGINA 156 =====
+ 
+154 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+IMPUESTOS 6 1 5 0 0 
+OBJETO: Registra los gastos devengados por concepto de 
+impuestos nacionales, aduaneros y municipales a los que están 
+sujetas las entidades públicas. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+tributos devengados. 
+* Por el total acumulado de los 
+impuestos, al cierre de la gestión, 
+contra la cuenta que resume los 
+ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de los tributos 
+devengados por un período determinado. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+           61510 Impuestos Renta Interna 
+           61520 Renta Aduanera 
+           61530 Impuestos Municipales 
+  
+               
+===== PAGINA 157 =====
+ 
+155 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+REGALÍAS, PATENTES, TASAS, 
+MULTAS Y OTROS 6 1 6 0 0 
+OBJETO: Registra los gastos devengados por concepto de 
+Regalías, Patentes, Tasas, Multas y otros gastos de naturaleza 
+tributaria, que en cumplimiento a normas legales pertinentes 
+tributan algunas entidades públicas. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+gastos de naturaleza 
+tributaria devengados en las 
+actividades de la entidad. 
+* Por el total acumulado de los 
+gastos de naturaleza tributaria 
+devengados, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de las Regalías, 
+Patentes, Tasas, Multas y otros gastos de naturaleza tributaria 
+devengados por un período determinado. 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las cuentas de: 
+           61610 Regalías 
+           61620 Patentes 
+           61630 Tasas, Multas y Otros 
+===== PAGINA 158 =====
+ 
+156 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DEPRECIACIÓN Y AMORTIZACIÓN 6 1 7 0 0 
+OBJETO: Registra la depreciación de los bienes en uso y la 
+amortización del activo intangible. 
+DÉBITOS CRÉDITOS 
+* Por el importe de la 
+depreciación y amortización 
+determinada para el 
+periodo. 
+* Por el total acumulado de la 
+depreciación al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de la 
+depreciación y amortización del período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+            61710 Depreciación Activo Fijo 
+            61720 Amortización Activo Intangible 
+  
+               
+===== PAGINA 159 =====
+ 
+157 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+INTERESES, COMISIONES Y OTROS 
+GASTOS 6 2 1 0 0 
+OBJETO: Registra el valor de los gastos deve ngados en la 
+gestión por concepto de intereses, comisiones y otros gastos por 
+el empleo de dinero ajeno. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+intereses, comisiones y 
+otros, que la entidad paga a 
+intervalos convenidos. 
+* Por el total acumulado al cierre 
+del ejercicio, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+   
+SALDO: Deudor, representa el valor acumulado por concepto 
+de intereses, comisiones y otros gastos devengados del período. 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las cuentas de: 
+            62110 Intereses Deuda Interna 
+            62120 Comisiones y Otros Gastos Deuda Interna 
+            62130 Intereses Deuda Externa 
+            62140 Comisiones y Otros Gastos Deuda Externa 
+            62150 Otros Intereses 
+               
+===== PAGINA 160 =====
+ 
+158 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+ALQUILERES  6 2 2 0 0 
+OBJETO: Registra el valo r de los gastos devengados en la  
+gestión por concepto de alquileres por el empleo de la propiedad 
+ajena. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+alquileres que la entidad 
+paga a intervalos 
+convenidos. 
+* Por el total acumulado de los 
+alquileres, al cierre de la gestión, 
+contra la cuenta que resume los 
+ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de los 
+alquileres devengados de tierras, terrenos, edificios, planta, 
+equipo, etc. durante el período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+            6221 Alquiler de Tierras y Terrenos 
+            6222 Otros Alquileres 
+  
+               
+               
+===== PAGINA 161 =====
+ 
+159 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+DERECHOS SOBRE BIENES 
+INTANGIBLES 6 2 3 0 0 
+OBJETO: Registra el valor de los g astos devengados en la 
+gestión por concepto de derechos sobre bienes intangibles. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los 
+derechos sobre bienes 
+intangibles devengados 
+* Por el total acumulado de los 
+derechos sobre bienes 
+intangibles, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de los derechos 
+sobre bienes intangibles devengados del período. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 162 =====
+ 
+160 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PRESTACIONES DE LA SEGURIDAD 
+SOCIAL 6 3 0 0 0 
+OBJETO: Registra el valor de los gastos devengados en la 
+gestión por concepto de prestaciones de la seguridad social. 
+DÉBITOS CRÉDITOS 
+* Por el importe de las 
+prestaciones devengadas 
+en la gestión. 
+* Por el total acumulado de las 
+prestaciones, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de las 
+prestaciones devengadas del período. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 163 =====
+ 
+161 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PREVISIONES Y RESERVAS 
+TÉCNICAS 6 4 1 0 0 
+OBJETO: Registra el valor de los gastos de prev isión 
+devengados en la gestión por concepto de pérdidas por cuentas 
+incobrables, de inventarios, reservas técnicas y para pérdidas en 
+inversiones financieras. 
+DÉBITOS CRÉDITOS 
+* Por el importe de las 
+previsiones y reservas 
+técnicas creadas en la 
+gestión. 
+* Por el total acumulado de las 
+previsiones y reservas técnicas, 
+al cierre de la gestión, contra la 
+cuenta que resume los ingresos y 
+gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de las 
+previsiones y reservas técnicas, devengadas del período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+ 64110 Previsiones para Pérdidas por Cuentas Incobrables 
+ 64120 Previsiones para Pérdidas de Inventarios 
+ 64130 Previsiones de Reservas Técnicas 
+ 64140 Previsiones para Pérdidas en Inversiones Financieras 
+               
+               
+===== PAGINA 164 =====
+ 
+162 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+PÉRDIDAS EN OPERACIONES 
+CAMBIARIAS 6 4 2 0 0 
+OBJETO: Registra el valor de los gastos por concepto de 
+operaciones cambiarias. 
+DÉBITOS CRÉDITOS 
+* Por el importe de las 
+pérdidas ciertas en las 
+operaciones cambiarias. 
+* Por el total acumulado de las 
+pérdidas en operaciones 
+cambiarias, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de las pérdidas 
+en operaciones cambiarias devengadas del período. 
+OBSERVACIONES:. 
+SUBCUENTAS:  
+  
+  
+  
+               
+               
+===== PAGINA 165 =====
+ 
+163 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+TRANSFERENCIAS OTORGADAS 6 5 0 0 0 
+OBJETO: Registra el valor de los gastos por concepto de 
+transferencias corrientes. 
+DÉBITOS CRÉDITOS 
+* Por el importe de las 
+transferencias otorgadas. 
+* Por el total acumulado de las 
+transferencias, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de las 
+transferencias corrientes otorgadas del período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+            65100 Al Sector Privado 
+            65200 Al Sector Público no Financiero 
+            65300 Al Sector Público Financiero 
+            65400 Al Sector Externo 
+               
+               
+===== PAGINA 166 =====
+ 
+164 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+COMISIONES, BONIFICACIONES Y 
+OTROS SOBRE VENTAS 6 6 0 0 0 
+OBJETO: Registra el valor de los gastos por concepto de 
+comisiones, bonificaciones y otros sobre ventas. 
+DÉBITOS CRÉDITOS 
+* Por el importe devengado 
+de las comisiones, 
+bonificaciones y otros sobre 
+ventas. 
+* Por el total acumulado de las 
+comisiones, bonificaciones y 
+otros, al cierre de la gestión, 
+contra la cuenta que resume los 
+ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de las 
+comisiones, bonificaciones y otros sobre ventas  del período. 
+OBSERVACIONES: 
+SUBCUENTAS: Comprende las cuentas de: 
+            66100 Comisiones sobre ventas 
+            66200 Bonificaciones sobre ventas 
+  
+  
+               
+               
+===== PAGINA 167 =====
+ 
+165 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTROS GASTOS 6 7 0 0 0 
+OBJETO: Registra el valor de los otros gastos no clasificados o 
+detallados en las anteriores cuentas de gastos. 
+DÉBITOS CRÉDITOS 
+* Por el importe de los otros 
+gastos devengados. 
+* Por el total acumulado de los 
+otros gastos, al cierre de la 
+gestión, contra la cuenta que 
+resume los ingresos y gastos. 
+    
+    
+SALDO: Deudor, representa el valor acumulado de los  otros 
+gastos del período. 
+OBSERVACIONES:. 
+SUBCUENTAS: 
+  
+  
+  
+  
+               
+===== PAGINA 168 =====
+ 
+166 
+ 
+ 
+RESUMEN DE INGRESOS Y GASTOS 
+CODIGO 
+T C R C SC 
+7 1 0 0 0 
+OBJETO: Resume al cierre de la gestión fiscal,  todos los 
+recursos y gastos corrientes que impactarán en la cuenta 
+Resultado del Ejercicio. 
+DÉBITOS CRÉDITOS 
+* Por el monto total de los 
+gastos corrientes del 
+período. 
+* Por el monto total de los 
+recursos corrientes del ejercicio. 
+* Por el saldo positivo que 
+se abonará en la cuenta 
+Ahorro de la Gestión 
+* Por el saldo negativo que se 
+debitará en la cuenta Desahorro 
+de la Gestión. 
+    
+SALDO: Deudor o acreedor, representa el resultado negativo o 
+positivo del ejercicio. 
+OBSERVACIONES: 
+SUBCUENTAS:  
+  
+  
+  
+  
+===== PAGINA 169 =====
+ 
+167 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CUENTAS DE ORDEN - DEUDORAS 8 1 0 0 0 
+OBJETO: Registra operaciones que no son de naturaleza 
+económica o financiera, contingentes, de probable concreción, 
+que podrían producir efectos patrimoniales, así como también la 
+tenencia de bienes y otros valores de terceros. 
+ 
+DÉBITOS CRÉDITOS 
+* Por el valor nominal de las 
+garantías, avales, títulos, 
+valores y valores fiscales 
+entregados y/o otorgados a 
+terceros. 
+* Por montos que 
+corresponden a la 
+cancelación de garantías por 
+el cumplimiento de la 
+obligación de los afianzados, 
+devolución de los títulos y, 
+rendición y depósito de los 
+valores fiscales vendidos. 
+* Por el valor nominal de los 
+títulos y valores recibidos en 
+custodia o garantía, valores 
+fiscales y bienes recibidos en 
+depósito. 
+* Por los montos que 
+corresponden a la devolución 
+de los títulos y valores, y los 
+bienes recibidos en depósito, 
+cumplidos los fines que 
+originaron su recepción. 
+* Por el valor de los contratos de 
+préstamos suscritos. Por la 
+entrega, a los funcionarios 
+públicos, de fondos y otros 
+recursos que fueron cargados a 
+gastos 
+* Por los montos de los 
+préstamos desembolsados y 
+por la rendición de los fondos 
+recibidos por los servidores 
+públicos. 
+SALDO: Deudor, representa las contingencias a exigir por los 
+hechos registrados. 
+ 
+OBSERVACIONES: 
+ 
+SUBCUENTAS:  Comprende las cuentas de: 
+81100 Garantías y Avales 
+81200 Préstamos y Convenios Contratados por Desembolsar 
+81300 Títulos y Valores Recibidos 
+81400 Valores Fiscales e Impresos en Depósito 
+81500 Títulos y Valores Entregados 
+81600 Valores Fiscales e Impresos Entregados 
+81700 Bienes Recibidos en Depósito 
+81800 Deudores de Gastos a Rendir 
+81900 Otras Cuentas de Orden Deudoras 
+ 
+===== PAGINA 170 =====
+ 
+168 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS CUENTAS DE ORDEN – 
+DEUDORAS 8 1 9 0 0 
+OBJETO: Registra otras operaciones que no son de naturaleza 
+económica o financiera, contingentes, de probable concreción, 
+que podrían producir efectos patrimoniales, así como también la 
+tenencia de bienes y otros valores de terceros. 
+DÉBITOS CRÉDITOS 
+* Por el valor de los convenios 
+de contraparte suscritos.  
+* Por los montos de 
+convenios de contraparte 
+desembolsados. 
+* Por el valor de los reembolsos 
+pendientes de entrega por parte 
+de los financiadores de 
+proyectos de inversión. 
+Por el valor de los 
+reembolsos efectuados por 
+los financiadores de 
+proyectos de inversión. 
+*Por los montos de acciones 
+telefónicas, activos fijos y 
+activos intangibles adquiridos y 
+en uso por los Proyectos de 
+Inversión. 
+* Por los montos de acciones 
+telefónicas, activos fijos y 
+activos  intangibles  
+entregados por los Proyectos 
+de Inversión, una vez 
+concluidos. 
+SALDO: Deudor, representa las contingencias a exigir por los 
+hechos registrados. 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las cuentas de: 
+           81910 Convenios de Contraparte por Ejecutar 
+           81920 Reembolsos por Ejecutar 
+           81930 Bienes de Dominio Publico 
+           81940 Acciones Telefónicas - Proyectos de Inversión 
+           81950 Activo Fijo - Proyectos de Inversión 
+           81960 Activo Intangible -  Proyectos de Inversión 
+           81990 Otras Cuentas Deudoras 
+ 
+  
+===== PAGINA 171 =====
+ 
+169 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+CUENTAS DE ORDEN-ACREEDORAS 8 2 0 0 0 
+OBJETO: Registra operaciones que no son de naturaleza 
+económica o financiera, contingentes, de probable concreción, 
+que podrían producir efectos patrimoniales, así como también la 
+tenencia de bienes y otros valores de terceros. 
+DÉBITOS CRÉDITOS 
+* Por los montos que 
+corresponden a la cancelación 
+de garantías por el 
+cumplimiento de la obligación 
+de los afianzados, devolución 
+de los títulos y, rendición y 
+depósito de los valores fiscales 
+vendidos. 
+* Por el valor nominal de las 
+garantías, avales, títulos, 
+valores y valores fiscales 
+entregados y/o otorgados a 
+terceros. 
+* Por los montos que 
+corresponden a la devolución de 
+los títulos y valores y, los bienes 
+recibidos en depósito, 
+cumplidos los fines que 
+originaron su recepción. 
+* Por el valor nominal de los 
+títulos y valores recibidos en 
+custodia o garantía, valores 
+fiscales y bienes recibidos en 
+depósito. 
+* Por montos de los préstamos 
+desembolsados y por la 
+rendición de los fondos 
+recibidos por los servidores 
+públicos. 
+Por el valor de los contratos 
+de préstamos y otros 
+suscritos. Por la entrega a 
+los servidores públicos, de 
+fondos y otros recursos que 
+fueron cargados a gastos. 
+SALDO: Acreedor, representa las contingencias a exigir y/o a 
+cumplir por los hechos registrados. 
+ 
+OBSERVACIONES:  
+SUBCUENTAS: Comprende las cuentas de: 
+82100 Contingencia por Garantías y Avales 
+82200 Recursos de Prestamos y Contratados por Ejecutar 
+82300 Responsabilidad por Títulos y Valores Recibidos 
+82400 Responsabilidad por Valores Fiscales e Impresos en 
+Depósito 
+82500 Contingencia por Títulos y Valores Entregados 
+82600 Contingencia por Valores Fiscales e Impresos 
+Entregados 
+82700 Responsabilidad por Bienes Recibidos en Depósito 
+82800 Responsabilidad por Deudores de Gastos a Rendir 
+82900 Otras Cuentas de Orden Acreedoras 
+ 
+===== PAGINA 172 =====
+ 
+171 
+ 
+ 
+NOMBRE DE LA CUENTA CODIGO 
+T C R C SC 
+OTRAS CUENTAS DE ORDEN - 
+ACREEDORAS 8 2 9 0 0 
+OBJETO: Registra otras operaciones que no son de naturaleza 
+económica o financiera, contingentes, de probable concreción, 
+que podrían producir efectos patrimoniales, así como también la 
+tenencia de bienes y otros valores de terceros. 
+DÉBITOS CRÉDITOS 
+* Por los montos de convenios 
+de contraparte desembolsados. 
+* Por el valor de los 
+convenios de contraparte 
+suscritos. 
+Por el valor de los reembolsos 
+efectuados por los financiadores 
+de proyectos de inversión. 
+* Por el valor de los 
+Reembolsos pendientes de 
+entrega por parte de los 
+financiadores de proyectos 
+de inversión  
+*  Por los montos de acciones 
+telefónicas, activos fijos y 
+activos intangibles entregados 
+por los Proyectos de Inversión, 
+una vez concluidos 
+*Por los montos de acciones 
+telefónicas, activos fijos y 
+activos intangibles adquiridos 
+y en uso por los Proyectos 
+de Inversión. 
+SALDO: Acreedor, representa las contingencias a exigir y/o a 
+cumplir por los hechos registrados. 
+ 
+OBSERVACIONES: 
+ 
+SUBCUENTAS: Comprende las cuentas de: 
+82910 Convenios de Contraparte Suscritos 
+82920 Reembolsos Pendientes 
+82930 Responsabilidad por los Bienes de Dominio Publico 
+82940 Responsabilidad por Acciones Telefónicas - Proyectos 
+de Inversión 
+82950 Responsabilidad por Activo Fijo - Proyectos de Inversión 
+82960 Responsabilidad por Activo Intangible -  Proyectos de 
+Inversión 
+82990 Otras Cuentas Acreedoras 
+ 
