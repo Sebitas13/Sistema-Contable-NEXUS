@@ -5,6 +5,8 @@ import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 import { exportToExcel } from '../utils/exportUtils';
 import SmartImportWizard from '../components/SmartImportWizard';
+import UniversalImportWizard from '../components/import/UniversalImportWizard';
+import { isUniversalEnabled } from '../components/import/engineFlag';
 import MahoragaWheel from '../components/MahoragaWheel';
 import NexusModal from '../components/NexusModal';
 import { useToast } from '../components/ToastProvider';
@@ -371,12 +373,19 @@ export default function Accounts() {
             </div>
 
 
-            {/* Smart Import Wizard */}
+            {/* Smart Import Wizard (legacy por defecto; universal solo con ?engine=universal) */}
             {showImportWizard && (
-                <SmartImportWizard
-                    onClose={() => setShowImportWizard(false)}
-                    onSuccess={fetchAccounts}
-                />
+                isUniversalEnabled() ? (
+                    <UniversalImportWizard
+                        onClose={() => setShowImportWizard(false)}
+                        onSuccess={fetchAccounts}
+                    />
+                ) : (
+                    <SmartImportWizard
+                        onClose={() => setShowImportWizard(false)}
+                        onSuccess={fetchAccounts}
+                    />
+                )
             )}
 
             {/* Search and Filters */}

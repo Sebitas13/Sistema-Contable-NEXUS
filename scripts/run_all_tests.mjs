@@ -9,6 +9,8 @@
  *                                   reconciliación, idempotencia, performance)
  *   4. production_gate.mjs         (production readiness: fidelidad Excel, adapter
  *                                   forense, payload parity, pad-to-block II, etc.)
+ *   5. test_import_session.mjs       (ImportSession U-1: capa pura de sesión)
+ *   6. test_import_wizard_u2.mjs     (Wizard U-2: alcance estático + contrato UI↔engine)
  *
  * Exit code != 0 si alguna suite falla.
  */
@@ -23,7 +25,8 @@ const suites = [
     { file: 'shadow_tests.mjs', label: 'Shadow/goldens reales' },
     { file: 'contract_audit.mjs', label: 'Auditoría de contrato' },
     { file: 'production_gate.mjs', label: 'Production readiness gate' },
-    { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' }
+    { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' },
+    { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-2 (pasos 1-2)' }
 ];
 
 let failures = 0;
