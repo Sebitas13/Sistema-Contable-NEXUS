@@ -39,6 +39,7 @@ const { ImportContractValidator } = await import(pathToFileURL(path.join(root, '
 const { CompatibilityAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/CompatibilityAdapter.js')).href);
 const { contractFingerprint, nodesFingerprint } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractSchema.js')).href);
 const { ExcelAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
+const { detectFormat } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
 
 // ─────────────────────────────────────────────────────────
 const GATE = [];
@@ -503,7 +504,57 @@ console.log('\n══ 15. BROWSER E2E ══');
     } catch (e) {
         gate('E2E.filePath', false, `Ruta File falló: ${e.message}`);
     }
-    gate('E2E.browser', false, 'Navegador real NO disponible en este entorno — VERDAD DE TIERRA PENDIENTE (ver e2e-import-harness.html en dev) — UNVERIFIED', 'UNVERIFIED');
+    // E2E REAL: ejecuta browser_e2e.mjs (Edge/Chrome headless) — si hay navegador.
+    // Si no hay navegador en la máquina, queda UNVERIFIED (no se inventa).
+    const { spawnSync } = await import('child_process');
+    const browserResult = spawnSync(process.execPath, [path.join(root, 'scripts/browser_e2e.mjs')], { encoding: 'utf8', timeout: 420000 });
+    if (browserResult.status === 2) {
+        gate('E2E.browser', false, 'Navegador real NO disponible en esta máquina — UNVERIFIED', 'UNVERIFIED');
+    } else {
+        const lastLine = (browserResult.stdout || '').trim().split('\n').pop();
+        const passCount = ((browserResult.stdout || '').match(/✅ /g) || []).length;
+        gate('E2E.browser', browserResult.status === 0, `Browser E2E REAL (Edge headless): ${lastLine || browserResult.status} — ${passCount} archivos del corpus real procesados en navegador`);
+    }
+}
+
+// ═════════════════════════════════════════════════════════
+// 16) NEGATIVE TESTS E2E — el sistema debe detenerse o pedir revisión
+// ═════════════════════════════════════════════════════════
+console.log('\n══ 16. NEGATIVE TESTS ══');
+{
+    const mk = (rows, parent = null) => UniversalPlanAnalyzer.generateImportContract({
+        fileName: 'neg.xlsx', sheetName: 'S', headers: ['C', 'N'].concat(parent ? ['Cuenta Padre'] : []),
+        rows: rows.map(r => parent ? { C: r.c, N: r.n, 'Cuenta Padre': r.p } : { C: r.c, N: r.n }),
+        codeColumn: 'C', nameColumn: 'N', parentColumn: parent ? 'Cuenta Padre' : null, typeColumn: null
+    });
+
+    // self-parent: código apunta a sí mismo
+    const selfP = mk([{ c: '100', n: 'A', p: '100' }, { c: '110', n: 'B', p: '100' }], true);
+    const n100 = selfP.nodes.find(n => n.normalizedCode === '100');
+    gate('NEG.selfParent', n100?.parent !== '100', `self-parent → no se inventa ciclo (parent=${n100?.parent}, method=${n100?.parentInfo?.method})`);
+
+    // multiple parents: mismo código con 2 padres distintos (vía duplicado conflicto)
+    const multi = mk([{ c: '111.01', n: 'Caja1', p: '111' }, { c: '111.01', n: 'Caja2', p: '112' }], true);
+    gate('NEG.multiParent', multi.errors.some(e => e.type === 'duplicateCode' || e.type === 'normalizedDuplicate' || e.type === 'cycle'), `múltiples padres → BLOCK (${multi.errors.map(e => e.type).join(',')})`);
+
+    // explicit missing parent: padre declarado inexistente y no inferible
+    const miss = mk([{ c: '100', n: 'A', p: '' }, { c: '110', n: 'B', p: '999' }], true);
+    gate('NEG.missingParent', miss.errors.some(e => e.type === 'explicitMissingParent'), `padre explícito inexistente "999" → BLOCK (${miss.errors.map(e => e.type).join(',')})`);
+
+    // archivo vacío (0 filas con código)
+    const empty = mk([{ c: '', n: '' }]);
+    gate('NEG.empty', empty.nodes.length === 0 && (empty.dataLoss?.unaccountedRows ?? 1) === 0, `archivo vacío → 0 nodos, reconciliación completa (unaccounted=${empty.dataLoss?.unaccountedRows})`);
+
+    // fila corrupta (código no numérico)
+    const corrupt = mk([{ c: 'abc', n: 'Basura' }, { c: '100', n: 'Activo' }]);
+    gate('NEG.corrupt', corrupt.nodes.length === 1 && corrupt.rejectedRows.some(r => r.reason === 'IMPLAUSIBLE_CODE'), `fila corrupta "abc" → rechazada con motivo (${corrupt.rejectedRows.map(r => r.reason).join(',')})`);
+
+    // formato no soportado (en el adapter)
+    gate('NEG.unsupported', detectFormat('archivo.docx') === null, 'formato .docx no soportado → adapter null (detenerse, no adivinar)');
+
+    // naturaleza UNKNOWN: código sin tipo y sin primer-dígito mapeable → nunca certeza inventada
+    const unk = mk([{ c: 'X-1', n: 'Rara' }]);
+    gate('NEG.unknownNature', unk.nodes.every(n => n.nature !== 'EXPLICIT' || !n.nature), `naturaleza no-explicita jamás se vuelve certeza (${unk.nodes.map(n => n.nature).join(',')})`);
 }
 
 // ═════════════════════════════════════════════════════════

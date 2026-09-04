@@ -53,6 +53,12 @@ export class ExcelAdapter extends FormatAdapter {
             workbook = input.workbook;
             fileName = input.fileName || 'workbook.xlsx';
             fileSize = input.fileSize || 0;
+        } else if (input && input.file instanceof File) {
+            // { file, sheetName } — usado por el E2E harness en navegador
+            const buf = await input.file.arrayBuffer();
+            workbook = XLSX.read(buf, { type: 'array', cellFormula: true, cellStyles: false, cellDates: false });
+            fileName = input.file.name || 'archivo.xlsx';
+            fileSize = input.file.size || 0;
         } else if (input instanceof File || input instanceof Blob) {
             const buf = await input.arrayBuffer();
             workbook = XLSX.read(buf, { type: 'array', cellFormula: true, cellStyles: false, cellDates: false });
@@ -218,7 +224,23 @@ export class PdfAdapter extends FormatAdapter {
      * @param {{startPage?: number, endPage?: number}} opts
      */
     static async extract(input, opts = {}) {
-        const pdfjsLib = await import('pdfjs-dist');
+        const pdfjsMod = await import('pdfjs-dist');
+        const pdfjsLib = pdfjsMod.default || pdfjsMod;
+        // Worker de pdf.js resuelto por Vite (dev y build) — sin hardcodear CDN.
+        // En navegador el módulo es ESM con GlobalWorkerOptions; en Node (tests)
+        // se usa el build legacy sin worker.
+        if (pdfjsLib && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            try {
+                // Navegador: Vite resuelve el sufijo ?url a un asset servible.
+                // Node (tests) no entra aquí (no hay `document`), así que el
+                // import dinámico con ?url jamás se ejecuta fuera del bundle.
+                if (typeof document !== 'undefined') {
+                    // pdfjs-dist de este repo NO trae .mjs: el worker es el .js clásico.
+                    const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.js?url');
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+                }
+            } catch { /* fallback: worker por defecto */ }
+        }
         const buf = input instanceof File || input instanceof Blob
             ? await input.arrayBuffer()
             : input;

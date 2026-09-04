@@ -1065,17 +1065,20 @@ export class UniversalPlanAnalyzer {
         const groupCount = nodes.filter(n => n.classification === 'GROUP').length;
 
         // ── Data-loss accounting (invariante: dataLossCount === 0) ──
+        // dataLossCount = SOLO pérdidas NO inventariadas. Las filas rechazadas
+        // con motivo (rejectedRows) NO son pérdida silenciosa: están auditadas.
         const collisions = this.detectIdentityCollisions(
             plausible.map(a => ({ rawCode: a.rawCode, normalizedCode: a.normalizedCode, name: a.rawName }))
         );
         const silentTransformationCount = plausible.filter(a =>
             a.rawCode !== a.normalizedCode && (!a.transformations || a.transformations.length === 0)
         ).length;
+        const identityCollisionCount = collisions.filter(c => c.type === 'identityCollision').length;
         const droppedRowCount = rawAccounts.length - plausible.length;
-        const dataLossCount = silentTransformationCount
-            + collisions.filter(c => c.type === 'identityCollision').length
-            + (droppedRowCount > 0 && !warnings.some(w => String(w).includes('descartad')) ? droppedRowCount : 0);
-        if (droppedRowCount > 0 && !warnings.some(w => String(w).includes('descartad'))) {
+        // unaccountedRows: filas que no están ni en nodes ni en rejectedRows.
+        const unaccountedRows = rowsTotal - nodes.length - rejectedRows.length;
+        const dataLossCount = silentTransformationCount + identityCollisionCount + unaccountedRows;
+        if (droppedRowCount > 0 && !warnings.some(w => String(w).includes('rechazada'))) {
             warnings.push(`${droppedRowCount} filas descartadas (no-código o vacías) — requieren revisión si eran cuentas`);
         }
 

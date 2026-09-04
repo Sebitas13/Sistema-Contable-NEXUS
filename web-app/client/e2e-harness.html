@@ -43,6 +43,10 @@
   import { ImportContractValidator } from '/src/utils/ImportContractValidator.js';
   import { CompatibilityAdapter } from '/src/utils/CompatibilityAdapter.js';
   import { nodesFingerprint } from '/src/utils/ImportContractSchema.js';
+  // Marcar el entorno para que el runner CDP pueda confirmar que es un navegador real
+  window.__E2E_BROWSER__ = true;
+  window.__E2E_RESULTS__ = [];
+  const pushResult = (obj) => { window.__E2E_RESULTS__.push(obj); window.dispatchEvent(new Event('e2e-result')); };
 
   const drop = document.getElementById('drop');
   const fileInput = document.getElementById('file');
@@ -53,6 +57,38 @@
   drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
   drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); handleFiles([...e.dataTransfer.files]); });
   fileInput.addEventListener('change', () => handleFiles([...fileInput.files]));
+
+  // ── Modo CDP/headless: ?file=e2e-corpus/hoja2.xlsx — carga por fetch y
+  //    ejecuta el pipeline real en el navegador. ──
+  async function loadFromParams() {
+    const params = new URLSearchParams(location.search);
+    const files = params.getAll('file');
+    const sheet = params.get('sheet');
+    const pages = params.get('pages'); // ej. '6-16'
+    if (files.length === 0) return;
+    const loaded = [];
+    for (const rel of files) {
+      try {
+        const res = await fetch('/' + rel);
+        if (!res.ok) throw new Error('fetch ' + res.status);
+        const buf = await res.arrayBuffer();
+        const name = rel.split('/').pop();
+        const f = new File([buf], name);
+        f.__sheet = sheet || null; // selección de hoja (solo Excel)
+        f.__pages = pages ? pages.split('-').map(Number) : null; // rango de páginas (PDF)
+        loaded.push(f);
+        document.body.insertAdjacentHTML('beforeend', `<p class="ok">✔ Cargado ${name}${sheet ? ' [' + sheet + ']' : ''}${pages ? ' [pages ' + pages + ']' : ''} (${(buf.byteLength/1024).toFixed(1)} KB)</p>`);
+      } catch (e) {
+        document.body.insertAdjacentHTML('beforeend', `<p class="err">✘ No pude cargar ${rel}: ${e.message}</p>`);
+      }
+    }
+    if (loaded.length) await handleFiles(loaded);
+  }
+
+  if (location.search.includes('file=')) {
+    drop.style.display = 'none';
+    loadFromParams();
+  }
 
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
 
@@ -68,14 +104,23 @@
       card.appendChild(log);
       const say = (s, cls) => { const line = el('div', cls || '', s); log.appendChild(line); };
       const t0 = performance.now();
+      const fileReport = { file: file.name, sizeKB: +(file.size/1024).toFixed(1), regions: [], error: null };
       try {
         const adapter = detectFormat(file.name);
-        if (!adapter) { say('❌ Formato no soportado. Adapters: Excel, PDF, CSV', 'err'); continue; }
-        say(`📥 Adapter: ${adapter.name}`);
-        const doc = await adapter.extract(file);
+        if (!adapter) { say('❌ Formato no soportado. Adapters: Excel, PDF, CSV', 'err'); fileReport.error = 'unsupported_format'; continue; }
+        say(`📥 Adapter: ${adapter.name}${file.__sheet ? ' [' + file.__sheet + ']' : ''}`);
+        const doc = file.__sheet
+            ? await adapter.extract({ file, sheetName: file.__sheet })
+            : (file.__pages
+                ? await adapter.extract(file, { startPage: file.__pages[0], endPage: file.__pages[1] })
+                : await adapter.extract(file));
         say(`📄 CanonicalDocument: ${doc.rows.length} filas, confianza extracción ${doc.extractionConfidence}, OCR=${doc.ocrUsed}`);
+        fileReport.rows = doc.rows.length;
+        fileReport.extractionConfidence = doc.extractionConfidence;
         const analysis = UniversalPlanAnalyzer.analyzeCanonicalDocument(doc);
         say(`🧠 Regiones detectadas: ${analysis.regions.length} (preflight: ${analysis.preflight.decision})`);
+        fileReport.preflight = analysis.preflight.decision;
+        fileReport.regionCount = analysis.regions.length;
         for (let ri = 0; ri < analysis.regions.length; ri++) {
           const c = analysis.regions[ri];
           if (!c || !c.nodes) continue;
@@ -90,18 +135,29 @@
           c.nodes.forEach(n => { confirmed[n.normalizedCode] = n.type; });
           const payload = CompatibilityAdapter.toBulkPayload(c, 0, { confirmedNatureMap: confirmed });
           say(`     ✓ payload /bulk: ${payload.allowed ? payload.payload.accounts.length + ' registros listos' : 'BLOQUEADO (gate: ' + payload.reason + ')'}`, payload.allowed ? 'ok' : 'err');
-          // muestra raíces + muestra de nodos
           const roots = c.nodes.filter(n => n.classification === 'ROOT').slice(0, 5);
           const sample = c.nodes.slice(0, 5);
           say(`     Raíces: ${roots.map(r => r.normalizedCode + ':' + (r.name||'').slice(0,20)).join(' | ') || '—'}`);
           sample.forEach(n => say(`     ${n.normalizedCode} (${n.level}) → ${n.parent||'—'} [${n.parentInfo?.method}] ${(n.name||'').slice(0,35)}`, 'warn'));
           if (blocks > 0) (c.errors||[]).filter(e => e.severity==='BLOCK').slice(0,4).forEach(e => say(`       ⛔ ${e.type}: ${(e.message||'').slice(0,70)}`, 'err'));
           if (reviews > 0) (c.warnings||[]).filter(w => w.severity==='REVIEW').slice(0,3).forEach(w => say(`       ⚠️ ${(w.message||w).slice(0,70)}`, 'warn'));
+          pushResult({
+            file: file.name, region: ri, mode: c.region?.extractionMode || 'table',
+            nodes: c.nodes.length, validator: val.valid ? 'PASS' : 'BLOCKED',
+            blocks, reviews, requiresConfirmation: c.requiresConfirmation,
+            unaccountedRows: c.dataLoss?.unaccountedRows, silentCorruption: c.silentCorruptionCount,
+            payloadAllowed: payload.allowed, payloadCount: payload.allowed ? payload.payload.accounts.length : null,
+            blockTypes: [...new Set((c.errors||[]).filter(e => e.severity==='BLOCK').map(e => e.type))],
+            contractVersion: c.contractVersion
+          });
         }
         say(`⏱ Total ${((performance.now()-t0)/1000).toFixed(2)}s`);
+        fileReport.totalMs = (performance.now()-t0).toFixed(0);
       } catch (e) {
         say(`❌ ERROR: ${e.message}`, 'err');
+        fileReport.error = e.message;
       }
+      pushResult(fileReport);
     }
   }
 </script>
