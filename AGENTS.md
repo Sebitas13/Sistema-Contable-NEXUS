@@ -9,7 +9,7 @@ código vivo: verificar build/smoke antes de terminar.
 > - `MAHORAGA.md` — diagnóstico y roadmap del asistente IA (experimental).
 > - `DIAGNOSTICO.md` — auditoría histórica; muchos ítems ya resueltos.
 > - `UNIVERSAL_IMPORT_ENGINE_BASELINE.md` — baseline congelada del motor de import (tests, invariantes, limitaciones).
-> - `IMPORT_WIZARD_MIGRATION_DESIGN.md` — diseño (Fase 6) de la migración del SmartImportWizard al engine. **Solo diseño; no implementar sin aprobación.**
+> - `IMPORT_WIZARD_MIGRATION_DESIGN.md` — diseño definitivo (Fase 6) de la migración del SmartImportWizard al engine: auditoría completa con línea exacta, ImportSession (decisión: SÍ), matriz legacy→universal, plan de 10 commits. **Solo diseño; no implementar sin aprobación.** Primer commit propuesto: `importSession/` puro sin React.
 
 ---
 
@@ -187,10 +187,12 @@ Pendiente conocido:
 - **A3**: tablas anchas en mobile (Worksheet ~21 columnas es la peor); los
   modales NexusModal ya son scrollables.
 - **Fase 6 (decisión pendiente)**: migración del SmartImportWizard al Universal
-  Import Engine. El diseño está en `IMPORT_WIZARD_MIGRATION_DESIGN.md`; la
-  implementación NO se inicia sin aprobación explícita. Reglas si se aprueba:
-  feature-flag `importEngine` (default legacy), fallback intacto, shadow por
-  defecto, paridad differential demostrada antes de cambiar el default.
+  Import Engine. Diseño DEFINITIVO listo en `IMPORT_WIZARD_MIGRATION_DESIGN.md`
+  (PHASE 6 VERDICT: ARCHITECTURE READY · MIGRATION PLAN READY · IMPLEMENTATION
+  NOT STARTED). La implementación NO se inicia sin aprobación explícita.
+  Reglas si se aprueba: feature-flag `importEngine` (default legacy), fallback
+  intacto, shadow por defecto, paridad differential demostrada antes de cambiar
+  el default, ImportSession como contenedor puro (sin lógica de análisis).
 - Engine: PGC (columna única "N. Nombre.") es PARTIAL en el flujo canónico
   automático (parser especial probado en Node, no auto-seleccionado).
 - AdjustmentWizard/ClosingWizard (zona intocable) aún usan alert()/modales
