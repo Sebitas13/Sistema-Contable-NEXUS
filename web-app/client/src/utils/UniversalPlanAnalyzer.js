@@ -31,6 +31,7 @@
  */
 
 import { AccountPlanProfile } from './AccountPlanProfile.js';
+import { CONTRACT_SCHEMA_VERSION, ANALYZER_VERSION } from './ImportContractSchema.js';
 
 const OUTLIER_THRESHOLD = 0.02; // 2%
 const PARENT_REF_THRESHOLD = 0.7; // 70% filas con padre → modo parent-reference
@@ -808,7 +809,33 @@ export class UniversalPlanAnalyzer {
             };
         });
 
-        const plausible = sanitized.filter(a => this.isPlausibleCode(a.normalizedCode));
+        // Inventario de filas: NADA desaparece sin motivo registrado.
+        //   rowsTotal = validRows + rejectedRows  (unaccountedRows === 0)
+        const rowsTotal = rawAccounts.length;
+        // Arrays de validación (declarados aquí: el inventario de rechazadas los usa)
+        const errors = [];
+        const warnings = [];
+        const rejectedRows = [];
+        const plausible = [];
+        sanitized.forEach((a, idx) => {
+            const record = {
+                row: idx + 1,                    // 1-based igual que Excel (rowIndex en ExcelAdapter es 0-based)
+                rawCode: a.rawCode,
+                rawName: a.rawName || ''
+            };
+            if (this.isPlausibleCode(a.normalizedCode)) {
+                plausible.push(a);
+            } else {
+                let reason, severity;
+                if (!a.rawCode || String(a.rawCode).trim() === '') reason = 'EMPTY_CODE', severity = 'IGNORED';
+                else if (!a.rawName || String(a.rawName).trim() === '') reason = 'EMPTY_NAME', severity = 'WARNING';
+                else reason = 'IMPLAUSIBLE_CODE', severity = 'REVIEW';
+                rejectedRows.push({ ...record, reason, severity });
+                if (severity === 'WARNING' || severity === 'REVIEW') {
+                    warnings.push(`Fila ${idx + 1} rechazada (${reason}): código "${a.rawCode}" nombre "${String(a.rawName).slice(0, 40)}"`);
+                }
+            }
+        });
         const accountsForAnalysis = plausible.map(a => ({ code: a.normalizedCode, name: a.rawName }));
 
         const analysis = this.analyzeUniversal(accountsForAnalysis, headers, rows);
@@ -827,9 +854,10 @@ export class UniversalPlanAnalyzer {
         const levelMap = {};
         plausible.forEach(a => { levelMap[a.normalizedCode] = AccountPlanProfile.calculateLevel(a.normalizedCode, config); });
 
-        // Validaciones con severidades — declaradas ANTES de cualquier uso
-        const errors = [...analysis.validationErrors];
-        const warnings = [...analysis.warnings];
+        // Se fusionan los hallazgos de analyzeUniversal (declarados vacíos antes)
+        // con las validaciones estructurales propias de generateImportContract.
+        errors.push(...analysis.validationErrors);
+        warnings.push(...analysis.warnings);
 
         // DAG validation si hay parentMap explícito
         // Primero resuelve referencias fuzzy (padre "111" para código "111.00")
@@ -840,7 +868,7 @@ export class UniversalPlanAnalyzer {
             effectiveParentMap = resolution.resolved;
             unresolved = resolution.unresolved;
         }
-        if (Object.keys(effectiveParentMap).length > 10) {
+        if (Object.keys(effectiveParentMap).length > 0) {
             const dag = this.validateDAG(plausible.map(a => a.normalizedCode), effectiveParentMap);
             dag.orphans.forEach(o => {
                 // Diferencia huérfano explícito vs implícito:
@@ -863,36 +891,32 @@ export class UniversalPlanAnalyzer {
             dag.cycles.forEach(c => errors.push({ type: 'cycle', severity: 'BLOCK', cycle: c, message: `Ciclo detectado: ${c.join(' → ')}` }));
         }
 
+        // ── Optimización de rendimiento: resolver padres UNA sola vez (O(n))
+        //    y derivar hijos del mapa resultante (evita O(n²) re-resoluciones
+        //    y O(n³) cuando _padBlockEvidence contaba hermanos por nodo). ──
+        const parentOf = new Map();       // code -> { parent, method, confidence, evidence, requiresReview }
+        const parentMethod = new Map();   // code -> method (acceso rápido)
+        const padSiblingCache = new Map(); // blockParent -> siblingCount
+        for (const a of plausible) {
+            const code = a.normalizedCode;
+            const info = this._resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, padSiblingCache);
+            parentOf.set(code, info);
+            parentMethod.set(code, info.method);
+        }
+        // Índice hijos: parent -> [child codes] (una sola pasada)
+        const childrenOf = new Map();
+        for (const [code, info] of parentOf) {
+            if (!info.parent) continue;
+            if (!childrenOf.has(info.parent)) childrenOf.set(info.parent, []);
+            childrenOf.get(info.parent).push(code);
+        }
+
         const nodes = plausible.map(a => {
             const level = levelMap[a.normalizedCode];
-            // Cadena de resolución de padre implícito:
-            //   1) padre explícito (columna Cuenta Padre, ya resuelto fuzzy)
-            //   2) AccountPlanProfile.calculateParent (segmentos/longitudes)
-            //   3) inferencia "pad-to-block" (clasificadores MEFP, PUCT 9d):
-            //      SOLO si el padre derivado no existe en el set.
-            let parent = (effectiveParentMap && effectiveParentMap[a.normalizedCode]) || parentMap[a.normalizedCode] || null;
-            if (!parent || !codeSet.has(String(parent))) {
-                const calc = AccountPlanProfile.calculateParent(a.normalizedCode, config);
-                if (calc && codeSet.has(String(calc))) {
-                    parent = calc;
-                } else {
-                    // Inferencia "pad-to-block": clasificadores MEFP (11000→11100
-                    // es un bloque; 13111→13110) y PUCT 9 dígitos. Aplica cuando
-                    // la detección por longitud no basta (ej. plan "plano" de
-                    // códigos de 5 dígitos donde el padre se infiere por ceros).
-                    const blockParent = this._inferBlockParent(a.normalizedCode, codeSet);
-                    if (blockParent) parent = blockParent;
-                }
-            }
-            const hasChildren = plausible.some(other => {
-                let p = (effectiveParentMap && effectiveParentMap[other.normalizedCode]) || parentMap[other.normalizedCode] || null;
-                if (!p || !codeSet.has(String(p))) {
-                    const calc = AccountPlanProfile.calculateParent(other.normalizedCode, config);
-                    if (calc && codeSet.has(String(calc))) p = calc;
-                    else p = this._inferBlockParent(other.normalizedCode, codeSet);
-                }
-                return p === a.normalizedCode;
-            });
+            const info = parentOf.get(a.normalizedCode) || { parent: null, method: 'OTHER', confidence: 0, evidence: [], requiresReview: true };
+            const parent = info.parent;
+            const children = childrenOf.get(a.normalizedCode) || [];
+            const hasChildren = children.length > 0;
             let classification = 'UNKNOWN';
             if (level === 1 && !hasChildren) classification = 'LEAF';
             else if (level === 1 && hasChildren) classification = 'ROOT';
@@ -914,12 +938,15 @@ export class UniversalPlanAnalyzer {
             // Naturaleza
             let nature = 'INFERRED';
             let natureConfidence = 0.6;
+            let natureReason = 'first_digit_heuristic';
             if (a.typeRaw && String(a.typeRaw).trim() !== '') {
                 nature = 'EXPLICIT';
                 natureConfidence = 1.0;
+                natureReason = 'source_column';
             } else if (level === 1) {
                 nature = 'INFERRED';
                 natureConfidence = 0.6;
+                natureReason = 'root_position_first_digit';
             }
 
             return {
@@ -928,12 +955,22 @@ export class UniversalPlanAnalyzer {
                 name: a.rawName,
                 normalizedCode: a.normalizedCode,
                 transformations: a.transformations,
-                requiresReview: a.requiresReview,
+                requiresReview: a.requiresReview || info.requiresReview,
                 level,
                 parent: parent || null,
+                // Evidencia auditable del padre: cómo y con qué confianza se obtuvo
+                parentInfo: {
+                    code: parent || null,
+                    method: info.method,
+                    confidence: info.confidence,
+                    evidence: info.evidence,
+                    requiresReview: info.requiresReview
+                },
                 type: a.typeRaw || AccountPlanProfile.heuristicTypeGuess(a.normalizedCode, {}),
                 nature,
                 natureConfidence,
+                natureReason,
+                natureSource: nature === 'EXPLICIT' ? 'source_column' : 'UniversalPlanAnalyzer',
                 classification,
                 isPostable: postableInfo.status,
                 postableConfidence: postableInfo.confidence
@@ -991,9 +1028,11 @@ export class UniversalPlanAnalyzer {
             }
         }
 
-        // Naturaleza inferida sin confirmación → requiere confirmación
+        // Naturaleza inferida sin confirmación → requiere confirmación.
+        // REGLA: si hay CUALQUIER error BLOCK, el contrato jamás está "listo".
         const inferredRoots = nodes.filter(n => n.nature === 'INFERRED' && n.classification === 'ROOT');
-        const requiresConfirmation = inferredRoots.length > 0 || warnings.some(w => w.severity === 'REVIEW');
+        const hasBlocks = errors.some(e => e.severity === 'BLOCK');
+        const requiresConfirmation = hasBlocks || inferredRoots.length > 0 || warnings.some(w => w.severity === 'REVIEW');
 
         // Confianza global basada en validaciones y ambigüedad
         let overallConfidence = 0.9;
@@ -1025,16 +1064,28 @@ export class UniversalPlanAnalyzer {
         }
 
         return {
+            // ═══ VERSIONADO DEL CONTRATO ═══
+            contractVersion: CONTRACT_SCHEMA_VERSION,
+            schemaVersion: CONTRACT_SCHEMA_VERSION,
+            analyzerVersion: ANALYZER_VERSION,
+
             source: { file: fileName, sheet: sheetName, headers, rowCount: rows.length },
-            columnMapping: { codeColumn, nameColumn, parentColumn, typeColumn, confidence: 0.85, ambiguityMargin: 0.3 },
+            columnMapping: { codeColumn, nameColumn, parentColumn, typeColumn, confidence: 0.85, ambiguous: false, scored: false, ambiguityMargin: null },
             hierarchy: { separator: analysis.separator, levelLengths: analysis.validLengths || [], levelCount: analysis.levelsCount },
             separator: analysis.separator,
             levels: analysis.validLengths,
             rootNodes,
             nodeCounts: { total: nodes.length, roots: rootNodes.length, groups: groupCount, leaves: leafCount },
             leafCounts: leafCount,
+            stats: {
+                totalRows: rowsTotal,
+                validRows: nodes.length,
+                rejectedRows: rejectedRows.length
+            },
             nodes,
             transformations: plausible.filter(a => a.transformations.length > 0).map(a => ({ code: a.normalizedCode, transformations: a.transformations })),
+            // Inventario de filas descartadas con motivo y severidad (nada desaparece sin razón)
+            rejectedRows,
             warnings,
             errors,
             confidence: { overall: overallConfidence, secondBest: analysis.secondBestConfidence || 0, ambiguityMargin: analysis.ambiguityMargin || 0 },
@@ -1049,6 +1100,8 @@ export class UniversalPlanAnalyzer {
                 unmappedColumnCount: 0,
                 unresolvedNodeCount: unresolved.length,
                 dataLossCount,
+                // Invariante de reconciliación: total = válidas + rechazadas
+                unaccountedRows: rowsTotal - nodes.length - rejectedRows.length,
                 collisions
             },
             // Compat con versión anterior (NO usar en código nuevo: ver dataLoss)
@@ -1304,6 +1357,120 @@ export class UniversalPlanAnalyzer {
             if (padded !== code && codeSet.has(padded)) return padded;
         }
         return null;
+    }
+
+    // Evidencia contextual de pad-to-block: la relación matemática NO basta.
+    // Exige consistencia con el documento (hermanos/raíz del mismo bloque).
+    static _padBlockEvidence(code, parent, codeSet) {
+        const reasons = [];
+        if (code === parent) { reasons.push('self_parent'); return { accepted: false, confidence: 0, reasons }; }
+        if (!codeSet.has(parent)) { reasons.push('parent_not_in_doc'); return { accepted: false, confidence: 0, reasons }; }
+        if (!/^\d+$/.test(code) || !/^\d+$/.test(parent)) { reasons.push('not_numeric'); return { accepted: false, confidence: 0, reasons }; }
+        if (code.length !== parent.length) { reasons.push('length_mismatch'); return { accepted: false, confidence: 0, reasons }; }
+
+        const delta = Number(code) - Number(parent);
+        if (!(delta > 0 && delta < 10000)) { reasons.push('delta_out_of_range'); return { accepted: false, confidence: 0, reasons }; }
+
+        // ¿El padre es un "contenedor" (termina en 00 / 0 según nivel)?
+        const parentZeros = (parent.match(/0+$/)?.[0] || '').length;
+        const codeZeroTrim = code.replace(/0+$/, '');
+        const parentZeroTrim = parent.replace(/0+$/, '');
+        if (codeZeroTrim === parentZeroTrim) { reasons.push('same_stem'); return { accepted: false, confidence: 0, reasons }; }
+        // ¿Padre comparte prefijo no-cero con el hijo? (familia real)
+        const sharedPrefix = codeZeroTrim.startsWith(parentZeroTrim) || parentZeroTrim.startsWith(codeZeroTrim);
+        const siblingCount = [...codeSet].filter(c => c !== code && c !== parent && this._inferBlockParent(c, codeSet) === parent).length;
+        // EVIDENCIA MÍNIMA: un bloque real tiene ≥1 hermano bajo el mismo padre.
+        // Sin hermanos, la relación es matemáticamente posible pero NO hay
+        // contexto que la respalde → se rechaza (jamás inventar padre).
+        if (siblingCount === 0) {
+            return { accepted: false, confidence: 0, reasons: ['no_siblings_context'], details: { siblingCount: 0, parentZeros, sharedPrefix } };
+        }
+        const confidence = (sharedPrefix ? 0.6 : 0.2) + Math.min(0.4, siblingCount * 0.15);
+        const accepted = sharedPrefix && parentZeros >= 0;
+        return {
+            accepted,
+            confidence: Math.min(1, confidence),
+            reasons: accepted ? [] : ['weak_contextual_evidence'],
+            details: { siblingCount, parentZeros, sharedPrefix, delta }
+        };
+    }
+
+    // Versión eficiente (caché de hermanos por bloque) usada en el mapa de padres.
+    static _resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, padSiblingCache) {
+        // 1) EXPLICIT
+        const explicit = (effectiveParentMap && effectiveParentMap[code]) || (parentMap && parentMap[code]);
+        if (explicit && codeSet.has(String(explicit)) && String(explicit) !== code) {
+            return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
+        }
+        // 2) calculateParent clásico
+        const calc = AccountPlanProfile.calculateParent(code, config);
+        if (calc && codeSet.has(String(calc)) && String(calc) !== code) {
+            const method = config.hasSeparator ? 'SEGMENT' : 'PREFIX';
+            return { parent: String(calc), method, confidence: 0.85, evidence: ['structural_hierarchy'], requiresReview: false };
+        }
+        // 3) PAD_TO_BLOCK con evidencia de hermanos (cacheada)
+        const blockParent = this._inferBlockParent(code, codeSet);
+        if (blockParent) {
+            let siblingCount = padSiblingCache.get(blockParent);
+            if (siblingCount === undefined) {
+                siblingCount = 0;
+                for (const c of codeSet) {
+                    if (c !== code && c !== blockParent && this._inferBlockParent(c, codeSet) === blockParent) siblingCount++;
+                }
+                padSiblingCache.set(blockParent, siblingCount);
+            }
+            // Evidencia mínima: ≥1 hermano bajo el mismo bloque
+            if (siblingCount === 0) {
+                return { parent: null, method: 'PAD_TO_BLOCK_REJECTED', confidence: 0, evidence: ['no_siblings_context'], requiresReview: true };
+            }
+            const codeZeroTrim = code.replace(/0+$/, '');
+            const parentZeroTrim = blockParent.replace(/0+$/, '');
+            const sharedPrefix = codeZeroTrim.startsWith(parentZeroTrim) || parentZeroTrim.startsWith(codeZeroTrim);
+            const confidence = (sharedPrefix ? 0.6 : 0.2) + Math.min(0.4, siblingCount * 0.15);
+            if (sharedPrefix) {
+                return {
+                    parent: blockParent, method: 'PAD_TO_BLOCK', confidence: Math.min(1, confidence),
+                    evidence: ['zero_padded_block', `siblings=${siblingCount}`],
+                    requiresReview: confidence < 0.7
+                };
+            }
+            return { parent: null, method: 'PAD_TO_BLOCK_REJECTED', confidence, evidence: ['weak_contextual_evidence'], requiresReview: true };
+        }
+        // 4) Sin padre
+        return { parent: null, method: 'OTHER', confidence: 0, evidence: ['no_parent_found'], requiresReview: true };
+    }
+
+    // Resolución de padre con método + confianza auditable.
+    static _resolveParentWithMethod(code, codeSet, effectiveParentMap, parentMap, config) {
+        // 1) EXPLICIT (ya fuzzy-resuelto)
+        const explicit = (effectiveParentMap && effectiveParentMap[code]) || (parentMap && parentMap[code]);
+        if (explicit && codeSet.has(String(explicit)) && String(explicit) !== code) {
+            return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
+        }
+        // 2) calculateParent clásico (SEGMENT o PREFIX según config)
+        const calc = AccountPlanProfile.calculateParent(code, config);
+        if (calc && codeSet.has(String(calc)) && String(calc) !== code) {
+            const method = config.hasSeparator ? 'SEGMENT' : 'PREFIX';
+            return { parent: String(calc), method, confidence: 0.85, evidence: ['structural_hierarchy'], requiresReview: false };
+        }
+        // 3) PAD_TO_BLOCK con evidencia contextual
+        const blockParent = this._inferBlockParent(code, codeSet);
+        if (blockParent) {
+            const ev = this._padBlockEvidence(code, blockParent, codeSet);
+            if (ev.accepted) {
+                return {
+                    parent: blockParent, method: 'PAD_TO_BLOCK', confidence: ev.confidence,
+                    evidence: ['zero_padded_block', `siblings=${ev.details.siblingCount}`, `delta=${ev.details.delta}`],
+                    requiresReview: ev.confidence < 0.7
+                };
+            }
+            return {
+                parent: null, method: 'PAD_TO_BLOCK_REJECTED', confidence: ev.confidence,
+                evidence: ev.reasons, requiresReview: true
+            };
+        }
+        // 4) Sin padre inferible
+        return { parent: null, method: 'OTHER', confidence: 0, evidence: ['no_parent_found'], requiresReview: true };
     }
 
     static _guessCodeColumn(headers, rows, region) {
