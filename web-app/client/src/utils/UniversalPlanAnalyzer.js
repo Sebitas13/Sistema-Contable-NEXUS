@@ -124,9 +124,66 @@ export class UniversalPlanAnalyzer {
         s = s.replace(/^[.\-\/]+|[.\-\/]+$/g, '');
         if (s !== prev) push(prev, s, 'trimEdgeSeparators');
 
+        // ⛔ NUNCA eliminar ceros iniciales: "001" ≠ "1" como IDENTIDAD.
+        // Los códigos contables son identificadores, no números.
+        // (La coerción 001→1 la hace Excel antes de llegar aquí; el adapter
+        // ya la detecta vía cell.w y la reporta como leadingZeroCoerced.)
+
         const normalizedCode = s;
         const requiresReview = transformations.length > 0;
         return { rawCode, normalizedCode, transformations, requiresReview };
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Data-loss accounting — el invariante real es dataLossCount === 0
+    // ──────────────────────────────────────────────────────────────
+    static computeDataLossCounts({ rawInputs = [], outputs = [], unmappedColumns = 0, unresolvedNodes = 0 }) {
+        const inputCount = rawInputs.length;
+        const outputCount = outputs.length;
+        return {
+            // Transformaciones ejecutadas SIN dejar traza en transformations[]
+            silentTransformationCount: 0, // calculado por el caller: raw!==norm && !transformations
+            // Códigos distintos que colisionan tras normalización
+            semanticCollisionCount: 0,    // p.ej. "001.01" y "1.1" → ambos "1.1"
+            // Identidades textuales distintas que el normalizador hizo iguales
+            identityCollisionCount: 0,   // p.ej. "001" vs "1" si una regla las uniera
+            // Filas descartadas sin reporte explícito en warnings/errors
+            droppedRowCount: 0,
+            droppedCellCount: 0,
+            unmappedColumnCount: unmappedColumns,
+            unresolvedNodeCount: unresolvedNodes,
+            // El invariante de producción: TODO lo anterior debe ser 0,
+            // o cada unidad distinta de cero debe estar listada en warnings.
+            dataLossCount: 0
+        };
+    }
+
+    // Detecta colisiones de identidad/semántica tras normalización
+    // (ej. "10." vs "10" con distinto significado contable)
+    static detectIdentityCollisions(records) {
+        // records: [{ rawCode, normalizedCode, name }]
+        const byNorm = new Map();
+        const collisions = [];
+        for (const rec of records) {
+            const arr = byNorm.get(rec.normalizedCode) || [];
+            arr.push(rec);
+            byNorm.set(rec.normalizedCode, arr);
+        }
+        for (const [norm, group] of byNorm) {
+            if (group.length > 1) {
+                const raws = new Set(group.map(g => g.rawCode));
+                if (raws.size > 1) {
+                    // Identidades textuales distintas convergen al mismo código
+                    collisions.push({
+                        normalizedCode: norm,
+                        rawCodes: [...raws],
+                        count: group.length,
+                        type: raws.size > 1 ? 'identityCollision' : 'semanticCollision'
+                    });
+                }
+            }
+        }
+        return collisions;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -180,9 +237,11 @@ export class UniversalPlanAnalyzer {
 
     static classifyLevelTransition(fromLevel, toLevel, fromCode, toCode, validLevels) {
         const gap = toLevel - fromLevel;
-        if (gap <= 1 && gap >= 0) return null; // transición normal
-        if (gap < 0) return { type: 'INVALID_LEVEL_TRANSITION', severity: 'BLOCK', message: `Retroceso de nivel ${fromLevel}→${toLevel} en ${fromCode}→${toCode}` };
-
+        // Retroceso (gap<0): NORMAL en planes secuenciales — terminar una rama
+        // (nivel 3) y empezar otra (nivel 2) es el patrón estándar de listado.
+        // NO es un error de jerarquía.
+        if (gap < 0) return null;
+        if (gap <= 1) return null; // transición normal
         // gap >1 : verifica si niveles intermedios están materializados en el modelo
         const intermediateLevels = [];
         for (let l = fromLevel + 1; l < toLevel; l++) intermediateLevels.push(l);
@@ -438,12 +497,10 @@ export class UniversalPlanAnalyzer {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // 4) Sugerencia de naturalezas raíz (requiere confirmación)
+    // 4) Sugerencia de naturalezas raíz — con reason/source auditables
     // ──────────────────────────────────────────────────────────────
     static suggestRootTypes(accounts, levelMap) {
-        // Filtra raíces: nivel 1
         const roots = accounts.filter(a => (levelMap[a.code] || 1) === 1);
-        // Deduplica por código (si hay duplicados)
         const seen = new Set();
         const uniqRoots = roots.filter(r => {
             if (seen.has(r.code)) return false;
@@ -456,9 +513,78 @@ export class UniversalPlanAnalyzer {
                 code: r.code,
                 name: r.name,
                 suggestedType: suggested,
-                needsConfirmation: true
+                needsConfirmation: true,
+                // Auditoría contable: poder responder "¿por qué Activo?"
+                nature: 'INFERRED',
+                value: suggested,
+                confidence: 0.6,
+                reason: 'first_digit_mapping',
+                source: 'UniversalPlanAnalyzer.heuristicTypeGuess'
             };
         });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Resolución fuzzy de padres — normaliza la referencia del padre
+    // al mismo dominio que los códigos antes de declararlo "huérfano"
+    // (ej. padre "111" vs código "111.00": match por prefijo de segmento)
+    // ──────────────────────────────────────────────────────────────
+    static resolveParentReferences(codes, parentMap) {
+        const codeSet = new Set(codes);
+        const normalizedSet = new Map(); // normalizedCode -> original code
+        for (const c of codeSet) {
+            const n = this.sanitizeCode(c);
+            if (!normalizedSet.has(n)) normalizedSet.set(n, c);
+        }
+
+        const resolved = {};
+        const unresolved = [];
+        for (const code of codeSet) {
+            const raw = parentMap[code];
+            if (raw === null || raw === undefined || String(raw).trim() === '') {
+                resolved[code] = ''; continue; // raíz legítima
+            }
+            const p = this.sanitizeCode(raw);
+            if (codeSet.has(p)) { resolved[code] = p; continue; }        // match exacto
+            if (normalizedSet.has(p)) { resolved[code] = normalizedSet.get(p); continue; } // match normalizado
+
+            // Match por prefijo de segmento: padre "111" para código "111.01"
+            // cuando el plan materializa "111.00" en vez de "111".
+            // Match por prefijo de segmento: padre "111" para código "111.01"
+            // cuando el plan materializa "111.00" en vez de "111".
+            // Reglas anti-ciclo:
+            //  a) nunca el propio código;
+            //  b) candidatos de nivel estrictamente MENOR (padre real), o
+            //  c) convenio ASFI: nodo del MISMO nivel que termina en .00/.0
+            //     (contenedor materializado, ej. padre "111" → "111.00").
+            //  d) si hay varios hermanos como único match (121.02/121.03 con
+            //     padre "121"), NO adivinar: implicitMissingParent (REVIEW).
+            const myLevel = (code.match(/[.\-]/g) || []).length;
+            const candidates = [...codeSet].filter(c => {
+                if (c === code) return false;
+                if (!c.startsWith(p + '.') && !c.startsWith(p + '-')) return false;
+                const candLevel = (c.match(/[.\-]/g) || []).length;
+                if (candLevel < myLevel) return true;               // jerárquico superior
+                if (candLevel === myLevel && /\.0+$/.test(c)) return true; // contenedor ASFI "111.00"
+                return false;
+            });
+            let found = null;
+            if (candidates.length === 1) {
+                found = candidates[0];
+            } else if (candidates.length > 1) {
+                // Varias opciones: prefiere el contenedor .00/.0; si no, el exacto; si no, ambiguo
+                const container = candidates.find(c => /\.0+$/.test(c));
+                const exact = candidates.find(c => c.split(/[.\-]/).join('') === p.split(/[.\-]/).join(''));
+                found = container || exact || null;
+            }
+            if (found) {
+                resolved[code] = found;
+            } else {
+                resolved[code] = p; // se reportará explicitMissingParent/implicit según corresponda
+                unresolved.push({ code, parent: p });
+            }
+        }
+        return { resolved, unresolved };
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -701,11 +827,70 @@ export class UniversalPlanAnalyzer {
         const levelMap = {};
         plausible.forEach(a => { levelMap[a.normalizedCode] = AccountPlanProfile.calculateLevel(a.normalizedCode, config); });
 
+        // Validaciones con severidades — declaradas ANTES de cualquier uso
+        const errors = [...analysis.validationErrors];
+        const warnings = [...analysis.warnings];
+
+        // DAG validation si hay parentMap explícito
+        // Primero resuelve referencias fuzzy (padre "111" para código "111.00")
+        let unresolved = [];
+        let effectiveParentMap = parentMap;
+        if (Object.keys(parentMap).length > 0) {
+            const resolution = this.resolveParentReferences(plausible.map(a => a.normalizedCode), parentMap);
+            effectiveParentMap = resolution.resolved;
+            unresolved = resolution.unresolved;
+        }
+        if (Object.keys(effectiveParentMap).length > 10) {
+            const dag = this.validateDAG(plausible.map(a => a.normalizedCode), effectiveParentMap);
+            dag.orphans.forEach(o => {
+                // Diferencia huérfano explícito vs implícito:
+                // - Padre declarado QUE ES PREFILO JERÁRQUICO del propio código
+                //   (ej. "121" para "121.02"): el grupo contenedor no está
+                //   materializado pero es perfectamente inferible → REVIEW.
+                // - Padre declarado sin relación alguna con el código
+                //   (ej. "999" para "121.02"): error real de datos → BLOCK.
+                const isExplicit = parentMap[o.code] !== null && String(parentMap[o.code]).trim() !== '';
+                const declared = String(parentMap[o.code] ?? '').trim();
+                const isHierarchicalPrefix = o.code.startsWith(declared + '.') || o.code.startsWith(declared + '-');
+                if (isExplicit && !isHierarchicalPrefix) {
+                    errors.push({ type: 'explicitMissingParent', severity: 'BLOCK', code: o.code, parent: o.parent, message: `Padre explícito "${o.parent}" de "${o.code}" no existe ni es inferible` });
+                } else if (isExplicit && isHierarchicalPrefix) {
+                    warnings.push({ type: 'implicitMissingParent', severity: 'REVIEW', code: o.code, parent: o.parent, message: `Padre "${o.parent}" declarado no materializado (grupo contenedor implícito)` });
+                } else {
+                    warnings.push({ type: 'implicitMissingParent', severity: 'REVIEW', code: o.code, parent: o.parent, message: `Padre implícito "${o.parent}" no materializado` });
+                }
+            });
+            dag.cycles.forEach(c => errors.push({ type: 'cycle', severity: 'BLOCK', cycle: c, message: `Ciclo detectado: ${c.join(' → ')}` }));
+        }
+
         const nodes = plausible.map(a => {
             const level = levelMap[a.normalizedCode];
-            const parent = parentMap[a.normalizedCode] || AccountPlanProfile.calculateParent(a.normalizedCode, config);
+            // Cadena de resolución de padre implícito:
+            //   1) padre explícito (columna Cuenta Padre, ya resuelto fuzzy)
+            //   2) AccountPlanProfile.calculateParent (segmentos/longitudes)
+            //   3) inferencia "pad-to-block" (clasificadores MEFP, PUCT 9d):
+            //      SOLO si el padre derivado no existe en el set.
+            let parent = (effectiveParentMap && effectiveParentMap[a.normalizedCode]) || parentMap[a.normalizedCode] || null;
+            if (!parent || !codeSet.has(String(parent))) {
+                const calc = AccountPlanProfile.calculateParent(a.normalizedCode, config);
+                if (calc && codeSet.has(String(calc))) {
+                    parent = calc;
+                } else {
+                    // Inferencia "pad-to-block": clasificadores MEFP (11000→11100
+                    // es un bloque; 13111→13110) y PUCT 9 dígitos. Aplica cuando
+                    // la detección por longitud no basta (ej. plan "plano" de
+                    // códigos de 5 dígitos donde el padre se infiere por ceros).
+                    const blockParent = this._inferBlockParent(a.normalizedCode, codeSet);
+                    if (blockParent) parent = blockParent;
+                }
+            }
             const hasChildren = plausible.some(other => {
-                const p = parentMap[other.normalizedCode] || AccountPlanProfile.calculateParent(other.normalizedCode, config);
+                let p = (effectiveParentMap && effectiveParentMap[other.normalizedCode]) || parentMap[other.normalizedCode] || null;
+                if (!p || !codeSet.has(String(p))) {
+                    const calc = AccountPlanProfile.calculateParent(other.normalizedCode, config);
+                    if (calc && codeSet.has(String(calc))) p = calc;
+                    else p = this._inferBlockParent(other.normalizedCode, codeSet);
+                }
                 return p === a.normalizedCode;
             });
             let classification = 'UNKNOWN';
@@ -754,10 +939,6 @@ export class UniversalPlanAnalyzer {
                 postableConfidence: postableInfo.confidence
             };
         });
-
-        // Validaciones con severidades
-        const errors = [...analysis.validationErrors];
-        const warnings = [...analysis.warnings];
 
         // Duplicados: exacto vs normalizado con 3 casos (Regla 1 corregida)
         const byRaw = {};
@@ -810,18 +991,6 @@ export class UniversalPlanAnalyzer {
             }
         }
 
-        // DAG validation si hay parentMap explícito
-        if (Object.keys(parentMap).length > 10) {
-            const dag = this.validateDAG(plausible.map(a=>a.normalizedCode), parentMap);
-            dag.orphans.forEach(o => {
-                // Diferencia huérfano explícito vs implícito
-                const isExplicit = parentMap[o.code] !== null && String(parentMap[o.code]).trim() !== '';
-                if (isExplicit) errors.push({ type: 'explicitMissingParent', severity: 'BLOCK', code: o.code, parent: o.parent, message: `Padre explícito "${o.parent}" de "${o.code}" no existe` });
-                else warnings.push({ type: 'implicitMissingParent', severity: 'REVIEW', code: o.code, parent: o.parent, message: `Padre implícito "${o.parent}" no materializado` });
-            });
-            dag.cycles.forEach(c => errors.push({ type: 'cycle', severity: 'BLOCK', cycle: c, message: `Ciclo detectado: ${c.join(' → ')}` }));
-        }
-
         // Naturaleza inferida sin confirmación → requiere confirmación
         const inferredRoots = nodes.filter(n => n.nature === 'INFERRED' && n.classification === 'ROOT');
         const requiresConfirmation = inferredRoots.length > 0 || warnings.some(w => w.severity === 'REVIEW');
@@ -840,6 +1009,21 @@ export class UniversalPlanAnalyzer {
         const leafCount = nodes.filter(n => n.classification === 'LEAF').length;
         const groupCount = nodes.filter(n => n.classification === 'GROUP').length;
 
+        // ── Data-loss accounting (invariante: dataLossCount === 0) ──
+        const collisions = this.detectIdentityCollisions(
+            plausible.map(a => ({ rawCode: a.rawCode, normalizedCode: a.normalizedCode, name: a.rawName }))
+        );
+        const silentTransformationCount = plausible.filter(a =>
+            a.rawCode !== a.normalizedCode && (!a.transformations || a.transformations.length === 0)
+        ).length;
+        const droppedRowCount = rawAccounts.length - plausible.length;
+        const dataLossCount = silentTransformationCount
+            + collisions.filter(c => c.type === 'identityCollision').length
+            + (droppedRowCount > 0 && !warnings.some(w => String(w).includes('descartad')) ? droppedRowCount : 0);
+        if (droppedRowCount > 0 && !warnings.some(w => String(w).includes('descartad'))) {
+            warnings.push(`${droppedRowCount} filas descartadas (no-código o vacías) — requieren revisión si eran cuentas`);
+        }
+
         return {
             source: { file: fileName, sheet: sheetName, headers, rowCount: rows.length },
             columnMapping: { codeColumn, nameColumn, parentColumn, typeColumn, confidence: 0.85, ambiguityMargin: 0.3 },
@@ -855,7 +1039,366 @@ export class UniversalPlanAnalyzer {
             errors,
             confidence: { overall: overallConfidence, secondBest: analysis.secondBestConfidence || 0, ambiguityMargin: analysis.ambiguityMargin || 0 },
             requiresConfirmation,
-            silentCorruptionCount: 0
+            // Contadores fuertes de pérdida (reemplazan al "silentCorruption: 0" débil)
+            dataLoss: {
+                silentTransformationCount,
+                semanticCollisionCount: collisions.filter(c => c.type === 'semanticCollision').length,
+                identityCollisionCount: collisions.filter(c => c.type === 'identityCollision').length,
+                droppedRowCount,
+                droppedCellCount: 0,
+                unmappedColumnCount: 0,
+                unresolvedNodeCount: unresolved.length,
+                dataLossCount,
+                collisions
+            },
+            // Compat con versión anterior (NO usar en código nuevo: ver dataLoss)
+            silentCorruptionCount: silentTransformationCount === 0 && dataLossCount === 0 ? 0 : dataLossCount
+        };
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Extractor de plan NARRATIVO/DESGLOSADO (PDFs institucionales):
+    // líneas que EMPIEZAN con código numérico puro (2-6 dígitos) seguido
+    // del nombre de la cuenta. El texto explicativo entre cuentas (párrafos
+     // enteros, notas numeradas, continuaciones) NO es cuenta.
+    // Ejemplos reales: "1135 Concesión de Préstamos a Corto Plazo..."
+    //                  "11000 INGRESOS DE OPERACIÓN" + 5 párrafos
+    //                  "13111 En Efectivo"
+    // ──────────────────────────────────────────────────────────────
+    static extractNarrativeAccounts(lines) {
+        const accounts = [];
+        // Códigos 1-6 dígitos (el MEFP usa desde "1 ACTIVO" hasta "111229 ...").
+        const CODE_RE = /^(\d{1,6})\s+(.+)$/;
+        const CODE_ONLY_RE = /^(\d{1,6})$/;
+        // Dinámica contable MEFP: matrices "1 1 1 0" (dígitos sueltos
+        // separados por espacios) — NO son cuentas.
+        const DYNAMICS_RE = /^(\d\s)+\d*$/;
+
+        // Primera pasada: marca cada línea como código (con/sin nombre) o texto
+        const marks = lines.map(rawLine => {
+            const line = String(rawLine ?? '').replace(/\u00A0/g, ' ').trim();
+            if (!line) return { type: 'empty', line };
+            const m = line.match(CODE_RE);
+            if (m && m[2].trim().length <= 120) {
+                // "1 1 1 0" → m[1]="1", m[2]="1 1 0": dinámica, no cuenta
+                if (DYNAMICS_RE.test(line)) return { type: 'text', line };
+                // Nota al pie MEFP: "N De uso exclusivo..." con N=1 dígito y
+                // texto que empieza con "De uso": es la leyenda del plan, no
+                // una cuenta hija del código N.
+                if (/^De\s+uso\s+exclusivo/i.test(m[2].trim())) {
+                    return { type: 'footnote', code: m[1], line };
+                }
+                return { type: 'code_named', code: m[1], name: m[2].trim(), line };
+            }
+            const mo = line.match(CODE_ONLY_RE);
+            // En modo NARRATIVO un número solo en su línea es número de página
+            // o nota, NO una cuenta (el MEFP siempre escribe "código + nombre").
+            // Los code_bare quedan SOLO para cuando ya confirmamos jerarquía.
+            if (mo) return { type: 'page_number', code: mo[1], line };
+            return { type: 'text', line };
+        });
+
+        // Segunda pasada: ensambla cuentas, absorbiendo nombres de líneas
+        // siguientes cuando el código vino solo, y CONTINUACIONES de nombre
+        // (líneas texto inmediatas tras una cuenta sin sentido prosa).
+        const result = [];
+        let pending = null; // cuenta esperando posible continuación de nombre
+        for (const mark of marks) {
+            if (mark.type === 'footnote') continue; // leyenda, no cuenta
+            if (mark.type === 'page_number') continue; // paginación del documento
+            if (mark.type === 'code_named' || mark.type === 'code_bare') {
+                if (pending) result.push(pending);
+                pending = mark.type === 'code_named'
+                    ? { code: mark.code, name: mark.name, rawLine: mark.line }
+                    : { code: mark.code, name: '', rawLine: mark.line, continuationLines: 0 };
+                continue;
+            }
+            if (pending) {
+                // ¿Continuación del nombre o párrafo explicativo?
+                if (mark.type === 'text' && !pending.continuationClosed) {
+                    if (pending.name === '' && pending.continuationLines < 2) {
+                        // Primera/línea siguiente: es el nombre
+                        pending.name = mark.line;
+                        pending.continuationLines = 1;
+                    } else if (pending.continuationLines === 1 && mark.line.length <= 60) {
+                        // Segunda línea corta: continuación del nombre
+                        pending.name += ' ' + mark.line;
+                        pending.continuationLines = 2;
+                    } else {
+                        // Párrafo explicativo: cierra la absorción
+                        pending.continuationClosed = true;
+                    }
+                }
+                if (mark.type === 'empty') continue;
+            }
+        }
+        if (pending) result.push(pending);
+
+        // Normaliza cuentas sin nombre final
+        const accounts2 = result.map(a => ({
+            code: a.code,
+            name: (a.name || '').trim() || `Cuenta ${a.code}`,
+            rawLine: a.rawLine
+        }));
+        const rejected = marks.filter(m => m.type === 'text').map(m => m.line);
+        return { accounts: accounts2, rejected };
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // analyzeCanonicalDocument — entrada oficial desde adapters.
+    // El analyzer NO conoce xlsx/pdfjs: solo ve CanonicalDocument.
+    // ──────────────────────────────────────────────────────────────
+    static analyzeCanonicalDocument(doc, opts = {}) {
+        if (!doc || !doc.rows || doc.rows.length === 0) {
+            return {
+                analysis: null,
+                error: 'Documento canónico vacío',
+                extractionConfidence: 0
+            };
+        }
+
+        // Detección de regiones/tablas sobre las filas canónicas
+        const rawSheet = doc.rows.map(r => r.cells.map(c => c.rawValue));
+        const regions = this.detectTableRegions(rawSheet);
+
+        const contracts = [];
+        for (const region of regions.regions) {
+            const headerRow = doc.rows[region.headerRowIndex];
+            const headers = headerRow
+                ? headerRow.cells.map(c => c.displayValue ?? c.rawValue).filter(Boolean)
+                : [];
+
+            // Elige columnas de código/nombre con heurística de cabecera sobre evidencia canónica
+            const codeCol = this._guessCodeColumn(headers, doc.rows, region);
+            const nameCol = this._guessNameColumn(headers, codeCol);
+            const parentCol = headers.findIndex(h => /padre|parent/i.test(String(h)));
+
+            const dataRows = [];
+            for (let r = region.dataStart; r < region.dataEnd && r < doc.rows.length; r++) {
+                const row = doc.rows[r];
+                const codeCell = row.cells[codeCol];
+                const nameCell = row.cells[nameCol];
+                const parentCell = parentCol >= 0 ? row.cells[parentCol] : null;
+                if (!codeCell) continue;
+                dataRows.push({
+                    'CODIGO': codeCell.rawValue,
+                    'NOMBRE': nameCell ? nameCell.rawValue : null,
+                    ...(parentCell ? { 'Cuenta Padre': parentCell.rawValue } : {})
+                });
+            }
+            if (dataRows.length === 0) continue;
+
+            const contract = this.generateImportContract({
+                fileName: doc.source.fileName,
+                sheetName: doc.source.sheetNames ? doc.source.sheetNames[0] : (doc.source.format === 'pdf' ? `pages` : 'sheet'),
+                headers,
+                rows: dataRows,
+                codeColumn: 'CODIGO',
+                nameColumn: 'NOMBRE',
+                parentColumn: parentCol >= 0 ? 'Cuenta Padre' : null,
+                typeColumn: null
+            });
+            contract.region = region;
+            contracts.push(contract);
+        }
+
+        // Ruta narrativa (PDFs institucionales desglosados): líneas completas
+        // que empiezan con código + texto explicativo entre cuentas.
+        if (doc.source.format === 'pdf' || doc.source.format === 'ocr') {
+            const allLines = doc.rows.map(r =>
+                r.cells.map(c => c.rawValue).filter(Boolean).join(' ').trim()
+            );
+            const narrative = this.extractNarrativeAccounts(allLines);
+            const narrativePlausible = narrative.accounts.filter(a => this.isPlausibleCode(a.code));
+
+            // Decide ruta: narrativa gana si produce cuentas plausibles con
+            // jerarquía detectable (no solo números sueltos de índice/páginas).
+            if (narrativePlausible.length >= 10) {
+                const hierarchySignal = this._hasRealHierarchy(narrativePlausible.map(a => a.code));
+                if (hierarchySignal) {
+                    const contract = this.generateImportContract({
+                        fileName: doc.source.fileName,
+                        sheetName: `${doc.source.format}:narrative`,
+                        headers: ['CODIGO', 'NOMBRE'],
+                        rows: narrativePlausible.map(a => ({ 'CODIGO': a.code, 'NOMBRE': a.name })),
+                        codeColumn: 'CODIGO', nameColumn: 'NOMBRE',
+                        parentColumn: null, typeColumn: null
+                    });
+                    contract.region = {
+                        id: 'narrative',
+                        headerRowIndex: -1, headers: ['CODIGO', 'NOMBRE'],
+                        dataStartRow: 0, dataEndRow: narrativePlausible.length,
+                        titleRows: [], extractionMode: 'narrative',
+                        rejectedLines: narrative.rejected.length
+                    };
+                    contracts.push(contract);
+                }
+            }
+        }
+
+        // ImportAnalysis: multi-región, el usuario decide qué región importar
+        const allErrors = contracts.flatMap(c => c.errors);
+        const analysis = {
+            source: doc.source,
+            extraction: {
+                confidence: doc.extractionConfidence,
+                ocrUsed: doc.ocrUsed,
+                stats: doc.stats,
+                warnings: doc.warnings
+            },
+            regions: contracts,
+            warnings: regions.warnings || [],
+            // Preflight gate global: si CUALQUIER región tiene BLOCK → STOP
+            preflight: {
+                hasBlocks: allErrors.some(e => e.severity === 'BLOCK'),
+                blocks: allErrors.filter(e => e.severity === 'BLOCK'),
+                reviewCount: contracts.reduce((s, c) => s + (c.warnings || []).filter(w => w.severity === 'REVIEW').length, 0),
+                decision: allErrors.some(e => e.severity === 'BLOCK') ? 'STOP' :
+                    (contracts.some(c => c.requiresConfirmation) ? 'USER_CONFIRM' : 'CONTINUE')
+            }
+        };
+
+        // Regla de OCR: confianza baja → JAMÁS auto-import
+        if (doc.ocrUsed && doc.extractionConfidence < 0.5) {
+            analysis.preflight.decision = 'USER_CONFIRM';
+            analysis.preflight.reviewCount += 1;
+            analysis.warnings.push('OCR con confianza < 0.5: revisión humana obligatoria');
+        }
+
+        return analysis;
+    }
+
+    // ¿Un conjunto de códigos muestra jerarquía real? (prefijos compartidos)
+    // Evita que un índice de páginas ("12", "22", "23"...) se tome como plan.
+    // Acepta DOS tipos de jerarquía:
+    //  a) prefijo textual literal (1 → 11 → 111)
+    //  b) "pad-to-block" (13111 → 13110 → 13100 → 13000), el estilo de los
+    //     clasificadores presupuestarios bolivianos y del PUCT de 9 dígitos.
+    static _hasRealHierarchy(codes) {
+        if (!codes || codes.length < 10) return false;
+        const set = new Set(codes);
+        let withParent = 0;
+        for (const code of set) {
+            let found = false;
+            for (let len = 1; len < code.length; len++) {
+                if (set.has(code.substring(0, len))) { found = true; break; } // a)
+            }
+            if (!found && this._inferBlockParent(code, set)) found = true;   // b)
+            if (found) withParent++;
+        }
+        return (withParent / set.size) >= 0.25;
+    }
+
+    // Inferencia "pad-to-block": el padre de un código numérico puro es el
+    // código existente más cercano que se obtiene truncando por la derecha y
+    // rellenando con ceros hasta la longitud original (excluye self).
+    // Ej.: 13111 → truncar "1311" → rellenar 5 → "13110" (existe) ✓
+    //      13110 → truncar "131" → "13100" (existe) ✓
+    //      11100 → truncar "11" → "11000" (existe) ✓   [Clasificador rubros]
+    //      111001001 (PUCT 9d) → truncar → "111001000" (existe) ✓
+    static _inferBlockParent(code, codeSet) {
+        if (!/^\d+$/.test(code) || !codeSet || codeSet.size === 0) return null;
+        for (let keep = code.length - 1; keep >= 1; keep--) {
+            const prefix = code.substring(0, keep);
+            const padded = prefix.padEnd(code.length, '0');
+            if (padded !== code && codeSet.has(padded)) return padded;
+        }
+        return null;
+    }
+
+    static _guessCodeColumn(headers, rows, region) {
+        const norm = h => String(h || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        // 1) cabecera explícita
+        const idx = headers.findIndex(h => { const n = norm(h); return /codigo|c[oó]digo|code/.test(n); });
+        if (idx >= 0) return idx;
+        // 2) primera columna con alta densidad de códigos plausibles en la región
+        const sample = rows.slice(region.dataStart, Math.min(region.dataEnd, region.dataStart + 30));
+        let best = 0, bestScore = -1;
+        const maxCols = Math.min(8, (sample[0]?.cells.length) || 1);
+        for (let c = 0; c < maxCols; c++) {
+            let plausible = 0, total = 0;
+            for (const r of sample) {
+                const cell = r.cells[c];
+                if (!cell || cell.rawValue === null) continue;
+                total++;
+                if (this.isPlausibleCode(this.sanitizeCode(cell.rawValue))) plausible++;
+            }
+            const score = total > 0 ? plausible / total : 0;
+            if (score > bestScore) { bestScore = score; best = c; }
+        }
+        return bestScore > 0.5 ? best : 0;
+    }
+
+    static _guessNameColumn(headers, codeCol) {
+        const norm = h => String(h || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const idx = headers.findIndex(h => { const n = norm(h); return /nombre|descripcion|detalle|cuenta/.test(n) && !/padre/.test(n); });
+        if (idx >= 0) return idx;
+        return codeCol === 0 ? 1 : 0;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // generateBulkPayload — ImportContract → payload /api/accounts/bulk
+    // PREFLIGHT GATE: ningún BLOCK puede llegar al backend. Devuelve
+    // { allowed: false } si hay errores bloqueantes. El importer NO
+    // re-infiere nada: consume nodes tal cual.
+    // ──────────────────────────────────────────────────────────────
+    static generateBulkPayload(contract, companyId, { confirmedNatureMap = null } = {}) {
+        const blocks = (contract.errors || []).filter(e => e.severity === 'BLOCK');
+        if (blocks.length > 0) {
+            return {
+                allowed: false,
+                reason: 'BLOCK errors present — preflight gate',
+                blocks,
+                payload: null
+            };
+        }
+        if (contract.requiresConfirmation && !confirmedNatureMap) {
+            return {
+                allowed: false,
+                reason: 'requiresConfirmation — naturalezas INFERRED sin confirmar',
+                blocks: [],
+                payload: null
+            };
+        }
+        // Si el usuario confirmó las naturalezas de TODAS las raíces INFERRED,
+        // los REVIEW restantes de naturaleza quedan resueltos. Los REVIEW
+        // estructurales (implicitMissingParent, IMPLICIT_LEVEL_GAP) NO bloquean
+        // el payload: se importan tal cual y quedan en warnings del contrato.
+        if (contract.requiresConfirmation && confirmedNatureMap) {
+            const inferredRoots = contract.nodes.filter(
+                n => n.nature === 'INFERRED' && n.classification === 'ROOT'
+            );
+            const allConfirmed = inferredRoots.every(n => confirmedNatureMap[n.normalizedCode]);
+            if (!allConfirmed) {
+                return {
+                    allowed: false,
+                    reason: 'requiresConfirmation — faltan naturalezas raíz por confirmar',
+                    blocks: [],
+                    payload: null
+                };
+            }
+        }
+
+        const accounts = contract.nodes.map(n => {
+            const typeValue = (confirmedNatureMap && confirmedNatureMap[n.code]) || n.type;
+            return {
+                code: n.normalizedCode,
+                name: n.name,
+                type: typeValue,
+                level: n.level,
+                parent_code: n.parent || null
+            };
+        });
+
+        return {
+            allowed: true,
+            payload: { companyId, accounts },
+            expectedCounts: {
+                total: accounts.length,
+                roots: contract.nodeCounts.roots,
+                groups: contract.nodeCounts.groups,
+                leaves: contract.nodeCounts.leaves
+            }
         };
     }
 }
