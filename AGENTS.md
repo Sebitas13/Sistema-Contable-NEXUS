@@ -8,6 +8,8 @@ código vivo: verificar build/smoke antes de terminar.
 > - `ARCHITECTURE.md` — arquitectura completa, stack, endpoints, flujos, modelo de datos.
 > - `MAHORAGA.md` — diagnóstico y roadmap del asistente IA (experimental).
 > - `DIAGNOSTICO.md` — auditoría histórica; muchos ítems ya resueltos.
+> - `UNIVERSAL_IMPORT_ENGINE_BASELINE.md` — baseline congelada del motor de import (tests, invariantes, limitaciones).
+> - `IMPORT_WIZARD_MIGRATION_DESIGN.md` — diseño (Fase 6) de la migración del SmartImportWizard al engine. **Solo diseño; no implementar sin aprobación.**
 
 ---
 
@@ -50,6 +52,7 @@ uvicorn ai_adjustment_engine:app --reload --port 8000
 # Tests manuales (no hay framework formal)
 node web-app/server/test_backup_core.js
 node web-app/server/test_ai_engine_resolver.js
+npm test          # runner formal del motor de import (4 suites + Browser E2E real)
 ```
 
 **Verificación mínima antes de dar por terminada una tarea:**
@@ -183,6 +186,13 @@ Resuelto (ver git log para detalle):
 Pendiente conocido:
 - **A3**: tablas anchas en mobile (Worksheet ~21 columnas es la peor); los
   modales NexusModal ya son scrollables.
+- **Fase 6 (decisión pendiente)**: migración del SmartImportWizard al Universal
+  Import Engine. El diseño está en `IMPORT_WIZARD_MIGRATION_DESIGN.md`; la
+  implementación NO se inicia sin aprobación explícita. Reglas si se aprueba:
+  feature-flag `importEngine` (default legacy), fallback intacto, shadow por
+  defecto, paridad differential demostrada antes de cambiar el default.
+- Engine: PGC (columna única "N. Nombre.") es PARTIAL en el flujo canónico
+  automático (parser especial probado en Node, no auto-seleccionado).
 - AdjustmentWizard/ClosingWizard (zona intocable) aún usan alert()/modales
   artesanales; migrar solo si se decide tocar esa zona.
 - Multer: `okExt || okMime` permite zip con cualquier MIME (backstop: unzipper).

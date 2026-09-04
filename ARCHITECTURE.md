@@ -362,7 +362,25 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   con `parent_id` en dos pasadas, etc.). Es **aditivo**: nunca pisa la empresa
   existente. Por eso se puede probar en producción sin riesgo.
 
-### E) Login (graceful)
+### E) Importar plan de cuentas (`SmartImportWizard` → Universal Import Engine)
+1. **Producción (hoy)**: `SmartImportWizard.jsx` (Accounts.jsx:376) parsea Excel/PDF
+   con heurísticas propias, genera preview editable y hace `POST /api/accounts/bulk`
+   (lotes de 500, leyendo `successCount/errorCount` reales) + `PUT /api/companies/:id`
+   con `code_mask`/`plan_structure` tras el import.
+2. **Engine (shadow, Fase 5 cerrada con GO)**: pipeline puro en
+   `client/src/utils/` — `FormatAdapter` (Excel/PDF/CSV, worker pdfjs local) →
+   `CanonicalDocument` → `UniversalPlanAnalyzer.analyzeCanonicalDocument`
+   (multi-región) → `ImportContract` → `ImportContractValidator` →
+   `CompatibilityAdapter.toBulkPayload`. Cero escrituras; `silentCorruption=0`,
+   `unaccountedRows=0` garantizados por las suites (`npm test`: adversarial 42,
+   shadow 68, contract audit 42, production gate 51 + Browser E2E real 6/6).
+3. **Migración (Fase 6, solo diseñada)**: feature-flag `importEngine` (default
+   legacy), `UniversalImportWizard` nuevo con 6 pasos, fallback intacto y
+   paridad differential antes de cambiar el default. Detalle y reglas en
+   `IMPORT_WIZARD_MIGRATION_DESIGN.md`; invariantes y resultados en
+   `UNIVERSAL_IMPORT_ENGINE_BASELINE.md`. **No implementar sin aprobación.**
+
+### F) Login (graceful)
 1. Al cargar la app, `AuthContext` consulta `GET /api/auth/config`.
 2. Si `authRequired: true` y no hay token → redirige a `/login`.
 3. `POST /api/auth/login {password}` → si OK, devuelve `token = sha256(APP_PASSWORD)`.
