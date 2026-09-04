@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * test_import_wizard_u2.mjs — Suite del UniversalImportWizard pasos 1–2 (Fase 7 U-2).
+ * test_import_wizard_u2.mjs — Suite del UniversalImportWizard pasos 1–3 (Fase 7 U-3).
  *
  *  A. Alcance estático: el wizard nuevo no toca red/backend, no filtra
  *     inteligencia legacy (SmartImportWizard/AccountPlanProfile) y el montaje
  *     en Accounts.jsx conserva el fallback legacy.
  *  B. Contrato UI↔engine: con corpus real (DASH Hoja2) se verifica que cada
- *     campo que consume ImportDiagnosticStep existe con la forma esperada.
+ *     campo que consumen Diagnóstico y Validación/Simulación existe con la
+ *     forma esperada (incl. ImportContractValidator + simulate en memoria).
  *  C. CSV: el engine extrae y analiza CSV (capacidad nueva vs legacy).
  *  D. Detección de formatos.
  *
@@ -23,6 +24,7 @@ const importDir = path.join(root, 'web-app/client/src/components/import');
 
 const { detectFormat, ExcelAdapter, PdfAdapter, CsvAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
 const { UniversalPlanAnalyzer } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/UniversalPlanAnalyzer.js')).href);
+const { ImportContractValidator } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 
 const CRITERIA = [];
@@ -35,7 +37,7 @@ function criterion(id, ok, detail = '') {
 const T0 = Date.now();
 function elapsed() { return `${((Date.now() - T0) / 1000).toFixed(1)}s`; }
 
-const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'engineFlag.js'];
+const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'engineFlag.js'];
 const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 
 // ─────────────────────────────────────────────────────────────
@@ -43,19 +45,20 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // ─────────────────────────────────────────────────────────────
 {
     const contents = Object.fromEntries(WIZ_FILES.map(f => [f, readWiz(f)]));
+    const components = WIZ_FILES.filter(f => f.endsWith('.jsx')).map(f => contents[f]).join('\n');
     const all = WIZ_FILES.map(f => contents[f]).join('\n');
 
     criterion('A1.noAxios', !all.includes('axios'), 'ningún archivo del wizard importa/usa axios');
-    criterion('A2.noFetch', !WIZ_FILES.slice(0, 3).map(f => contents[f]).join('\n').includes('fetch('), 'componentes del wizard: sin fetch()');
+    criterion('A2.noFetch', !components.includes('fetch('), 'componentes del wizard: sin fetch()');
     criterion('A3.noXhrWs', !all.includes('XMLHttpRequest') && !all.includes('WebSocket'), 'sin XMLHttpRequest ni WebSocket');
-    criterion('A4.noApi', !WIZ_FILES.slice(0, 3).map(f => contents[f]).join('\n').includes('/api/'), 'componentes del wizard: ninguna referencia a /api/* (cero backend)');
+    criterion('A4.noApiCalls', !/axios|\.post\(|\.get\(|\.put\(|\.delete\(|XMLHttpRequest|WebSocket/.test(components), 'componentes: sin invocaciones HTTP (el nombre del endpoint destino aparece solo como texto informativo, jamás se llama)');
     criterion('A5.localStorageOnlyFlag',
-        !WIZ_FILES.slice(0, 3).map(f => contents[f]).join('\n').includes('localStorage') && contents['engineFlag.js'].includes('importEngine'),
+        !components.includes('localStorage') && contents['engineFlag.js'].includes('importEngine'),
         'localStorage solo en engineFlag.js (clave importEngine)');
     criterion('A6.noLegacyIntel', !all.includes('SmartImportWizard') && !all.includes('AccountPlanProfile'), 'sin imports de SmartImportWizard ni AccountPlanProfile (cero inteligencia legacy)');
 
     // Allowlist de imports del orquestador
-    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx']);
+    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx']);
     const imports = [...contents['UniversalImportWizard.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     const bad = imports.filter(i => !allow.has(i) && !i.startsWith('react'));
     criterion('A7.importAllowlist', imports.length > 0 && bad.length === 0, `imports del orquestador dentro de la allowlist (${imports.length} imports)${bad.length ? ' — fuera: ' + bad.join(',') : ''}`);
@@ -64,6 +67,8 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A8.diagImports', diagImports.every(i => i === 'react' || i === '../../importSession/index.js'), 'ImportDiagnosticStep solo importa react + importSession (solo renderiza)');
     const fileImports = [...contents['ImportFileStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     criterion('A9.fileImports', fileImports.every(i => i === 'react'), 'ImportFileStep solo importa react (presentacional puro)');
+    const valImports = [...contents['ImportValidationStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+    criterion('A11.valImports', valImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractValidator.js'), 'ImportValidationStep: react + importSession + Validator del engine (presenta veredictos, no decide)');
 
     const accounts = fs.readFileSync(path.join(root, 'web-app/client/src/pages/Accounts.jsx'), 'utf8');
     criterion('A10.mountFallback',
@@ -124,6 +129,20 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('B10.sampleRender',
         eff.nodes.length > 0 && typeof n0.normalizedCode === 'string' && typeof n0.level === 'number' && typeof (n0.name || '') === 'string',
         'primer nodo renderizable (código/nivel/nombre)');
+
+    // Paso 3: validación externa + gates + simulación en memoria (DASH trae 1 BLOCK real)
+    const ext = ImportContractValidator.validate(eff);
+    criterion('B11.validatorShape',
+        typeof ext.valid === 'boolean' && Array.isArray(ext.errors) && Array.isArray(ext.warnings),
+        `ImportContractValidator.validate → {valid:${ext.valid}, errors:${ext.errors.length}, warnings:${ext.warnings.length}}`);
+    const rep = S.canImportReport(session);
+    criterion('B12.gates',
+        rep.can === false && Array.isArray(rep.reasons) && rep.reasons.length > 0 && rep.reasons.every(r => typeof r === 'string'),
+        `canImportReport bloquea DASH con ${rep.reasons.length} motivo(s) accionable(s)`);
+    const sim = S.simulate(session, { companyId: null });
+    criterion('B13.simulation',
+        sim.allowed === false && sim.blocks.length >= 1 && typeof sim.reason === 'string' && typeof sim.fingerprint === 'string',
+        `simulate en memoria: allowed=false por gate (${sim.blocks.length} BLOCK), fingerprint presente, sin red`);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -154,7 +173,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // RESUMEN
 // ─────────────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(95));
-console.log(`RESULTADO WIZARD U-2: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
+console.log(`RESULTADO WIZARD U-3: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
 console.log('\n── CRITERIOS ──');
 for (const c of CRITERIA) {

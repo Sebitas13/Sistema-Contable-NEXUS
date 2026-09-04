@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * wizard_e2e_u2.mjs — E2E REAL del UniversalImportWizard (pasos 1–2) en navegador.
+ * wizard_e2e_u2.mjs — E2E REAL del UniversalImportWizard (pasos 1–3) en navegador.
  *
  * Flujo verificado: File API real → UniversalImportWizard → FormatAdapter →
- * CanonicalDocument → UniversalPlanAnalyzer → ImportSession → diagnóstico UI.
+ * CanonicalDocument → UniversalPlanAnalyzer → ImportSession → diagnóstico UI →
+ * validación (gates) + simulación (payload en memoria).
  * Cero red hacia el backend: se intercepta TODO el tráfico y se exige que
  * ninguna request toque /api/* (ni POST, ni GET).
  *
- * Gate manual de U-2 (no forma parte de `npm test`: requiere Edge/Chrome + minutos).
+ * Gate manual de U-3 (no forma parte de `npm test`: requiere Edge/Chrome + minutos).
  * Exit: 0 si todo PASS; 1 si algún caso falla; 2 si no hay navegador.
  */
 import { spawn } from 'child_process';
@@ -25,9 +26,9 @@ const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const browserPath = fs.existsSync(EDGE) ? EDGE : (fs.existsSync(CHROME) ? CHROME : null);
 
 const CORPUS = [
-    { name: 'U2-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectNodes: 2000, expectRegions: 1 },
-    { name: 'U2-DASH(Hoja2)', file: 'PUCT/Planes de cuentas.xlsx', publicName: 'u2-hoja2.xlsx', sheet: 'Hoja2', pages: null, expectNodes: 200, expectRegions: 1 },
-    { name: 'U2-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2 }
+    { name: 'U3-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectNodes: 2000, expectRegions: 1, expectBlocks: 5 },
+    { name: 'U3-DASH(Hoja2)', file: 'PUCT/Planes de cuentas.xlsx', publicName: 'u2-hoja2.xlsx', sheet: 'Hoja2', pages: null, expectNodes: 200, expectRegions: 1, expectBlocks: 1 },
+    { name: 'U3-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2, expectBlocks: 0 }
 ];
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -128,9 +129,29 @@ async function main() {
         }
         let browserReal = false;
         try { browserReal = await s.evl('window.__WIZARD_BROWSER__ === true'); } catch { }
+        if (!snap || snap.phase !== 'diagnosed') {
+            await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
+            s.close();
+            return { snap, browserReal, apiHits, step3: null };
+        }
+        // Paso 3: clic en "Continuar a validación" y esperar uiStep===3
+        let step3 = null;
+        try {
+            await s.evl('document.querySelector(\'[data-testid="u2-next-btn"]\').click()');
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                try {
+                    const raw = await s.evl('window.__WIZARD_U2__ ? JSON.stringify(window.__WIZARD_U2__) : "null"');
+                    const parsed = JSON.parse(raw || 'null');
+                    if (parsed && parsed.uiStep === 3) { step3 = parsed; break; }
+                } catch { /* contexto aún no listo */ }
+            }
+        } catch (e) {
+            step3 = { error: 'click-next: ' + e.message };
+        }
         await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
         s.close();
-        return { snap, browserReal, apiHits };
+        return { snap, browserReal, apiHits, step3 };
     };
 
     let pass = 0, fail = 0;
@@ -138,7 +159,7 @@ async function main() {
         const f = path.join(root, item.file);
         if (!fs.existsSync(f)) { log(`⚠️ ${item.name}: archivo no existe`); continue; }
         try {
-            const { snap, browserReal, apiHits } = await runCase(item);
+            const { snap, browserReal, apiHits, step3 } = await runCase(item);
             if (!snap || !browserReal || snap.phase !== 'diagnosed') {
                 fail++;
                 log(`❌ ${item.name}: SIN DIAGNÓSTICO (phase=${snap?.phase} browser=${browserReal} err=${snap?.error || '—'})`);
@@ -152,13 +173,25 @@ async function main() {
                 ['unaccounted=0', snap.unaccounted === 0],
                 ['cero /api/*', apiHits.length === 0]
             ];
+            // Paso 3: validación + simulación renderizadas con gates reales
+            if (!step3 || step3.uiStep !== 3 || !step3.validation || !step3.simulation) {
+                checks.push(['paso=3+validación+simulación', false]);
+            } else {
+                checks.push(
+                    ['paso=3', true],
+                    [`blocks=${item.expectBlocks}`, step3.blocks === item.expectBlocks],
+                    ['validation.can=false (gates activos)', step3.validation.can === false],
+                    ['simulation.allowed=false (gate)', step3.simulation.allowed === false],
+                    ['fingerprint presente', typeof step3.simulation.fingerprint === 'string' && step3.simulation.fingerprint.length > 0]
+                );
+            }
             const bad = checks.filter(([, ok]) => !ok).map(([name]) => name);
             if (bad.length === 0) {
                 pass++;
-                log(`✅ ${item.name}: paso=2 regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · cero red /api/*`);
+                log(`✅ ${item.name}: paso=2→3 regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · validación can=false · simulación bloqueada con fingerprint · cero red /api/*`);
             } else {
                 fail++;
-                log(`❌ ${item.name}: falla en [${bad.join(', ')}] snap=${JSON.stringify(snap)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
+                log(`❌ ${item.name}: falla en [${bad.join(', ')}] snap=${JSON.stringify(snap)} step3=${JSON.stringify(step3)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
             }
         } catch (e) {
             fail++;
@@ -169,7 +202,7 @@ async function main() {
     try { fs.rmSync(corpusDir, { recursive: true, force: true }); } catch { }
     try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch { }
     try { vite.kill(); edge.kill(); } catch { }
-    log(`\nWizard E2E U-2: ${pass} PASS / ${fail} FAIL`);
+    log(`\nWizard E2E U-3: ${pass} PASS / ${fail} FAIL`);
     process.exit(fail > 0 ? 1 : 0);
 }
 

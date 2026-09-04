@@ -18,11 +18,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import NexusModal from '../NexusModal.jsx';
 import { detectFormat } from '../../utils/FormatAdapter.js';
 import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
-import { createImportSession, selectRegion } from '../../importSession/index.js';
+import { createImportSession, selectRegion, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
 import ImportFileStep from './ImportFileStep.jsx';
 import ImportDiagnosticStep from './ImportDiagnosticStep.jsx';
+import ImportValidationStep from './ImportValidationStep.jsx';
 
 const SUPPORTED_LABEL = '.xlsx, .xls, .xlsm, .pdf, .csv, .txt';
+const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen', 'Confirmación'];
 
 function adapterLabel(adapter) {
     if (!adapter) return null;
@@ -52,9 +54,9 @@ export default function UniversalImportWizard({
     const [analysisMs, setAnalysisMs] = useState(null);
     const [session, setSession] = useState(null);
     const [phase, setPhase] = useState('pick'); // pick|extracting|ready|analyzing|diagnosed|error
-    const [uiStep, setUiStep] = useState(1);
+    const [uiStep, setUiStep] = useState(1); // 1..3 en U-3 (4..6 llegan en U-4+)
     const [error, setError] = useState(null); // { where, message }
-    const [showU3Notice, setShowU3Notice] = useState(false);
+    const [showU4Notice, setShowU4Notice] = useState(false);
     const lastOpRef = useRef(null); // { kind: 'extract'|'analyze' } para reintentar
     const autoStartedRef = useRef(false);
 
@@ -106,7 +108,7 @@ export default function UniversalImportWizard({
             setSession(null);
             setAnalysisMs(null);
             setUiStep(1);
-            setShowU3Notice(false);
+            setShowU4Notice(false);
             setPhase('ready');
             return extracted;
         } catch (err) {
@@ -152,7 +154,7 @@ export default function UniversalImportWizard({
         if (!nextFile) {
             setFile(null); setDoc(null); setSession(null); setSheets([]);
             setSheetName(''); setError(null); setPhase('pick'); setUiStep(1);
-            setShowU3Notice(false);
+            setShowU4Notice(false);
             return;
         }
         await runExtract(nextFile, {});
@@ -219,6 +221,28 @@ export default function UniversalImportWizard({
     useEffect(() => {
         if (typeof onStateChange !== 'function') return;
         const active = session ? session.regions.find(r => r.regionId === session.activeRegionId) : null;
+        let validation = null;
+        let simulation = null;
+        if (session) {
+            try {
+                const rep = canImportReport(session);
+                const sum = summaryOf(session);
+                validation = {
+                    can: rep.can,
+                    blocks: sum.issues.blocks,
+                    reviews: (sum.issues.reviewWarningsUnresolved || 0) + (sum.issues.nodeReviewsUnresolved || 0) + (sum.issues.unknownNatureUnresolved || 0)
+                };
+            } catch { validation = null; }
+            try {
+                const sim = simulate(session, { companyId: null });
+                simulation = {
+                    allowed: !!sim.allowed,
+                    total: sim.expectedCounts ? sim.expectedCounts.total : sim.effectiveNodeCount,
+                    fingerprint: sim.fingerprint ? String(sim.fingerprint).slice(0, 16) : null,
+                    reason: sim.reason || null
+                };
+            } catch { simulation = null; }
+        }
         onStateChange({
             phase,
             uiStep,
@@ -231,6 +255,8 @@ export default function UniversalImportWizard({
             blocks: active ? (active.contract.errors || []).filter(e => e.severity === 'BLOCK').length : 0,
             silent: active ? (active.contract.silentCorruptionCount ?? 0) : 0,
             unaccounted: active ? (active.contract.dataLoss?.unaccountedRows ?? 0) : 0,
+            validation,
+            simulation,
             error: error ? `${error.where}: ${error.message}` : null
         });
     }, [phase, uiStep, session, file, formatName, sheets, error, onStateChange]);
@@ -246,7 +272,7 @@ export default function UniversalImportWizard({
         <NexusModal
             isOpen
             onClose={onClose}
-            title={<>Asistente de Importación Universal <span className="text-white-50 ms-2">Paso {uiStep} de 2</span></>}
+            title={<>Asistente de Importación Universal <span className="text-white-50 ms-2">Paso {uiStep} de 6</span></>}
             icon="bi-magic text-primary"
             size="xl"
             contentClassName="shadow-lg"
@@ -254,7 +280,27 @@ export default function UniversalImportWizard({
             <div className="modal-body p-4" data-testid="u2-wizard" data-u2-phase={phase}>
                 <div className="alert alert-secondary py-2 small d-flex align-items-center gap-2">
                     <i className="bi bi-flask me-1"></i>
-                    <span>Vista previa del nuevo asistente (solo diagnóstico, en memoria). El asistente clásico sigue siendo el camino productivo.</span>
+                    <span>Vista previa del nuevo asistente (en memoria, sin importar). El asistente clásico sigue siendo el camino productivo.</span>
+                </div>
+
+                <div className="d-flex flex-wrap gap-1 mb-3" data-testid="u2-stepper" aria-label="Progreso del asistente">
+                    {STEPS.map((label, i) => {
+                        const n = i + 1;
+                        const done = n < uiStep;
+                        const current = n === uiStep;
+                        const reachable = done && session;
+                        const cls = current ? 'btn-primary' : (done ? 'btn-outline-primary' : 'btn-outline-secondary disabled');
+                        const inner = (<><span className="badge bg-dark me-1">{n}</span>{label}</>);
+                        return reachable ? (
+                            <button key={label} type="button" data-testid={`u2-step-${n}`} className={`btn btn-sm ${cls}`} onClick={() => { setUiStep(n); setShowU4Notice(false); }}>
+                                {inner}
+                            </button>
+                        ) : (
+                            <span key={label} data-testid={`u2-step-${n}`} className={`btn btn-sm ${cls}`} aria-current={current ? 'step' : undefined}>
+                                {inner}
+                            </span>
+                        );
+                    })}
                 </div>
 
                 {uiStep === 1 && (
@@ -280,9 +326,17 @@ export default function UniversalImportWizard({
                     <ImportDiagnosticStep
                         session={session}
                         onSelectRegion={handleSelectRegion}
-                        onBack={() => { setUiStep(1); setShowU3Notice(false); }}
-                        onNext={() => setShowU3Notice(true)}
-                        showNotice={showU3Notice}
+                        onBack={() => { setUiStep(1); setShowU4Notice(false); }}
+                        onNext={() => setUiStep(3)}
+                    />
+                )}
+
+                {uiStep === 3 && session && (
+                    <ImportValidationStep
+                        session={session}
+                        onBack={() => { setUiStep(2); setShowU4Notice(false); }}
+                        onNext={() => setShowU4Notice(true)}
+                        showNotice={showU4Notice}
                     />
                 )}
 

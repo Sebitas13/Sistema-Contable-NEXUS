@@ -13,7 +13,7 @@ function pct(x) {
     return typeof x === 'number' ? x.toFixed(2) : '—';
 }
 
-export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, onNext, showNotice }) {
+export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, onNext }) {
     const summary = summaryOf(session);
     const contract = effectiveContractOf(session);
     const regions = session.regions.map(r => ({
@@ -206,14 +206,6 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
                     Continuar a validación <i className="bi bi-arrow-right ms-2"></i>
                 </button>
             </div>
-
-            {showNotice && (
-                <div className="alert alert-info mt-3" data-testid="u2-u3-notice">
-                    <i className="bi bi-info-circle me-2"></i>
-                    <strong>Paso 3 (Validación / Simulación) llega en el incremento U-3.</strong> Este
-                    asistente aún no importa nada: todo lo visto es diagnóstico en memoria.
-                </div>
-            )}
         </div>
     );
 }
