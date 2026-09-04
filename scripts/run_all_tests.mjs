@@ -22,7 +22,8 @@ const suites = [
     { file: 'benchmark_adversarial.mjs', label: 'Adversarial 42 casos' },
     { file: 'shadow_tests.mjs', label: 'Shadow/goldens reales' },
     { file: 'contract_audit.mjs', label: 'Auditoría de contrato' },
-    { file: 'production_gate.mjs', label: 'Production readiness gate' }
+    { file: 'production_gate.mjs', label: 'Production readiness gate' },
+    { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' }
 ];
 
 let failures = 0;
