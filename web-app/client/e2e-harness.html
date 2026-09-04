@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>E2E Import Harness — Universal Pipeline (Browser)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  :root { color-scheme: dark; }
+  body { background: #0B0E14; color: #e5e7eb; font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; }
+  h1 { font-size: 20px; color: #FFD700; }
+  h2 { font-size: 15px; color: #93c5fd; margin-top: 24px; }
+  #drop { border: 2px dashed #3b82f6; border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; margin: 16px 0; background: rgba(59,130,246,.05); }
+  #drop.dragover { background: rgba(59,130,246,.15); border-color: #93c5fd; }
+  .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  button, select { background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  button:hover { background: #334155; }
+  pre { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; overflow: auto; max-height: 480px; font-size: 12px; }
+  .ok { color: #4ade80; } .warn { color: #facc15; } .err { color: #f87171; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  td, th { border: 1px solid #1e293b; padding: 4px 8px; text-align: left; }
+  th { background: #1e293b; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 8px; margin: 12px 0; }
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; }
+  .card b { font-size: 20px; display: block; }
+</style>
+</head>
+<body>
+<h1>🧪 E2E Import Harness — UniversalPlanAnalyzer en el NAVEGADOR</h1>
+<p>Ruta completa: <code>File → Adapter → CanonicalDocument → UniversalPlanAnalyzer → ImportContract → Validator → CompatibilityAdapter → payload</code>. <b>Sin DB, sin POST</b>: todo en memoria.</p>
+<p>Ejecutar con <code>npm run start:client</code> y abrir <code>http://localhost:5173/e2e-harness.html</code>. Soltar archivos (PUCT/… de la carpeta del proyecto o cualquiera).</p>
+
+<div id="drop">
+  <div style="font-size:40px">📂</div>
+  <p><b>Arrastra aquí tus archivos</b> (.xlsx, .xls, .pdf) o haz clic para elegir</p>
+  <input type="file" id="file" multiple accept=".xlsx,.xls,.pdf" hidden />
+</div>
+
+<div id="results"></div>
+
+<script type="module">
+  import { detectFormat, extractDocument } from '/src/utils/FormatAdapter.js';
+  import { UniversalPlanAnalyzer } from '/src/utils/UniversalPlanAnalyzer.js';
+  import { ImportContractValidator } from '/src/utils/ImportContractValidator.js';
+  import { CompatibilityAdapter } from '/src/utils/CompatibilityAdapter.js';
+  import { nodesFingerprint } from '/src/utils/ImportContractSchema.js';
+
+  const drop = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  const results = document.getElementById('results');
+
+  drop.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); handleFiles([...e.dataTransfer.files]); });
+  fileInput.addEventListener('change', () => handleFiles([...fileInput.files]));
+
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+
+  async function handleFiles(files) {
+    results.innerHTML = '';
+    for (const file of files) {
+      const card = el('div', 'card');
+      card.style.marginBottom = '20px';
+      const title = el('h2', '', `${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+      card.appendChild(title);
+      results.appendChild(card);
+      const log = el('pre');
+      card.appendChild(log);
+      const say = (s, cls) => { const line = el('div', cls || '', s); log.appendChild(line); };
+      const t0 = performance.now();
+      try {
+        const adapter = detectFormat(file.name);
+        if (!adapter) { say('❌ Formato no soportado. Adapters: Excel, PDF, CSV', 'err'); continue; }
+        say(`📥 Adapter: ${adapter.name}`);
+        const doc = await adapter.extract(file);
+        say(`📄 CanonicalDocument: ${doc.rows.length} filas, confianza extracción ${doc.extractionConfidence}, OCR=${doc.ocrUsed}`);
+        const analysis = UniversalPlanAnalyzer.analyzeCanonicalDocument(doc);
+        say(`🧠 Regiones detectadas: ${analysis.regions.length} (preflight: ${analysis.preflight.decision})`);
+        for (let ri = 0; ri < analysis.regions.length; ri++) {
+          const c = analysis.regions[ri];
+          if (!c || !c.nodes) continue;
+          const t1 = performance.now();
+          const val = ImportContractValidator.validate(c);
+          say(`  ─ Región ${ri} (${c.region?.extractionMode || 'tabla'}): ${c.nodes.length} nodos (${(t1-t0).toFixed(0)}ms)`, val.valid ? 'ok' : 'warn');
+          const blocks = (c.errors||[]).filter(e => e.severity==='BLOCK').length;
+          const reviews = (c.warnings||[]).filter(w => w.severity==='REVIEW').length;
+          say(`     ✓ validación contrato: ${val.valid ? 'PASS' : 'BLOQUEADO'} | BLOCKs=${blocks} REVIEWs=${reviews} | requiresConfirmation=${c.requiresConfirmation}`);
+          say(`     ✓ reconciliation: unaccountedRows=${c.dataLoss?.unaccountedRows} silentCorruption=${c.silentCorruptionCount}`);
+          const confirmed = {};
+          c.nodes.forEach(n => { confirmed[n.normalizedCode] = n.type; });
+          const payload = CompatibilityAdapter.toBulkPayload(c, 0, { confirmedNatureMap: confirmed });
+          say(`     ✓ payload /bulk: ${payload.allowed ? payload.payload.accounts.length + ' registros listos' : 'BLOQUEADO (gate: ' + payload.reason + ')'}`, payload.allowed ? 'ok' : 'err');
+          // muestra raíces + muestra de nodos
+          const roots = c.nodes.filter(n => n.classification === 'ROOT').slice(0, 5);
+          const sample = c.nodes.slice(0, 5);
+          say(`     Raíces: ${roots.map(r => r.normalizedCode + ':' + (r.name||'').slice(0,20)).join(' | ') || '—'}`);
+          sample.forEach(n => say(`     ${n.normalizedCode} (${n.level}) → ${n.parent||'—'} [${n.parentInfo?.method}] ${(n.name||'').slice(0,35)}`, 'warn'));
+          if (blocks > 0) (c.errors||[]).filter(e => e.severity==='BLOCK').slice(0,4).forEach(e => say(`       ⛔ ${e.type}: ${(e.message||'').slice(0,70)}`, 'err'));
+          if (reviews > 0) (c.warnings||[]).filter(w => w.severity==='REVIEW').slice(0,3).forEach(w => say(`       ⚠️ ${(w.message||w).slice(0,70)}`, 'warn'));
+        }
+        say(`⏱ Total ${((performance.now()-t0)/1000).toFixed(2)}s`);
+      } catch (e) {
+        say(`❌ ERROR: ${e.message}`, 'err');
+      }
+    }
+  }
+</script>
+</body>
+</html>

@@ -113,9 +113,18 @@ export class ImportContractValidator {
         dupBlocks.forEach(e => errors.push(`BLOCK presente: ${e.type} — ${e.message || ''}`));
 
         // ── 6/7) classification, level, isPostable, naturaleza ─────
+        // Precomputa el nº de hijos UNA vez (evita O(n²) en validación)
+        const childCount = new Map();
+        nodes.forEach(n => {
+            const code = String(n.normalizedCode ?? n.code ?? '');
+            if (n.parent) {
+                const p = String(n.parent);
+                childCount.set(p, (childCount.get(p) || 0) + 1);
+            }
+        });
         nodes.forEach((n, i) => {
             const code = n.normalizedCode ?? n.code;
-            const hasChildren = nodes.some(o => o.parent && code !== undefined && String(o.parent) === String(code));
+            const hasChildren = (childCount.get(String(code)) || 0) > 0;
             const level = n.level;
             if (n.classification && !VALID_CLASSIFICATIONS.includes(n.classification)) {
                 errors.push(`node ${code}: classification inválida ${n.classification}`);

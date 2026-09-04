@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "web-app/server/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node scripts/run_all_tests.mjs",
     "analyze": "python analyze_excel.py",
     "start:server": "nodemon web-app/server/index.js",
     "start:client": "npm run dev --prefix web-app/client"

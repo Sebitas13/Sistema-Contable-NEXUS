@@ -823,7 +823,7 @@ export class UniversalPlanAnalyzer {
                 rawCode: a.rawCode,
                 rawName: a.rawName || ''
             };
-            if (this.isPlausibleCode(a.normalizedCode)) {
+            if (this.isPlausibleCode(a.normalizedCode) && String(a.rawName || '').trim() !== '') {
                 plausible.push(a);
             } else {
                 let reason, severity;
@@ -896,10 +896,23 @@ export class UniversalPlanAnalyzer {
         //    y O(n³) cuando _padBlockEvidence contaba hermanos por nodo). ──
         const parentOf = new Map();       // code -> { parent, method, confidence, evidence, requiresReview }
         const parentMethod = new Map();   // code -> method (acceso rápido)
-        const padSiblingCache = new Map(); // blockParent -> siblingCount
+        // Precompute de bloques: blockParentOf (code → padre de bloque) y
+        // children-per-block, ambos en UNA pasada O(n·len) — evita O(n²).
+        const blockParentOf = new Map();
+        const blockChildCount = new Map();
         for (const a of plausible) {
             const code = a.normalizedCode;
-            const info = this._resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, padSiblingCache);
+            if (/^\d+$/.test(code)) {
+                const bp = this._inferBlockParent(code, codeSet);
+                if (bp) {
+                    blockParentOf.set(code, bp);
+                    blockChildCount.set(bp, (blockChildCount.get(bp) || 0) + 1);
+                }
+            }
+        }
+        for (const a of plausible) {
+            const code = a.normalizedCode;
+            const info = this._resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, blockParentOf, blockChildCount);
             parentOf.set(code, info);
             parentMethod.set(code, info.method);
         }
@@ -952,7 +965,10 @@ export class UniversalPlanAnalyzer {
             return {
                 code: a.normalizedCode,
                 rawCode: a.rawCode,
-                name: a.rawName,
+                // Nombre limpio (sin trailing spaces del Excel) — igual que el legacy.
+                // La evidencia original queda en rejectedRows/rejected? No: el nombre
+                // crudo se conserva en source si hiciera falta; el nodo lleva el limpio.
+                name: String(a.rawName || '').replace(/\s+/g, ' ').trim(),
                 normalizedCode: a.normalizedCode,
                 transformations: a.transformations,
                 requiresReview: a.requiresReview || info.requiresReview,
@@ -1378,6 +1394,30 @@ export class UniversalPlanAnalyzer {
         if (codeZeroTrim === parentZeroTrim) { reasons.push('same_stem'); return { accepted: false, confidence: 0, reasons }; }
         // ¿Padre comparte prefijo no-cero con el hijo? (familia real)
         const sharedPrefix = codeZeroTrim.startsWith(parentZeroTrim) || parentZeroTrim.startsWith(codeZeroTrim);
+        // GUARDA ANTI-HERMANOS-RAÍZ: si el código y el padre tienen la MISMA
+        // cantidad de dígitos significativos, son hermanos del mismo nivel,
+        // NO padre-hijo. Ej. PGC: "10" (stem "1") y "11" (stem "1") son dos
+        // raíces hermanas; "100" (stem "1" pero length 3) SÍ es hijo de "10".
+        // En "10" vs "100": lengths difieren (2 vs 3) pero stems son "1" y "1".
+        // La distinción real: el código debe ser ESTRICTAMENTE más largo que el
+        // padre (length mayor) para ser hijo legítimo.
+        if (code.length <= parent.length) {
+            // Misma longitud (MEFP 13111→13110) se permite SOLO si el padre es
+            // un contenedor con ceros finales y comparten todo el stem salvo
+            // los últimos dígitos (el hijo es variante del bloque).
+            const codeStem = codeZeroTrim;
+            const parentStem = parentZeroTrim;
+            const parentIsContainer = parentZeros >= 1;
+            const sharesFullStem = codeStem.startsWith(parentStem) && codeStem.length > parentStem.length;
+            // GUARDA ANTI-CLASE: si el stem del padre tiene 1 solo dígito
+            // (PGC "10"→base "1"), cualquier código de la misma longitud
+            // comparte ese stem → serían TODOS hijos de la misma raíz (10, 11,
+            // 12... todos colgarían de "1X"). Eso colapsa la clase: rechazar.
+            const parentBaseTooShort = parentStem.length <= 1 && code.length >= 2;
+            if (!(parentIsContainer && sharesFullStem) || parentBaseTooShort) {
+                return { accepted: false, confidence: 0, reasons: ['same_level_sibling'], details: { siblingCount: 0, parentZeros, sharedPrefix } };
+            }
+        }
         const siblingCount = [...codeSet].filter(c => c !== code && c !== parent && this._inferBlockParent(c, codeSet) === parent).length;
         // EVIDENCIA MÍNIMA: un bloque real tiene ≥1 hermano bajo el mismo padre.
         // Sin hermanos, la relación es matemáticamente posible pero NO hay
@@ -1396,48 +1436,120 @@ export class UniversalPlanAnalyzer {
     }
 
     // Versión eficiente (caché de hermanos por bloque) usada en el mapa de padres.
-    static _resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, padSiblingCache) {
+    static _resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, blockParentOf, blockChildCount) {
         // 1) EXPLICIT
         const explicit = (effectiveParentMap && effectiveParentMap[code]) || (parentMap && parentMap[code]);
         if (explicit && codeSet.has(String(explicit)) && String(explicit) !== code) {
             return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
         }
-        // 2) calculateParent clásico
+        // 2) calculateParent clásico por defecto (SEGMENT/PREFIX/longitud).
+        //    Excepción: si el documento tiene señal de bloques (MEFP) y el
+        //    blockAlt existe, difiere del calc y es aceptado por evidencia,
+        //    el bloque gana (13110→13100, no el 13000 de la heurística).
         const calc = AccountPlanProfile.calculateParent(code, config);
-        if (calc && codeSet.has(String(calc)) && String(calc) !== code) {
+        const calcOk = calc && codeSet.has(String(calc)) && String(calc) !== code;
+        const blockAlt = blockParentOf.get(code) || null;
+        // Evaluación de bloque O(1) con hijos precomputados
+        let blockAccepted = null;
+        if (blockAlt && codeSet.has(String(blockAlt)) && String(blockAlt) !== code) {
+            blockAccepted = this._evaluateBlockPrecomputed(code, blockAlt, codeSet, blockChildCount);
+        }
+        if (calcOk && (!blockAccepted || !blockAccepted.accepted || blockAlt === calc)) {
             const method = config.hasSeparator ? 'SEGMENT' : 'PREFIX';
             return { parent: String(calc), method, confidence: 0.85, evidence: ['structural_hierarchy'], requiresReview: false };
         }
-        // 3) PAD_TO_BLOCK con evidencia de hermanos (cacheada)
-        const blockParent = this._inferBlockParent(code, codeSet);
-        if (blockParent) {
-            let siblingCount = padSiblingCache.get(blockParent);
-            if (siblingCount === undefined) {
-                siblingCount = 0;
-                for (const c of codeSet) {
-                    if (c !== code && c !== blockParent && this._inferBlockParent(c, codeSet) === blockParent) siblingCount++;
-                }
-                padSiblingCache.set(blockParent, siblingCount);
-            }
-            // Evidencia mínima: ≥1 hermano bajo el mismo bloque
-            if (siblingCount === 0) {
-                return { parent: null, method: 'PAD_TO_BLOCK_REJECTED', confidence: 0, evidence: ['no_siblings_context'], requiresReview: true };
-            }
-            const codeZeroTrim = code.replace(/0+$/, '');
-            const parentZeroTrim = blockParent.replace(/0+$/, '');
-            const sharedPrefix = codeZeroTrim.startsWith(parentZeroTrim) || parentZeroTrim.startsWith(codeZeroTrim);
-            const confidence = (sharedPrefix ? 0.6 : 0.2) + Math.min(0.4, siblingCount * 0.15);
-            if (sharedPrefix) {
-                return {
-                    parent: blockParent, method: 'PAD_TO_BLOCK', confidence: Math.min(1, confidence),
-                    evidence: ['zero_padded_block', `siblings=${siblingCount}`],
-                    requiresReview: confidence < 0.7
-                };
-            }
-            return { parent: null, method: 'PAD_TO_BLOCK_REJECTED', confidence, evidence: ['weak_contextual_evidence'], requiresReview: true };
+        if (blockAccepted && blockAccepted.accepted) {
+            const hasBlockSig = this._hasBlockSignal(code, codeSet);
+            return {
+                parent: blockAlt, method: 'PAD_TO_BLOCK', confidence: blockAccepted.confidence,
+                evidence: ['zero_padded_block', `siblings=${blockAccepted.details.siblingCount}`],
+                requiresReview: blockAccepted.confidence < 0.7 || (calcOk && hasBlockSig && blockAlt !== calc)
+            };
         }
-        // 4) Sin padre
+        if (blockAccepted && !blockAccepted.accepted) {
+            return { parent: null, method: 'PAD_TO_BLOCK_REJECTED', confidence: blockAccepted.confidence, evidence: blockAccepted.reasons, requiresReview: true };
+        }
+        // 2.5) SEGMENT_PAD: códigos CON separador donde el calc (truncado a
+        //      "100") no está materializado. El plan real lista contenedores
+        //      con ceros ("100-00-00"). Padre = cero del último segmento
+        //      significativo, buscando en el set (100-10-01→100-10-00,
+        //      100-10-00→100-00-00). Solo se aplica si el candidato existe.
+        if (config.hasSeparator && code.includes(config.separator)) {
+            const sep = config.separator;
+            const segments = code.split(sep);
+            for (let i = segments.length - 1; i >= 1; i--) {
+                // Si este segmento es significativo, proponer cerearlo a partir de aquí
+                if (!/^0+$/.test(segments[i])) {
+                    const candidate = [...segments.slice(0, i), ...segments.slice(i).map(() => '0'.repeat(segments[i].length))].join(sep);
+                    if (candidate !== code && codeSet.has(candidate)) {
+                        return { parent: candidate, method: 'SEGMENT_PAD', confidence: 0.9, evidence: [`zero_padded_segment@${i}`], requiresReview: false };
+                    }
+                }
+            }
+        }
+        if (calcOk) {
+            const method = config.hasSeparator ? 'SEGMENT' : 'PREFIX';
+            return { parent: String(calc), method, confidence: 0.85, evidence: ['structural_hierarchy'], requiresReview: false };
+        }
         return { parent: null, method: 'OTHER', confidence: 0, evidence: ['no_parent_found'], requiresReview: true };
+    }
+
+    // Evaluación de bloque con contadores precomputados (O(1), sin iterar codeSet)
+    static _evaluateBlockPrecomputed(code, parent, codeSet, blockChildCount) {
+        if (code === parent) return { accepted: false, confidence: 0, reasons: ['self_parent'], details: { siblingCount: 0 } };
+        if (!/^\d+$/.test(code) || !/^\d+$/.test(parent)) return { accepted: false, confidence: 0, reasons: ['not_numeric'], details: { siblingCount: 0 } };
+        const parentZeros = (parent.match(/0+$/)?.[0] || '').length;
+        const codeZeroTrim = code.replace(/0+$/, '');
+        const parentZeroTrim = parent.replace(/0+$/, '');
+        if (codeZeroTrim === parentZeroTrim) return { accepted: false, confidence: 0, reasons: ['same_stem'], details: { siblingCount: 0 } };
+        const sharedPrefix = codeZeroTrim.startsWith(parentZeroTrim) || parentZeroTrim.startsWith(codeZeroTrim);
+        if (code.length <= parent.length) {
+            const parentIsContainer = parentZeros >= 1;
+            const sharesFullStem = codeZeroTrim.startsWith(parentZeroTrim) && codeZeroTrim.length > parentZeroTrim.length;
+            const parentBaseTooShort = parentZeroTrim.length <= 1 && code.length >= 2;
+            if (!(parentIsContainer && sharesFullStem) || parentBaseTooShort) {
+                return { accepted: false, confidence: 0, reasons: ['same_level_sibling'], details: { siblingCount: 0 } };
+            }
+        }
+        const siblingCount = Math.max(0, (blockChildCount.get(parent) || 1) - 1); // resto de hijos bajo el mismo bloque
+        if (siblingCount === 0) {
+            return { accepted: false, confidence: 0, reasons: ['no_siblings_context'], details: { siblingCount: 0 } };
+        }
+        const confidence = (sharedPrefix ? 0.6 : 0.2) + Math.min(0.4, siblingCount * 0.15);
+        const accepted = sharedPrefix;
+        return {
+            accepted,
+            confidence: Math.min(1, confidence),
+            reasons: accepted ? [] : ['weak_contextual_evidence'],
+            details: { siblingCount, parentZeros, sharedPrefix }
+        };
+    }
+
+    // Señal documental de bloques: si ≥40% de códigos numéricos de la misma
+    // longitud son hijos de un bloque (pad-to-block) con hermanos, el documento
+    // usa el patrón de bloques (clasificador MEFP) y debe ganar sobre la
+    // heurística de longitud genérica.
+    // Cache por dataset: la señal es una propiedad del CONJUNTO, no del código.
+    // Calcularla por nodo era O(n²) por llamada → O(n³) total (minutos en 100k).
+    static _blockSignalCache = new WeakMap();
+    static _hasBlockSignal(code, codeSet) {
+        if (!/^\d+$/.test(code) || codeSet.size < 6) return false;
+        let cached = this._blockSignalCache.get(codeSet);
+        if (cached !== undefined) return cached;
+        const sameLen = [...codeSet].filter(c => c.length === code.length && /^\d+$/.test(c));
+        if (sameLen.length < 6) { this._blockSignalCache.set(codeSet, false); return false; }
+        const parentCounts = new Map();
+        for (const c of sameLen) {
+            const p = this._inferBlockParent(c, codeSet);
+            if (p) parentCounts.set(p, (parentCounts.get(p) || 0) + 1);
+        }
+        let blockChildren = 0;
+        for (const cnt of parentCounts.values()) {
+            if (cnt >= 2) blockChildren += cnt; // bloques con ≥2 hijos
+        }
+        const result = blockChildren / sameLen.length >= 0.4;
+        this._blockSignalCache.set(codeSet, result);
+        return result;
     }
 
     // Resolución de padre con método + confianza auditable.
