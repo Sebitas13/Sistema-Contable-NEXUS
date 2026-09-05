@@ -189,6 +189,53 @@ zona IA, `importSession/`, baseline y diseño congelados, PUCT/corpus.
 
 ---
 
+## 12. Protocolo del período controlado (operativo, sin salirse del plan)
+
+### 12.1 Dónde vive cada dato durante una prueba
+| Dato | Dónde | Vida útil |
+|---|---|---|
+| Cuentas importadas | Turso, `accounts` con `company_id` | Hasta borrar la empresa (cascada por `ON DELETE CASCADE` en schema) |
+| Estructura (`code_mask`) | `companies.code_mask` (solo si el contrato declara longitudes) | Igual que arriba |
+| Overrides/revisiones | Memoria React (sesión) | Se pierden al cerrar el wizard (por diseño: son decisiones pre-import) |
+| Evidencia por importación | `localStorage.universalImportLog` (este navegador + este origen) | Persiste; cap 50 FIFO |
+| Recibo | Pantalla paso 6 | Volátil (anotar al momento) |
+
+Reglas del protocolo: UN navegador, UN origen (recomendado: URL de Vercel, que
+es la superficie real del rollout), NUNCA incógnito (borra el log), empresa de
+prueba con id≠1 (la 1 no se puede borrar), anotar el recibo de cada import.
+
+### 12.2 Batería ordenada (de fácil a difícil)
+1. **CSV mínimo** (3 cuentas punteadas): verde total → import 3. Calibra el flujo.
+2. **DASH Hoja2** (235 nodos): 1 BLOCK duplicado → excluir sus filas, confirmar
+   raíces, resolver reviews → import ~233.
+3. **ASFI** (2859 nodos): 0 BLOCK; confirmar raíces INFERRED + resolver reviews
+   por fila (acordeón). Tedioso pero transparente; es la prueba de escala.
+4. **VARLEN Hoja5** (opcional, caso duro): ~500 padres null+review a aceptar uno
+   por uno. Solo si se quiere evidencia del peor caso.
+5. **PUCT puct.xlsx / Hoja4 / Hoja6**: resultado esperado = panel guard +
+   redirección al clásico (NO importar por universal). Probar la redirección.
+
+NUNCA forzar un verde (p. ej. excluir todo para vaciar un BLOCK): eso falsea
+la evidencia. Un gate que no se pone en verde ES un hallazgo, se anota y se
+reporta.
+
+### 12.3 Checklist por importación (anotar)
+Archivo, nodos, BLOCKs (cómo se resolvieron), REVIEWs (cuántos clics),
+overrides (lista de la traza), recibo (`successCount/errorCount/companyPut`),
+conteo en Plan de Cuentas coincide SÍ/NO, `code_mask` actualizado SÍ/NO/omitido.
+
+### 12.4 Leer la bitácora (consola del navegador)
+```js
+JSON.parse(localStorage.getItem('universalImportLog') || '[]')
+  .map(e => `${new Date(e.at).toLocaleString()} | ${e.fileName} | nodos:${e.nodes} ok:${e.successCount} err:${e.errorCount} estr:${e.companyPut} ${e.status}`)
+```
+
+### 12.5 Limpieza y verificación de cascada
+Borrar la empresa desde el selector (pide confirmación). Verificar: desaparece
+del selector y el Plan de Cuentas queda vacío. El schema declara
+`ON DELETE CASCADE` en `accounts.company_id`; si el borrado fallara o dejara
+rastros, ESO también es un hallazgo (del backend, no del importador).
+
 ## DECISIONES QUE REQUIEREN TU APROBACIÓN ANTES DE IMPLEMENTAR
 
 - D1: Opt-in por botón separado (propuesto) vs solo `?engine=` actual.
