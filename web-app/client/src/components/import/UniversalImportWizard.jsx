@@ -21,6 +21,8 @@ import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
 import { useCompany } from '../../context/CompanyContext.jsx';
 import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, resolveReview, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
 import { setImportEngineMode } from './engineFlag.js';
+import { needsLegacyWizard, hasSingleDigitSymptom } from './puctGuard.js';
+import { countImportLog } from './importLog.js';
 import ImportFileStep from './ImportFileStep.jsx';
 import ImportDiagnosticStep from './ImportDiagnosticStep.jsx';
 import ImportValidationStep from './ImportValidationStep.jsx';
@@ -58,9 +60,17 @@ export default function UniversalImportWizard({
     const [extractionMs, setExtractionMs] = useState(null);
     const [analysisMs, setAnalysisMs] = useState(null);
     const [session, setSession] = useState(null);
-    const [phase, setPhase] = useState('pick'); // pick|extracting|ready|analyzing|diagnosed|error
+    const [phase, setPhase] = useState('pick'); // pick|extracting|ready|analyzing|diagnosed|guarded|error
     const [uiStep, setUiStep] = useState(1); // 1..6
     const [error, setError] = useState(null); // { where, message }
+    const [guard, setGuard] = useState(null); // { excluded, reason, signal } (PUCT-guard U-9)
+    const [importCount] = useState(() => {
+        try {
+            return countImportLog();
+        } catch {
+            return 0;
+        }
+    });
     // Empresa activa (solo se usa en el paso 6). Sin provider (harness E2E)
     // companyId queda null y la confirmación se deshabilita con mensaje.
     let company = null;
@@ -121,6 +131,16 @@ export default function UniversalImportWizard({
             setSession(null);
             setAnalysisMs(null);
             setUiStep(1);
+            // PUCT-guard (U-9): ayuda de enrutamiento post-extracción. Si excluye,
+            // no se analiza: el panel redirige al clásico. NO es barrera de
+            // seguridad (esa siguen siendo Validator + canImport + simulation).
+            const g = needsLegacyWizard(extracted);
+            if (g.excluded) {
+                setGuard(g);
+                setPhase('guarded');
+                return extracted;
+            }
+            setGuard(null);
             setPhase('ready');
             return extracted;
         } catch (err) {
@@ -141,6 +161,15 @@ export default function UniversalImportWizard({
             if (!analysis || !Array.isArray(analysis.regions) || analysis.regions.length === 0) {
                 throw new Error('El análisis no produjo ninguna región utilizable (¿hoja vacía o sin códigos?).');
             }
+            // PUCT-guard, red post-análisis (síntoma en el contrato). Igual que
+            // arriba: enrutamiento, no barrera de seguridad.
+            const g2 = hasSingleDigitSymptom(analysis.regions);
+            if (g2.excluded) {
+                setGuard(g2);
+                setPhase('guarded');
+                return null;
+            }
+            setGuard(null);
             const next = createImportSession({
                 source: { fileName: fileToUse.name, fileSize: fileToUse.size || 0 },
                 extraction: {
@@ -165,7 +194,7 @@ export default function UniversalImportWizard({
     async function handleFileSelected(nextFile) {
         if (!nextFile) {
             setFile(null); setDoc(null); setSession(null); setSheets([]);
-            setSheetName(''); setError(null); setPhase('pick'); setUiStep(1);
+            setSheetName(''); setError(null); setGuard(null); setPhase('pick'); setUiStep(1);
             return;
         }
         await runExtract(nextFile, {});
@@ -306,9 +335,10 @@ export default function UniversalImportWizard({
             simulation,
             userActions,
             effectiveNodes,
+            guard,
             error: error ? `${error.where}: ${error.message}` : null
         });
-    }, [phase, uiStep, session, file, formatName, sheets, error, onStateChange]);
+    }, [phase, uiStep, session, file, formatName, sheets, guard, error, onStateChange]);
 
     const docSummary = doc ? {
         rows: doc.rows ? doc.rows.length : 0,
@@ -329,13 +359,34 @@ export default function UniversalImportWizard({
             <div className="modal-body p-4" data-testid="u2-wizard" data-u2-phase={phase}>
                 <div className="alert alert-secondary py-2 small d-flex align-items-center gap-2 flex-wrap" data-testid="u2-mode-banner">
                     <i className="bi bi-flask me-1"></i>
-                    <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.</span>
+                    <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.{importCount > 0 && <> <span className="badge bg-dark border ms-1">{importCount} import{importCount === 1 ? '' : 's'} con esta herramienta en este navegador</span></>}</span>
                     <button type="button" data-testid="u2-use-classic-btn" className="btn btn-sm btn-outline-secondary"
                         title="Volver al asistente clásico (se recuerda tu preferencia)"
                         onClick={() => { try { setImportEngineMode('legacy'); } catch { /* sin almacenamiento: igual se cierra */ } if (onClose) onClose(); }}>
                         Usar asistente clásico
                     </button>
                 </div>
+
+                {phase === 'guarded' && guard && (
+                    <div data-testid="u2-puct-guard">
+                        <div className="alert alert-warning">
+                            <i className="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Este archivo necesita el asistente clásico.</strong>
+                            <span className="d-block mt-1">{guard.reason}</span>
+                            <span className="d-block mt-1 small text-white-50">El asistente nuevo aún no soporta planes multicolumna (señal: {guard.signal}). Tus datos están intactos: nada se analizó ni se importó.</span>
+                        </div>
+                        <div className="d-flex gap-2 flex-wrap">
+                            <button type="button" data-testid="u2-puct-goto-classic" className="btn btn-premium px-4"
+                                onClick={() => { try { setImportEngineMode('legacy'); } catch { /* igual se cierra */ } if (onClose) onClose(); }}>
+                                <i className="bi bi-arrow-right-circle me-2"></i>Abrir asistente clásico
+                            </button>
+                            <button type="button" data-testid="u2-puct-change-file" className="btn btn-outline-secondary px-4"
+                                onClick={() => handleFileSelected(null)}>
+                                Elegir otro archivo
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="d-flex flex-wrap gap-1 mb-3" data-testid="u2-stepper" aria-label="Progreso del asistente">
                     {STEPS.map((label, i) => {
@@ -357,7 +408,7 @@ export default function UniversalImportWizard({
                     })}
                 </div>
 
-                {uiStep === 1 && (
+                {phase !== 'guarded' && uiStep === 1 && (
                     <ImportFileStep
                         file={file}
                         formatLabel={formatName}

@@ -26,6 +26,8 @@ const { UniversalPlanAnalyzer } = await import(pathToFileURL(path.join(root, 'we
 const { ImportContractValidator } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
 const { contractFingerprint } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractSchema.js')).href);
 const { deriveCompanyStructure } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/companyStructure.js')).href);
+const { needsLegacyWizard, hasSingleDigitSymptom, gridFromDoc } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/puctGuard.js')).href);
+const { readImportLog, appendImportLog, countImportLog } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importLog.js')).href);
 const { getImportEngineMode, setImportEngineMode, isUniversalEnabled } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/engineFlag.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 
@@ -61,7 +63,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A6.noLegacyIntel', !all.includes('AccountPlanProfile') && WIZ_FILES.filter(f => contents[f].includes('SmartImportWizard')).join(',') === 'ImportErrorBoundary.jsx', 'AccountPlanProfile en ningún archivo; SmartImportWizard solo en ImportErrorBoundary (fallback de emergencia documentado)');
 
     // Allowlist de imports del orquestador
-    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './engineFlag.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx']);
+    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './engineFlag.js', './puctGuard.js', './importLog.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx']);
     const imports = [...contents['UniversalImportWizard.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     const bad = imports.filter(i => !allow.has(i) && !i.startsWith('react'));
     criterion('A7.importAllowlist', imports.length > 0 && bad.length === 0, `imports del orquestador dentro de la allowlist (${imports.length} imports)${bad.length ? ' — fuera: ' + bad.join(',') : ''}`);
@@ -78,7 +80,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A13.sumImports', sumImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractSchema.js'), 'ImportSummaryStep: react + importSession + Schema (fingerprints, sin red)');
     const confSrc = contents['ImportConfirmationStep.jsx'];
     const confImports = [...confSrc.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
-    criterion('A14.confImports', confImports.every(i => ['react', 'axios', '../../api.js', '../../importSession/index.js', './companyStructure.js', '../ToastProvider.jsx'].includes(i)), 'ImportConfirmationStep: react + axios + api + importSession + companyStructure + toast (único archivo con red)');
+    criterion('A14.confImports', confImports.every(i => ['react', 'axios', '../../api.js', '../../importSession/index.js', './companyStructure.js', './importLog.js', '../ToastProvider.jsx'].includes(i)), 'ImportConfirmationStep: react + axios + api + importSession + companyStructure + importLog + toast (único archivo con red)');
     const apiTargets = [...confSrc.matchAll(/\/api\/[a-zA-Z/_:-]*/g)].map(m => m[0]);
     const onlyKnown = apiTargets.every(t => t.startsWith('/api/accounts/bulk') || t.startsWith('/api/companies/'));
     criterion('A15.apiTargets', apiTargets.length >= 2 && onlyKnown, `paso 6 solo invoca endpoints productivos conocidos: ${[...new Set(apiTargets)].join(', ')}`);
@@ -92,6 +94,9 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A10.mountFallback',
         accounts.includes('SmartImportWizard') && accounts.includes('UniversalImportWizard') && accounts.includes('isUniversalEnabled()'),
         'Accounts.jsx conserva SmartImportWizard (fallback) + montaje condicional por isUniversalEnabled()');
+    criterion('A28.optIn',
+        accounts.includes('open-universal-wizard') && accounts.includes('setShowUniversalWizard') && !accounts.includes('setImportEngineMode'),
+        'opt-in U-9: botón dedicado que monta el universal sin tocar el flag global');
     const boundarySrc = contents['ImportErrorBoundary.jsx'];
     criterion('A17.boundaryMechanics',
         boundarySrc.includes('getDerivedStateFromError') && boundarySrc.includes('componentDidCatch') &&
@@ -318,6 +323,51 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
         deriveCompanyStructure({ separator: '.', levels: null, hierarchy: { levelLengths: [] } }) === null &&
         deriveCompanyStructure(null) === null,
         'sin longitudes declaradas → null (el PUT se omite; jamás máscara inventada ni vacía)');
+}
+
+// ─────────────────────────────────────────────────────────────
+// H. PUCT-GUARD (U-9: exclusión dura, testeable sin motor)
+// ─────────────────────────────────────────────────────────────
+{
+    const mkDoc = (grid) => ({ rows: grid.map(cells => ({ cells: cells.map(rawValue => ({ rawValue })) })) });
+    const puctGrid = [['C', 'G', 'SG', 'CP', 'CA', 'NOMBRE'], ['1', '', '', '', '', 'ACTIVO']];
+    const rA = needsLegacyWizard(mkDoc(puctGrid));
+    criterion('H1.header5col', rA.excluded === true && rA.signal === 'puct-5col' && rA.reason.length > 0, 'cabecera C,G,SG,CP,CA → excluido con motivo');
+
+    const singleGrid = [['CODIGO', 'NOMBRE']];
+    for (let i = 0; i < 60; i++) singleGrid.push([String((i % 5) + 1), 'CUENTA ' + i]);
+    const rB = needsLegacyWizard(mkDoc(singleGrid));
+    criterion('H2.singleDigit', rB.excluded === true && rB.signal === 'single-digit-codes', 'columna 1-dígito ×60 con nombres → excluido');
+
+    const dashGrid = [['CODIGO', 'DESCRIPCION'], ['100-00-00', 'ACTIVO'], ['100-10-00', 'CAJA']];
+    criterion('H3.dashPass', needsLegacyWizard(mkDoc(dashGrid)).excluded === false, 'DASH no excluido');
+    const dotGrid = [['CODIGO', 'NOMBRE'], ['1', 'ACTIVO'], ['1.1', 'CAJA'], ['1.1.01', 'CAJA MN']];
+    criterion('H4.dottedPass', needsLegacyWizard(mkDoc(dotGrid)).excluded === false, 'punteado corto no excluido (<50 filas)');
+    criterion('H5.emptyDoc', needsLegacyWizard(null).excluded === false && needsLegacyWizard({ rows: [] }).excluded === false, 'doc vacío no excluido');
+
+    const mkNodes = (codes) => codes.map(c => ({ normalizedCode: c, code: c }));
+    const puctLike = { nodes: Array.from({ length: 150 }, (_, i) => ({ normalizedCode: String((i % 5) + 1), code: String((i % 5) + 1) })) };
+    const rC = hasSingleDigitSymptom([puctLike]);
+    criterion('H6.symptomHit', rC.excluded === true && rC.signal === 'single-digit-contract', 'contrato 150n×5 códigos 1-dígito → síntoma');
+    const dashLike = { nodes: mkNodes(['100-00-00', '100-10-00', '100-10-01']) };
+    criterion('H7.symptomMiss', hasSingleDigitSymptom([dashLike]).excluded === false && hasSingleDigitSymptom([]).excluded === false, 'contrato sano / vacío → sin síntoma');
+
+    const guardSrc = fs.readFileSync(path.join(importDir, 'puctGuard.js'), 'utf8');
+    criterion('H8.pure', !/^\s*import\s/m.test(guardSrc) && !guardSrc.includes('require('), 'puctGuard.js: cero dependencias (puro)');
+}
+
+// ─────────────────────────────────────────────────────────────
+// I. IMPORT LOG (U-9: monitoreo sin PII, D3 sin companyId)
+// ─────────────────────────────────────────────────────────────
+{
+    const logSrc = fs.readFileSync(path.join(importDir, 'importLog.js'), 'utf8');
+    const idHits = ['companyId', 'company_id', 'selectedCompany', 'nit', 'legal_name']
+        .filter(t => new RegExp(`\\b${t}\\b`).test(logSrc));
+    criterion('I1.noIdentifiers', idHits.length === 0, 'importLog sin identificadores empresariales' + (idHits.length ? ` — hallado: ${idHits.join(',')}` : ''));
+    criterion('I2.emptyEnv', JSON.stringify(readImportLog()) === '[]' && countImportLog() === 0, 'sin window: lectura vacía determinista');
+    const rec = appendImportLog({ at: 123, fileName: 'x.csv', nodes: 3, successCount: 3, errorCount: 0, companyPut: 'skipped', fp: 'abc', status: 'completed', companyId: 999 });
+    const keys = Object.keys(rec).sort().join(',');
+    criterion('I3.recordShape', keys === 'at,companyPut,errorCount,fileName,fp,nodes,status,successCount' && !('companyId' in rec), `registro con campos exactos y sin companyId (${keys})`);
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -23,6 +23,8 @@ export default function Accounts() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [showImportWizard, setShowImportWizard] = useState(false);
+    // Opt-in U-9: monta el universal directamente sin tocar el flag global.
+    const [showUniversalWizard, setShowUniversalWizard] = useState(false);
 
     // Preview States
     const [showPDFPreview, setShowPDFPreview] = useState(false);
@@ -364,6 +366,9 @@ export default function Accounts() {
                     <button className="btn btn-info btn-sm" onClick={() => setShowImportWizard(true)}>
                         <i className="bi bi-magic me-1"></i> <span className="d-none d-sm-inline">Importar</span>
                     </button>
+                    <button className="btn btn-outline-info btn-sm" data-testid="open-universal-wizard" title="Probar el asistente nuevo (opt-in, sin cambiar el predeterminado)" onClick={() => setShowUniversalWizard(true)}>
+                        <i className="bi bi-stars me-1"></i> <span className="d-none d-sm-inline">Importar (nuevo)</span>
+                    </button>
                     <button className="btn btn-warning btn-sm" style={{ color: '#000' }} onClick={() => navigate('/data-forge')}>
                         <i className="bi bi-lightning-charge-fill me-1"></i> DataForge
                     </button>
@@ -392,6 +397,20 @@ export default function Accounts() {
                         onSuccess={fetchAccounts}
                     />
                 )
+            )}
+
+            {/* Opt-in U-9 (Etapa 1): el universal se abre explícitamente sin
+                cambiar el predeterminado (legacy). Rollback = quitar el botón. */}
+            {showUniversalWizard && (
+                <ImportErrorBoundary
+                    onClose={() => setShowUniversalWizard(false)}
+                    onSuccess={fetchAccounts}
+                >
+                    <UniversalImportWizard
+                        onClose={() => setShowUniversalWizard(false)}
+                        onSuccess={fetchAccounts}
+                    />
+                </ImportErrorBoundary>
             )}
 
             {/* Search and Filters */}

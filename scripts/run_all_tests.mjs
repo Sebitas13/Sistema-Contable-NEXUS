@@ -10,7 +10,7 @@
  *   4. production_gate.mjs         (production readiness: fidelidad Excel, adapter
  *                                   forense, payload parity, pad-to-block II, etc.)
  *   5. test_import_session.mjs       (ImportSession U-1: capa pura de sesión)
- *   6. test_import_wizard_u2.mjs     (Wizard U-8: alcance + flag + 6 pasos)
+ *   6. test_import_wizard_u2.mjs     (Wizard U-9: opt-in+guard+log+flag+pasos)
  *   7. shadow_differential.mjs       (U-7: diferencial shadow legacy vs universal)
  *
  * Exit code != 0 si alguna suite falla.
@@ -27,7 +27,7 @@ const suites = [
     { file: 'contract_audit.mjs', label: 'Auditoría de contrato' },
     { file: 'production_gate.mjs', label: 'Production readiness gate' },
     { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' },
-    { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-8 (scope+flag+pasos)' },
+    { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-9 (guard+opt-in+log)' },
     { file: 'shadow_differential.mjs', label: 'Shadow differential (U-7)' }
 ];
 

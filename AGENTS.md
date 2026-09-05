@@ -193,6 +193,10 @@ Pendiente conocido:
   Reglas si se aprueba: feature-flag `importEngine` (default legacy), fallback
   intacto, shadow por defecto, paridad differential demostrada antes de cambiar
   el default, ImportSession como contenedor puro (sin lógica de análisis).
+- **Fase 7 U-9 Etapa 1 (rollout controlado, en curso)**: opt-in por botón
+  "Importar (nuevo)" (default legacy intacto), PUCT-guard duro con redirección
+  al clásico, log local sin PII (`universalImportLog`), rollback por niveles.
+  Diseño: `U9_CONTROLLED_ROLLOUT_DESIGN.md`. U-10 (retiro legacy) NO aprobado.
 - Engine: PGC (columna única "N. Nombre.") es PARTIAL en el flujo canónico
   automático (parser especial probado en Node, no auto-seleccionado).
 - AdjustmentWizard/ClosingWizard (zona intocable) aún usan alert()/modales

@@ -83,6 +83,8 @@ async function main() {
     // Fixture con jerarquía TOTALMENTE declarada por el engine (método SEGMENT):
     // el E2E verifica persistencia fiel del contrato, no inferencia nueva.
     fs.writeFileSync(csvPath, 'CODIGO,NOMBRE\n1,ACTIVO\n1.1,CAJA\n1.1.01,CAJA MN\n', 'utf8');
+    // PUCT real del repo para el camino del guard (se sube directo, sin copiar).
+    const puctPath = path.join(root, 'PUCT/puct.xlsx');
     const procs = [];
     const cleanup = () => {
         for (const p of procs) { try { p.kill(); } catch { } }
@@ -177,9 +179,11 @@ async function main() {
         log('✅ App real con empresa seleccionada');
 
         // U-6: default legacy idéntico — sin ?engine= debe abrir el clásico.
+        // (match exacto: ahora hay dos botones que contienen "Importar").
+        const clickLegacyImport = `(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Importar').click())()`;
         await s.evl(`history.pushState({}, '', '/app/accounts'); window.dispatchEvent(new PopStateEvent('popstate'))`);
         await sleep(3000);
-        await s.evl(`(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Importar')).click())()`);
+        await s.evl(clickLegacyImport);
         await sleep(2500);
         const legacyOpen = await s.evl(`(() => {
             const hasU2 = !!document.querySelector('[data-testid="u2-wizard"]');
@@ -192,6 +196,50 @@ async function main() {
         const legacyClosed = await s.evl(`!document.body.innerText.includes('Selecciona el Archivo')`);
         if (!legacyClosed) throw new Error('el clásico no se cerró con Escape');
         log('✅ Default legacy idéntico (abre clásico, sin rastro universal)');
+        // U-9 opt-in: botón dedicado abre el universal SIN flag en URL ni storage.
+        await s.evl(`history.pushState({}, '', '/app/accounts'); window.dispatchEvent(new PopStateEvent('popstate'))`);
+        await sleep(3000);
+        await s.evl(`(() => [...document.querySelectorAll('button')].find(b => b.getAttribute('data-testid') === 'open-universal-wizard').click())()`);
+        await sleep(2500);
+        const optInOpen = await s.evl(`!!document.querySelector('[data-testid="u2-wizard"]')`);
+        if (!optInOpen) throw new Error('el botón opt-in no abrió el universal sin flag');
+        await s.evl(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+        await sleep(1500);
+        const optInClosed = await s.evl(`!document.querySelector('[data-testid="u2-wizard"]')`);
+        if (!optInClosed) throw new Error('el universal opt-in no se cerró con Escape');
+        log('✅ Opt-in U-9 (abre universal sin flag, sin tocar default)');
+        // U-9 guard en app real: PUCT5C se excluye antes de analizar y redirige.
+        await s.evl(`(() => [...document.querySelectorAll('button')].find(b => b.getAttribute('data-testid') === 'open-universal-wizard').click())()`);
+        await sleep(2500);
+        const docG = await s.send('DOM.getDocument', {});
+        const qG = async (sel) => (await s.send('DOM.querySelector', { nodeId: docG.result.root.nodeId, selector: sel })).result.nodeId;
+        const inputG = await qG('input[data-testid="u2-file-input"]');
+        if (!inputG) throw new Error('input de archivo no encontrado (guard)');
+        await s.send('DOM.setFileInputFiles', { nodeId: inputG, files: [puctPath] });
+        let guardOk = false;
+        for (let i = 0; i < 60; i++) {
+            await sleep(1000);
+            guardOk = await s.evl(`!!document.querySelector('[data-testid="u2-puct-guard"]')`);
+            if (guardOk) break;
+        }
+        if (!guardOk) throw new Error('PUCT5C no mostró el panel guard en la app real');
+        const analyzeHidden = await s.evl(`!document.querySelector('[data-testid="u2-analyze-btn"]')`);
+        if (!analyzeHidden) throw new Error('el botón Analizar sigue visible con PUCT excluido');
+        await s.evl(`document.querySelector('[data-testid="u2-puct-goto-classic"]').click()`);
+        await sleep(2000);
+        const storedLegacy = await s.evl(`localStorage.getItem('importEngine')`);
+        if (storedLegacy !== 'legacy') throw new Error('goto-classic no persistió legacy');
+        await s.evl(`history.pushState({}, '', '/app/accounts'); window.dispatchEvent(new PopStateEvent('popstate'))`);
+        await sleep(3000);
+        await s.evl(clickLegacyImport);
+        await sleep(2500);
+        const backToLegacy = await s.evl(`!document.querySelector('[data-testid="u2-wizard"]') && document.body.innerText.includes('Selecciona el Archivo')`);
+        if (!backToLegacy) throw new Error('tras el guard no se volvió al clásico');
+        await s.evl(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+        await sleep(1500);
+        // El flag quedó en legacy: limpiar para el flujo ?engine=universal posterior.
+        await s.evl(`localStorage.removeItem('importEngine')`);
+        log('✅ Guard PUCT en app real (excluye + redirige al clásico)');
         await s.evl(`history.pushState({}, '', '/app/accounts?engine=universal'); window.dispatchEvent(new PopStateEvent('popstate'))`);
         await sleep(3000);
 

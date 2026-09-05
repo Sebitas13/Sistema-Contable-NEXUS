@@ -13,6 +13,7 @@ import axios from 'axios';
 import API_URL from '../../api.js';
 import { canImport, simulate, effectiveContractOf } from '../../importSession/index.js';
 import { deriveCompanyStructure } from './companyStructure.js';
+import { appendImportLog } from './importLog.js';
 import { useToast } from '../ToastProvider.jsx';
 
 const BATCH_SIZE = 500;
@@ -45,6 +46,14 @@ export default function ImportConfirmationStep({ session, companyId, companyName
         setProgress(0);
         const source = axios.CancelToken.source();
         cancelRef.current = source;
+        const fileName = (session.source && session.source.fileName) || '';
+        const logEntry = (partial) => {
+            try {
+                appendImportLog({ at: Date.now(), fileName, ...partial });
+            } catch {
+                // el log jamás bloquea el flujo
+            }
+        };
         let success = 0, fails = 0;
         try {
             // Re-simular en el momento de confirmar: el payload nace del Effective actual.
@@ -82,15 +91,18 @@ export default function ImportConfirmationStep({ session, companyId, companyName
                 }
             }
             setResult({ successCount: success, errorCount: fails, companyPut, total });
+            logEntry({ nodes: total, successCount: success, errorCount: fails, companyPut, fp: fresh.fingerprint || null, status: 'completed' });
             if (fails === 0) toast?.success?.(`${success} cuentas importadas correctamente.`);
             else toast?.warning?.(`Importadas ${success} cuentas · ${fails} con error (duplicadas o inválidas).`);
             if (onSuccess) onSuccess();
         } catch (err) {
             if (axios.isCancel(err) || String(err.message || '').includes('cancelada')) {
                 toast?.info?.('Importación cancelada.');
+                logEntry({ nodes: 0, successCount: success, errorCount: fails, companyPut: 'skipped', fp: null, status: 'cancelled' });
             } else {
                 const message = 'Error en la importación: ' + (err.response?.data?.error || err.message);
                 setError(message);
+                logEntry({ nodes: 0, successCount: success, errorCount: fails, companyPut: 'skipped', fp: null, status: 'failed' });
             }
         } finally {
             setImporting(false);

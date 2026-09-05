@@ -27,7 +27,8 @@ const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const browserPath = fs.existsSync(EDGE) ? EDGE : (fs.existsSync(CHROME) ? CHROME : null);
 
 const CORPUS = [
-    { name: 'U5-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectNodes: 2000, expectRegions: 1, expectBlocks: 5 },
+    // PUCT5C: excluido por el guard U-9 (no llega a diagnóstico).
+    { name: 'U9-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectGuard: true },
     { name: 'U5-DASH(Hoja2)', file: 'PUCT/Planes de cuentas.xlsx', publicName: 'u2-hoja2.xlsx', sheet: 'Hoja2', pages: null, expectNodes: 200, expectRegions: 1, expectBlocks: 1 },
     { name: 'U5-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2, expectBlocks: 0 },
     // Caso limpio: camina 1→6 (resuelve todo en revisión, resumen en verde,
@@ -141,6 +142,12 @@ async function main() {
             return null;
         };
         const clickNext = () => s.evl('document.querySelector(\'[data-testid="u2-next-btn"]\').click()');
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        const close = async (extra) => {
+            await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
+            s.close();
+            return { snap, browserReal, apiHits, step3: null, ...extra };
+        };
 
         let snap = null;
         for (let i = 0; i < 90; i++) {
@@ -150,11 +157,26 @@ async function main() {
         }
         let browserReal = false;
         try { browserReal = await s.evl('window.__WIZARD_BROWSER__ === true'); } catch { }
-        const close = async (extra) => {
-            await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
-            s.close();
-            return { snap, browserReal, apiHits, step3: null, ...extra };
-        };
+        // Caso guard U-9: el archivo debe quedar excluido ANTES de analizar.
+        if (item.expectGuard) {
+            let guardSnap = (snap && snap.phase === 'guarded') ? snap : null;
+            for (let i = 0; i < 60 && !guardSnap; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const parsed = await readSnap();
+                if (parsed && parsed.phase === 'guarded') guardSnap = parsed;
+            }
+            const panel = await s.evl(`!!document.querySelector('[data-testid="u2-puct-guard"]')`);
+            const analyzeHidden = await s.evl(`!document.querySelector('[data-testid="u2-analyze-btn"]')`);
+            let switched = null;
+            if (panel) {
+                await s.evl(`document.querySelector('[data-testid="u2-puct-goto-classic"]').click()`);
+                await sleep(1500);
+                const stored = await s.evl(`localStorage.getItem('importEngine')`);
+                const closedSnap = await readSnap();
+                switched = { stored, closed: !!(closedSnap && closedSnap.closed) };
+            }
+            return await close({ guard: { snap: guardSnap, panel, analyzeHidden, switched } });
+        }
         if (!snap || snap.phase !== 'diagnosed') return close({});
         // Paso 3: clic en "Continuar a validación" y esperar uiStep===3
         let step3 = null;
@@ -202,7 +224,6 @@ async function main() {
             if (step4 && item.walkToSix) {
                 // Resolver fila por fila (la evidencia es un acordeón de una sola
                 // fila: expandir, confirmar/aceptar lo visible, pasar a la siguiente)
-                const sleep = (ms) => new Promise(r => setTimeout(r, ms));
                 for (let round = 0; round < 8; round++) {
                     const ids = await s.evl(`(() => [...document.querySelectorAll('[data-testid^="u2-evidence-"]')].map(b => b.getAttribute('data-testid')))()`);
                     if (!ids || ids.length === 0) break;
@@ -254,7 +275,29 @@ async function main() {
             if (!fs.existsSync(f)) { log(`⚠️ ${item.name}: archivo no existe`); continue; }
         }
         try {
-            const { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic } = await runCase(item);
+            const { snap, browserReal, apiHits, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic } = await runCase(item);
+            // Caso guard U-9: PUCT excluido antes de analizar.
+            if (item.expectGuard) {
+                const g = guard || {};
+                const gChecks = [
+                    ['navegador real', browserReal === true],
+                    ['phase guarded', !!(g.snap && g.snap.phase === 'guarded')],
+                    ['panel guard visible', g.panel === true],
+                    ['analizar oculto', g.analyzeHidden === true],
+                    ['goto-classic persiste legacy', !!(g.switched && g.switched.stored === 'legacy')],
+                    ['goto-classic cierra', !!(g.switched && g.switched.closed === true)],
+                    ['cero /api/*', apiHits.length === 0]
+                ];
+                const gBad = gChecks.filter(([, ok]) => !ok).map(([name]) => name);
+                if (gBad.length === 0) {
+                    pass++;
+                    log(`✅ ${item.name}: guard excluye PUCT antes de analizar + redirige al clásico · cero red /api/*`);
+                } else {
+                    fail++;
+                    log(`❌ ${item.name}: falla en [${gBad.join(', ')}] guard=${JSON.stringify(g.snap)}`);
+                }
+                continue;
+            }
             if (!snap || !browserReal || snap.phase !== 'diagnosed') {
                 fail++;
                 log(`❌ ${item.name}: SIN DIAGNÓSTICO (phase=${snap?.phase} browser=${browserReal} err=${snap?.error || '—'})`);
@@ -319,7 +362,7 @@ async function main() {
     try { fs.rmSync(corpusDir, { recursive: true, force: true }); } catch { }
     try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch { }
     try { vite.kill(); edge.kill(); } catch { }
-    log(`\nWizard E2E U-5: ${pass} PASS / ${fail} FAIL`);
+    log(`\nWizard E2E U-9: ${pass} PASS / ${fail} FAIL`);
     process.exit(fail > 0 ? 1 : 0);
 }
 
