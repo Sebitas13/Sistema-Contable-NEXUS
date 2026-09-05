@@ -57,23 +57,25 @@ export default function ImportFileStep({
             {file && (
                 <div className="row g-3">
                     <div className="col-12">
-                        <div className="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2">
-                            <div>
-                                <i className="bi bi-file-earmark-text me-2"></i>
-                                <strong>{file.name}</strong>
-                                <span className="text-white-50 ms-2">({(file.size / 1024).toFixed(1)} KB)</span>
-                                {formatLabel && (
-                                    <span className="badge bg-primary ms-2" data-testid="u2-format-badge">{formatLabel}</span>
-                                )}
+                        <div className="card glass-panel border-secondary">
+                            <div className="card-body py-2 d-flex align-items-center justify-content-between flex-wrap gap-2 small">
+                                <div>
+                                    <i className="bi bi-file-earmark-text me-2 text-info"></i>
+                                    <strong>{file.name}</strong>
+                                    <span className="text-white-50 ms-2">({(file.size / 1024).toFixed(1)} KB)</span>
+                                    {formatLabel && (
+                                        <span className="badge bg-primary ms-2" data-testid="u2-format-badge">{formatLabel}</span>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary"
+                                    onClick={() => onFile(null)}
+                                    disabled={busy}
+                                >
+                                    Cambiar archivo
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() => onFile(null)}
-                                disabled={busy}
-                            >
-                                Cambiar archivo
-                            </button>
                         </div>
                     </div>
 

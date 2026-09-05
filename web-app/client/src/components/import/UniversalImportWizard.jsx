@@ -422,14 +422,16 @@ export default function UniversalImportWizard({
             contentClassName="shadow-lg"
         >
             <div className="modal-body p-4" data-testid="u2-wizard" data-u2-phase={phase}>
-                <div className="alert alert-secondary py-2 small d-flex align-items-center gap-2 flex-wrap" data-testid="u2-mode-banner">
-                    <i className="bi bi-flask me-1"></i>
-                    <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.{importCount > 0 && <> <span className="badge bg-dark border ms-1">{importCount} import{importCount === 1 ? '' : 's'} con esta herramienta en este navegador</span></>}</span>
-                    <button type="button" data-testid="u2-use-classic-btn" className="btn btn-sm btn-outline-secondary"
-                        title="Volver al asistente clásico (se recuerda tu preferencia)"
-                        onClick={() => { try { setImportEngineMode('legacy'); } catch { /* sin almacenamiento: igual se cierra */ } if (onClose) onClose(); }}>
-                        Usar asistente clásico
-                    </button>
+                <div className="card glass-panel border-secondary mb-3" data-testid="u2-mode-banner">
+                    <div className="card-body py-2 small d-flex align-items-center gap-2 flex-wrap">
+                        <i className="bi bi-flask me-1 text-info"></i>
+                        <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.{importCount > 0 && <> <span className="badge bg-dark border ms-1">{importCount} import{importCount === 1 ? '' : 's'} con esta herramienta en este navegador</span></>}</span>
+                        <button type="button" data-testid="u2-use-classic-btn" className="btn btn-sm btn-outline-secondary"
+                            title="Volver al asistente clásico (se recuerda tu preferencia)"
+                            onClick={() => { try { setImportEngineMode('legacy'); } catch { /* sin almacenamiento: igual se cierra */ } if (onClose) onClose(); }}>
+                            Usar asistente clásico
+                        </button>
+                    </div>
                 </div>
 
                 {phase === 'guarded' && guard && (
@@ -472,6 +474,21 @@ export default function UniversalImportWizard({
                         );
                     })}
                 </div>
+
+                {session && docMeta && (docMeta.sheetName || docMeta.pages) && (
+                    <div className="d-flex flex-wrap align-items-center gap-2 small mb-3" data-testid="u2-analyzed-source">
+                        <i className="bi bi-check2-circle text-success"></i>
+                        <span className="text-white-50">Análisis vigente de</span>
+                        <span className="badge bg-dark border fw-bold" data-testid="u2-analyzed-sheet">
+                            {formatName === 'Excel' && docMeta.sheetName
+                                ? `Hoja «${docMeta.sheetName}»`
+                                : (formatName === 'PDF' && docMeta.pages
+                                    ? `Págs ${docMeta.pages.startPage}–${docMeta.pages.endPage || 'fin'}`
+                                    : (file ? file.name : '—'))}
+                        </span>
+                        {file && <span className="text-white-50">{file.name}</span>}
+                    </div>
+                )}
 
                 {phase !== 'guarded' && uiStep === 1 && (
                     <ImportFileStep
