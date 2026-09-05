@@ -87,8 +87,7 @@ export default function ImportReviewStep({
     onResolveReview,
     onBulkType,
     onBack,
-    onNext,
-    showNotice
+    onNext
 }) {
     const { region, rows, excludedRows } = useMemo(() => reviewRowsOf(session), [session]);
     const report = useMemo(() => canImportReport(session), [session]);
@@ -303,7 +302,11 @@ export default function ImportReviewStep({
                                                 <span className="text-white-50">Evidencia: {(row.parentInfo?.evidence || []).join(' · ') || '—'}</span>
                                                 <span className="text-white-50">Transformaciones: {row.transformations.length > 0 ? JSON.stringify(row.transformations) : 'ninguna'}</span>
                                                 <span className="text-white-50">Naturaleza: {row.nature} · Clasificación: {row.classification} · Posteable: {row.isPostable}</span>
-                                                {(row.needsReview || row.isUnknown || row.inferredRoot) && !row.confirmed && (
+                                                {/* Confirmar naturaleza: solo cuando el nodo la tiene
+                                                    sin determinar (UNKNOWN) o inferida sin confirmar
+                                                    (raíz INFERRED). En nodos ya determinados solo cabe
+                                                    aceptar la revisión. */}
+                                                {((row.isUnknown || row.inferredRoot) && !row.confirmed) && (
                                                     <button type="button" data-testid={`u2-confirm-nature-${row.uid}`} className="btn btn-sm btn-outline-success ms-auto"
                                                         onClick={() => onConfirmNature(row.uid, row.type)}>
                                                         <i className="bi bi-check2 me-1"></i>Confirmar «{row.type}»
@@ -368,20 +371,16 @@ export default function ImportReviewStep({
                 <button type="button" data-testid="u2-back-btn" className="btn btn-outline-secondary px-4" onClick={onBack}>
                     <i className="bi bi-arrow-left me-2"></i>Atrás
                 </button>
-                <button type="button" data-testid="u2-next-btn" className="btn btn-premium px-4" onClick={onNext}>
-                    Continuar al resumen <i className="bi bi-arrow-right ms-2"></i>
-                </button>
-            </div>
-
-            {showNotice && (
-                <div className="alert alert-info mt-3" data-testid="u2-u5-notice">
-                    <i className="bi bi-info-circle me-2"></i>
-                    <strong>Paso 5 (Resumen final) llega en el incremento U-5.</strong>{' '}
-                    {report.can
-                        ? 'Tus puertas están en verde: el resumen mostrará reconciliación completa.'
-                        : `Aún hay ${report.reasons.length} punto(s) por resolver antes del resumen.`}
+                <div className="text-end">
+                    {!report.can && (
+                        <small className="text-white-50 d-block mb-1">Resuelve los {report.reasons.length} punto(s) para continuar al resumen.</small>
+                    )}
+                    <button type="button" data-testid="u2-next-btn" className="btn btn-premium px-4" onClick={onNext}
+                        disabled={!report.can} title={report.can ? 'Continuar al resumen' : 'Resuelve los puntos pendientes para continuar'}>
+                        Continuar al resumen <i className="bi bi-arrow-right ms-2"></i>
+                    </button>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

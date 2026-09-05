@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 /**
- * test_import_wizard_u2.mjs — Suite del UniversalImportWizard pasos 1–4 (Fase 7 U-4).
+ * test_import_wizard_u2.mjs — Suite del UniversalImportWizard pasos 1–6 (Fase 7 U-5).
  *
- *  A. Alcance estático: el wizard nuevo no toca red/backend, no filtra
- *     inteligencia legacy (SmartImportWizard/AccountPlanProfile) y el montaje
- *     en Accounts.jsx conserva el fallback legacy.
- *  B. Contrato UI↔engine: con corpus real (DASH Hoja2) se verifica que cada
- *     campo que consumen Diagnóstico, Validación/Simulación y Revisión existe
- *     con la forma esperada (incl. Validator + simulate + flujos de overrides
- *     que maneja el paso 4).
+ *  A. Alcance estático: el wizard nuevo solo toca red en el paso 6 y solo a
+ *     los dos endpoints productivos (/bulk + companies); no filtra
+ *     inteligencia legacy y el montaje conserva el fallback.
+ *  B. Contrato UI↔engine: con corpus real (DASH Hoja2) se verifica cada campo
+ *     que consumen los pasos (incl. fingerprints pre/post y gates del resumen).
  *  C. CSV: el engine extrae y analiza CSV (capacidad nueva vs legacy).
  *  D. Detección de formatos.
  *
@@ -26,6 +24,8 @@ const importDir = path.join(root, 'web-app/client/src/components/import');
 const { detectFormat, ExcelAdapter, PdfAdapter, CsvAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
 const { UniversalPlanAnalyzer } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/UniversalPlanAnalyzer.js')).href);
 const { ImportContractValidator } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
+const { contractFingerprint } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractSchema.js')).href);
+const { deriveCompanyStructure } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/companyStructure.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 
 const CRITERIA = [];
@@ -38,7 +38,7 @@ function criterion(id, ok, detail = '') {
 const T0 = Date.now();
 function elapsed() { return `${((Date.now() - T0) / 1000).toFixed(1)}s`; }
 
-const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'engineFlag.js'];
+const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'ImportSummaryStep.jsx', 'ImportConfirmationStep.jsx', 'engineFlag.js'];
 const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 
 // ─────────────────────────────────────────────────────────────
@@ -49,17 +49,18 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     const components = WIZ_FILES.filter(f => f.endsWith('.jsx')).map(f => contents[f]).join('\n');
     const all = WIZ_FILES.map(f => contents[f]).join('\n');
 
-    criterion('A1.noAxios', !all.includes('axios'), 'ningún archivo del wizard importa/usa axios');
+    criterion('A1.noAxiosExceptConfirm', !WIZ_FILES.filter(f => f !== 'ImportConfirmationStep.jsx').map(f => contents[f]).join('\n').includes('axios'), 'axios solo existe en ImportConfirmationStep (paso 6)');
     criterion('A2.noFetch', !components.includes('fetch('), 'componentes del wizard: sin fetch()');
     criterion('A3.noXhrWs', !all.includes('XMLHttpRequest') && !all.includes('WebSocket'), 'sin XMLHttpRequest ni WebSocket');
-    criterion('A4.noApiCalls', !/axios|\.post\(|\.get\(|\.put\(|\.delete\(|XMLHttpRequest|WebSocket/.test(components), 'componentes: sin invocaciones HTTP (el nombre del endpoint destino aparece solo como texto informativo, jamás se llama)');
+    const noNetComponents = WIZ_FILES.filter(f => f !== 'ImportConfirmationStep.jsx' && f.endsWith('.jsx')).map(f => contents[f]).join('\n');
+    criterion('A4.noApiCalls', !/axios|\.post\(|\.get\(|\.put\(|\.delete\(|XMLHttpRequest|WebSocket/.test(noNetComponents), 'pasos 1-5: sin invocaciones HTTP (el paso 6 concentra la red, verificado en A14-A16)');
     criterion('A5.localStorageOnlyFlag',
         !components.includes('localStorage') && contents['engineFlag.js'].includes('importEngine'),
         'localStorage solo en engineFlag.js (clave importEngine)');
     criterion('A6.noLegacyIntel', !all.includes('SmartImportWizard') && !all.includes('AccountPlanProfile'), 'sin imports de SmartImportWizard ni AccountPlanProfile (cero inteligencia legacy)');
 
     // Allowlist de imports del orquestador
-    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx']);
+    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx']);
     const imports = [...contents['UniversalImportWizard.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     const bad = imports.filter(i => !allow.has(i) && !i.startsWith('react'));
     criterion('A7.importAllowlist', imports.length > 0 && bad.length === 0, `imports del orquestador dentro de la allowlist (${imports.length} imports)${bad.length ? ' — fuera: ' + bad.join(',') : ''}`);
@@ -72,6 +73,19 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A11.valImports', valImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractValidator.js'), 'ImportValidationStep: react + importSession + Validator del engine (presenta veredictos, no decide)');
     const revImports = [...contents['ImportReviewStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     criterion('A12.revImports', revImports.every(i => i === 'react' || i === '../../importSession/index.js'), 'ImportReviewStep: react + importSession (overrides con traza, sin re-inferir)');
+    const sumImports = [...contents['ImportSummaryStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+    criterion('A13.sumImports', sumImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractSchema.js'), 'ImportSummaryStep: react + importSession + Schema (fingerprints, sin red)');
+    const confSrc = contents['ImportConfirmationStep.jsx'];
+    const confImports = [...confSrc.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+    criterion('A14.confImports', confImports.every(i => ['react', 'axios', '../../api.js', '../../importSession/index.js', './companyStructure.js', '../ToastProvider.jsx'].includes(i)), 'ImportConfirmationStep: react + axios + api + importSession + companyStructure + toast (único archivo con red)');
+    const apiTargets = [...confSrc.matchAll(/\/api\/[a-zA-Z/_:-]*/g)].map(m => m[0]);
+    const onlyKnown = apiTargets.every(t => t.startsWith('/api/accounts/bulk') || t.startsWith('/api/companies/'));
+    criterion('A15.apiTargets', apiTargets.length >= 2 && onlyKnown, `paso 6 solo invoca endpoints productivos conocidos: ${[...new Set(apiTargets)].join(', ')}`);
+    const structSrc = fs.readFileSync(path.join(importDir, 'companyStructure.js'), 'utf8');
+    criterion('A16.bulkSemantics',
+        confSrc.includes('BATCH_SIZE = 500') && confSrc.includes('successCount') && confSrc.includes('errorCount') && confSrc.includes('CancelToken') && confSrc.includes('deriveCompanyStructure') &&
+        structSrc.includes('code_mask') && structSrc.includes('plan_structure'),
+        'paso 6 replica la semántica del performImport clásico (lotes 500, success/errorCount, cancelación, PUT estructura post-import vía companyStructure pura)');
 
     const accounts = fs.readFileSync(path.join(root, 'web-app/client/src/pages/Accounts.jsx'), 'utf8');
     criterion('A10.mountFallback',
@@ -215,6 +229,66 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 }
 
 // ─────────────────────────────────────────────────────────────
+// F. RESUMEN (fingerprints pre/post + puertas del paso 5)
+// ─────────────────────────────────────────────────────────────
+{
+    const fpNode = (code, extra = {}) => Object.assign({
+        code, rawCode: code, name: code, normalizedCode: code, transformations: [],
+        requiresReview: false, level: 1, parent: null,
+        parentInfo: { code: null, method: 'EXPLICIT', confidence: 1, evidence: [], requiresReview: false },
+        type: 'Activo', nature: 'EXPLICIT', natureConfidence: 1, natureReason: 'source_column',
+        natureSource: 'source_column', classification: 'LEAF', isPostable: 'EXPLICIT_TRUE', postableConfidence: 1
+    }, extra);
+    const mkFpContract = () => ({
+        contractVersion: '1.0', schemaVersion: '1.0', analyzerVersion: '2.1.0',
+        source: { file: 'f.xlsx', sheet: 'S', headers: ['CODIGO', 'NOMBRE'], rowCount: 3 },
+        columnMapping: { codeColumn: 0, nameColumn: 1, parentColumn: null, typeColumn: null },
+        hierarchy: { separator: null, levelLengths: [], levelCount: 0 }, separator: null, levels: [],
+        rootNodes: ['1'], nodeCounts: { total: 3, roots: 1, groups: 1, leaves: 1 }, leafCounts: 1,
+        stats: { totalRows: 3, validRows: 3, rejectedRows: 0 },
+        nodes: [
+            fpNode('1', { name: 'ACTIVO', classification: 'ROOT' }),
+            fpNode('11', { name: 'CAJA', level: 2, parent: '1', classification: 'GROUP', parentInfo: { code: '1', method: 'PREFIX', confidence: 1, evidence: [], requiresReview: false } }),
+            fpNode('1101', { name: 'CAJA MN', level: 3, parent: '11', classification: 'LEAF', parentInfo: { code: '11', method: 'PREFIX', confidence: 1, evidence: [], requiresReview: false } })
+        ],
+        transformations: [], rejectedRows: [], warnings: [], errors: [],
+        confidence: { overall: 0.9, secondBest: 0, ambiguityMargin: 0.2 }, requiresConfirmation: false,
+        dataLoss: { silentTransformationCount: 0, semanticCollisionCount: 0, identityCollisionCount: 0, droppedRowCount: 0, droppedCellCount: 0, unmappedColumnCount: 0, unresolvedNodeCount: 0, dataLossCount: 0, unaccountedRows: 0, collisions: [] },
+        silentCorruptionCount: 0
+    });
+    const fpContract = mkFpContract();
+    let s = S.createImportSession({ regions: [fpContract] });
+    const rid = s.regions[0].regionId;
+    const fpOrig = contractFingerprint(s.regions[0].contract);
+    const fpEff1 = contractFingerprint(S.effectiveContractOf(s));
+    const fpEff2 = contractFingerprint(S.effectiveContractOf(s));
+    criterion('B18.fpStable', typeof fpOrig === 'string' && fpOrig.length > 0 && fpEff1 === fpEff2, 'huellas no vacías y fingerprint del effective determinista (el effective es una vista derivada, no un clon)');
+    s = S.applyOverride(s, `${rid}:0`, 'name', 'ACTIVO EDITADO');
+    const fpChanged = contractFingerprint(S.effectiveContractOf(s));
+    criterion('B18b.fpChanges', fpChanged !== fpOrig, 'fingerprint cambia tras un override (trazabilidad pre/post del resumen)');
+
+    const sumClean = S.summaryOf(S.createImportSession({ regions: [mkFpContract()] }));
+    criterion('B19.gatesData',
+        sumClean.dataLoss.silentCorruptionCount === 0 && sumClean.dataLoss.unaccountedRows === 0 && sumClean.reconciliation.rowsTotal === 3 && sumClean.reconciliation.validRows === 3,
+        'summaryOf expone silent/unaccounted + reconciliación que exige el gate 5→6');
+
+    // B20: derivación de estructura (misma fórmula que el clásico; null si no hay longitudes)
+    const dashMask = deriveCompanyStructure({ separator: '-', levels: [3, 5, 7], hierarchy: { levelLengths: [3, 5, 7] } });
+    const dashPlan = dashMask && JSON.parse(dashMask.plan_structure);
+    criterion('B20.maskSep',
+        dashMask && dashMask.code_mask === '###-##-##' && dashPlan && dashPlan.levelsCount === 3 && dashPlan.separator === '-' && dashPlan.regex === '^\\d+(?:\\-\\d+)*$',
+        `separador → mask '###-##-##' + plan_structure idéntico al clásico (mask=${dashMask && dashMask.code_mask})`);
+    const fixedMask = deriveCompanyStructure({ separator: null, levels: [], hierarchy: { levelLengths: [1, 2, 3, 6, 9] } });
+    criterion('B20b.maskFixed',
+        fixedMask && fixedMask.code_mask === '#########' && JSON.parse(fixedMask.plan_structure).regex === '^\\d+$',
+        `longitud fija → mask de 9 (mask=${fixedMask && fixedMask.code_mask})`);
+    criterion('B20c.maskNull',
+        deriveCompanyStructure({ separator: '.', levels: null, hierarchy: { levelLengths: [] } }) === null &&
+        deriveCompanyStructure(null) === null,
+        'sin longitudes declaradas → null (el PUT se omite; jamás máscara inventada ni vacía)');
+}
+
+// ─────────────────────────────────────────────────────────────
 // C. CSV (capacidad nueva vs legacy)
 // ─────────────────────────────────────────────────────────────
 {
@@ -242,7 +316,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // RESUMEN
 // ─────────────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(95));
-console.log(`RESULTADO WIZARD U-4: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
+console.log(`RESULTADO WIZARD U-5: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
 console.log('\n── CRITERIOS ──');
 for (const c of CRITERIA) {

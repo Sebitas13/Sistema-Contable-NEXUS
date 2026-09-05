@@ -18,11 +18,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import NexusModal from '../NexusModal.jsx';
 import { detectFormat } from '../../utils/FormatAdapter.js';
 import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
+import { useCompany } from '../../context/CompanyContext.jsx';
 import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, resolveReview, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
 import ImportFileStep from './ImportFileStep.jsx';
 import ImportDiagnosticStep from './ImportDiagnosticStep.jsx';
 import ImportValidationStep from './ImportValidationStep.jsx';
 import ImportReviewStep from './ImportReviewStep.jsx';
+import ImportSummaryStep from './ImportSummaryStep.jsx';
+import ImportConfirmationStep from './ImportConfirmationStep.jsx';
 
 const SUPPORTED_LABEL = '.xlsx, .xls, .xlsm, .pdf, .csv, .txt';
 const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen', 'Confirmación'];
@@ -55,9 +58,17 @@ export default function UniversalImportWizard({
     const [analysisMs, setAnalysisMs] = useState(null);
     const [session, setSession] = useState(null);
     const [phase, setPhase] = useState('pick'); // pick|extracting|ready|analyzing|diagnosed|error
-    const [uiStep, setUiStep] = useState(1); // 1..4 en U-4 (5..6 llegan en U-5+)
+    const [uiStep, setUiStep] = useState(1); // 1..6
     const [error, setError] = useState(null); // { where, message }
-    const [showU5Notice, setShowU5Notice] = useState(false);
+    // Empresa activa (solo se usa en el paso 6). Sin provider (harness E2E)
+    // companyId queda null y la confirmación se deshabilita con mensaje.
+    let company = null;
+    try {
+        company = useCompany()?.selectedCompany ?? null;
+    } catch {
+        company = null;
+    }
+    const companyId = company?.id ?? null;
     const lastOpRef = useRef(null); // { kind: 'extract'|'analyze' } para reintentar
     const autoStartedRef = useRef(false);
 
@@ -109,7 +120,6 @@ export default function UniversalImportWizard({
             setSession(null);
             setAnalysisMs(null);
             setUiStep(1);
-            setShowU5Notice(false);
             setPhase('ready');
             return extracted;
         } catch (err) {
@@ -155,7 +165,6 @@ export default function UniversalImportWizard({
         if (!nextFile) {
             setFile(null); setDoc(null); setSession(null); setSheets([]);
             setSheetName(''); setError(null); setPhase('pick'); setUiStep(1);
-            setShowU5Notice(false);
             return;
         }
         await runExtract(nextFile, {});
@@ -331,7 +340,7 @@ export default function UniversalImportWizard({
                         const cls = current ? 'btn-primary' : (done ? 'btn-outline-primary' : 'btn-outline-secondary disabled');
                         const inner = (<><span className="badge bg-dark me-1">{n}</span>{label}</>);
                         return reachable ? (
-                            <button key={label} type="button" data-testid={`u2-step-${n}`} className={`btn btn-sm ${cls}`} onClick={() => { setUiStep(n); setShowU5Notice(false); }}>
+                            <button key={label} type="button" data-testid={`u2-step-${n}`} className={`btn btn-sm ${cls}`} onClick={() => setUiStep(n)}>
                                 {inner}
                             </button>
                         ) : (
@@ -365,7 +374,7 @@ export default function UniversalImportWizard({
                     <ImportDiagnosticStep
                         session={session}
                         onSelectRegion={handleSelectRegion}
-                        onBack={() => { setUiStep(1); setShowU5Notice(false); }}
+                        onBack={() => setUiStep(1)}
                         onNext={() => setUiStep(3)}
                     />
                 )}
@@ -373,7 +382,7 @@ export default function UniversalImportWizard({
                 {uiStep === 3 && session && (
                     <ImportValidationStep
                         session={session}
-                        onBack={() => { setUiStep(2); setShowU5Notice(false); }}
+                        onBack={() => setUiStep(2)}
                         onNext={() => setUiStep(4)}
                     />
                 )}
@@ -387,9 +396,27 @@ export default function UniversalImportWizard({
                         onConfirmNature={handleConfirmNature}
                         onResolveReview={handleResolveReview}
                         onBulkType={handleBulkType}
-                        onBack={() => { setUiStep(3); setShowU5Notice(false); }}
-                        onNext={() => setShowU5Notice(true)}
-                        showNotice={showU5Notice}
+                        onBack={() => setUiStep(3)}
+                        onNext={() => setUiStep(5)}
+                    />
+                )}
+
+                {uiStep === 5 && session && (
+                    <ImportSummaryStep
+                        session={session}
+                        onBack={() => setUiStep(4)}
+                        onNext={() => setUiStep(6)}
+                    />
+                )}
+
+                {uiStep === 6 && session && (
+                    <ImportConfirmationStep
+                        session={session}
+                        companyId={companyId}
+                        companyName={company?.name || null}
+                        onBack={() => setUiStep(5)}
+                        onSuccess={onSuccess}
+                        onClose={onClose}
                     />
                 )}
 
@@ -397,7 +424,7 @@ export default function UniversalImportWizard({
                     <small className="text-white-50 d-block mt-3">
                         {extractionMs !== null && <>Extracción: {extractionMs} ms. </>}
                         {analysisMs !== null && <>Análisis: {analysisMs} ms.</>}
-                        {/* onSuccess se usa desde U-5 (importación real); el contrato de props ya es el final. */}
+                        {/* onSuccess refresca el plan de cuentas tras un import real (paso 6). */}
                     </small>
                 )}
             </div>
