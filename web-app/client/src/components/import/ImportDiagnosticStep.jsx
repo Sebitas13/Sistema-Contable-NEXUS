@@ -163,13 +163,13 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
                 </div>
             )}
 
-            <div className="card bg-dark border-secondary mt-3">
+            <div className="card bg-dark text-white border-secondary mt-3">
                 <div className="card-header bg-secondary bg-opacity-25 py-2">
-                    <small className="fw-bold text-muted">Muestra de nodos (primeros {sample.length})</small>
+                    <small className="fw-bold">Muestra de nodos (primeros {sample.length})</small>
                 </div>
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                        <table className="table table-sm table-dark table-striped mb-0" style={{ fontSize: '0.85rem' }}>
                             <thead><tr><th>Código</th><th>Nivel</th><th>Padre (método)</th><th>Nombre</th></tr></thead>
                             <tbody>
                                 {sample.map((n, i) => (

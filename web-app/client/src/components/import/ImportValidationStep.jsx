@@ -68,7 +68,7 @@ export default function ImportValidationStep({ session, onBack, onNext }) {
             {tab === 'issues' && (
                 <div data-testid="u2-val-issues">
                     {blocks.length > 0 && (
-                        <div className="card border-danger mb-3">
+                        <div className="card border-danger bg-dark text-white mb-3">
                             <div className="card-header bg-danger bg-opacity-10 py-2">
                                 <small className="fw-bold text-danger"><i className="bi bi-x-octagon me-2"></i>Bloqueantes ({blocks.length}) — impiden importar</small>
                             </div>
@@ -155,13 +155,13 @@ export default function ImportValidationStep({ session, onBack, onNext }) {
                     </div>
 
                     {sample.length > 0 && (
-                        <div className="card bg-dark border-secondary mt-3">
+                        <div className="card bg-dark text-white border-secondary mt-3">
                             <div className="card-header bg-secondary bg-opacity-25 py-2">
-                                <small className="fw-bold text-muted">Muestra del payload (primeros {sample.length})</small>
+                                <small className="fw-bold">Muestra del payload (primeros {sample.length})</small>
                             </div>
                             <div className="card-body p-0">
                                 <div className="table-responsive">
-                                    <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                    <table className="table table-sm table-dark table-striped mb-0" style={{ fontSize: '0.85rem' }}>
                                         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Nivel</th><th>Padre</th></tr></thead>
                                         <tbody>
                                             {sample.map((a, i) => (

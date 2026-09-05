@@ -21,6 +21,7 @@ export default function ImportFileStep({
     onPagesChange,
     busy,
     docSummary,
+    notice,
     error,
     onFile,
     onAnalyze,
@@ -131,6 +132,11 @@ export default function ImportFileStep({
                                     <span className="text-white-50">Formato: {docSummary.format}</span>
                                 </div>
                             </div>
+                            {notice && (
+                                <div className="alert alert-warning py-2 small mt-2 mb-0" data-testid="u2-reanalyze-notice" role="status">
+                                    <i className="bi bi-arrow-repeat me-2"></i>{notice}
+                                </div>
+                            )}
                         </div>
                     )}
 

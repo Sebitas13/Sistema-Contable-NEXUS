@@ -173,7 +173,7 @@ export default function ImportReviewStep({
             </div>
 
             {pendingWarnings.length > 0 && (
-                <div className="card border-warning mb-3">
+                <div className="card border-warning bg-dark text-white mb-3">
                     <div className="card-header bg-warning bg-opacity-10 py-2">
                         <small className="fw-bold text-warning"><i className="bi bi-eye me-2"></i>Revisiones del contrato ({pendingWarnings.length})</small>
                     </div>
@@ -337,7 +337,7 @@ export default function ImportReviewStep({
             </div>
 
             {showExcluded && excludedRows.length > 0 && (
-                <div className="card border-secondary mt-2">
+                <div className="card border-secondary bg-dark text-white mt-2">
                     <div className="card-body p-2 small">
                         {excludedRows.slice(0, 20).map(r => (
                             <div key={r.uid} className="d-flex gap-2 align-items-center py-1 border-bottom">
@@ -350,7 +350,7 @@ export default function ImportReviewStep({
             )}
 
             {showRejected && (
-                <div className="card border-secondary mt-2">
+                <div className="card border-secondary bg-dark text-white mt-2">
                     <div className="card-body p-0">
                         <div className="table-responsive" style={{ maxHeight: '200px' }}>
                             <table className="table table-sm table-dark mb-0" style={{ fontSize: '0.8rem' }}>

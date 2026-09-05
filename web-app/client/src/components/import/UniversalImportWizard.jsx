@@ -85,6 +85,25 @@ export default function UniversalImportWizard({
     // Guardia anti-carrera: solo la operación MÁS RECIENTE puede publicar
     // resultados. Las completions tardías de operaciones superadas se ignoran.
     const requestRef = useRef(0);
+    // Etiqueta (síncrona, ref) de la última extracción publicada y del último
+    // análisis completado, para avisar cuando una re-extracción (cambio de
+    // hoja/páginas) invalida el análisis anterior: el spinner que corre al
+    // cambiar de hoja es SOLO extracción, y sin este aviso el usuario cree
+    // que el paso 2 debería estar actualizado con la nueva hoja.
+    const lastExtractRef = useRef(null); // { name, label }
+    const analyzedRef = useRef(null);    // { name, label } | null
+    const [pendingNotice, setPendingNotice] = useState(null); // string | null
+
+    function sourceLabelFor(adapterName, sheet, startPage, endPage) {
+        if (adapterName === 'ExcelAdapter') {
+            return sheet ? `la hoja «${sheet}»` : null;
+        }
+        if (adapterName === 'PdfAdapter') {
+            const s = startPage || 1;
+            return endPage && endPage !== s ? `las páginas ${s}–${endPage}` : `la página ${s}`;
+        }
+        return null;
+    }
 
     const busy = phase === 'extracting' ? 'extracting' : (phase === 'analyzing' ? 'analyzing' : null);
     const isPdf = formatName === 'PDF';
@@ -134,6 +153,25 @@ export default function UniversalImportWizard({
             setDoc(extracted);
             setDocMeta({ sheetName: adapter.name === 'ExcelAdapter' ? effectiveSheet : null, pages: adapter.name === 'PdfAdapter' ? { ...pdfPages, ...(opts.pages || {}) } : null });
             setExtractionMs(ms);
+            // ¿La re-extracción invalida un análisis previo del MISMO archivo?
+            // (cambio de hoja/páginas). El usuario vio girar el spinner al
+            // cambiar de hoja y espera el paso 2 actualizado: avisarle que esa
+            // operación fue SOLO extracción y hay que re-analizar.
+            const effectivePages = adapter.name === 'PdfAdapter' ? { ...pdfPages, ...(opts.pages || {}) } : null;
+            const newLabel = sourceLabelFor(
+                adapter.name,
+                adapter.name === 'ExcelAdapter' ? effectiveSheet : null,
+                effectivePages ? effectivePages.startPage : null,
+                effectivePages ? (effectivePages.endPage || null) : null
+            );
+            const prevAnalyzed = analyzedRef.current;
+            if (prevAnalyzed && prevAnalyzed.name === fileToUse.name && newLabel && prevAnalyzed.label !== newLabel) {
+                setPendingNotice(
+                    `El diagnóstico anterior pertenecía a ${prevAnalyzed.label} y ya no aplica a esta extracción. ` +
+                    `Pulsa «Extraer y analizar» para analizar ${newLabel} y actualizar los pasos siguientes.`
+                );
+            }
+            lastExtractRef.current = { name: fileToUse.name, label: newLabel };
             setSession(null);
             setAnalysisMs(null);
             setUiStep(1);
@@ -142,6 +180,8 @@ export default function UniversalImportWizard({
             // seguridad (esa siguen siendo Validator + canImport + simulation).
             const g = needsLegacyWizard(extracted);
             if (g.excluded) {
+                analyzedRef.current = null;
+                setPendingNotice(null);
                 setGuard(g);
                 setPhase('guarded');
                 return extracted;
@@ -151,6 +191,7 @@ export default function UniversalImportWizard({
             return extracted;
         } catch (err) {
             if (!isCurrent()) return null;
+            lastExtractRef.current = null;
             setFile(fileToUse);
             setDoc(null);
             fail('extracción', err);
@@ -175,11 +216,17 @@ export default function UniversalImportWizard({
             // arriba: enrutamiento, no barrera de seguridad.
             const g2 = hasSingleDigitSymptom(analysis.regions);
             if (g2.excluded) {
+                analyzedRef.current = null;
+                setPendingNotice(null);
                 setGuard(g2);
                 setPhase('guarded');
                 return null;
             }
             setGuard(null);
+            // Este análisis queda asociado a la extracción vigente (refs
+            // síncronas, sin stale closures de React).
+            analyzedRef.current = lastExtractRef.current;
+            setPendingNotice(null);
             const next = createImportSession({
                 source: { fileName: fileToUse.name, fileSize: fileToUse.size || 0 },
                 extraction: {
@@ -204,6 +251,9 @@ export default function UniversalImportWizard({
 
     async function handleFileSelected(nextFile) {
         if (!nextFile) {
+            lastExtractRef.current = null;
+            analyzedRef.current = null;
+            setPendingNotice(null);
             setFile(null); setDoc(null); setSession(null); setSheets([]);
             setSheetName(''); setError(null); setGuard(null); setPhase('pick'); setUiStep(1);
             return;
@@ -435,6 +485,7 @@ export default function UniversalImportWizard({
                         onPagesChange={setPdfPages}
                         busy={busy}
                         docSummary={docSummary}
+                        notice={pendingNotice}
                         error={error}
                         onFile={handleFileSelected}
                         onAnalyze={handleAnalyze}
