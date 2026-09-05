@@ -124,6 +124,8 @@ export default function ImportFileStep({
                             <div className="card glass-panel border-secondary" data-testid="u2-extraction-summary">
                                 <div className="card-body py-2 d-flex flex-wrap gap-3 small">
                                     <span><i className="bi bi-table me-1 text-info"></i><strong>{docSummary.rows}</strong> filas extraídas</span>
+                                    {docSummary.sheet && <span><i className="bi bi-file-spreadsheet me-1 text-info"></i>Hoja: <strong data-testid="u2-active-sheet">{docSummary.sheet}</strong></span>}
+                                    {docSummary.pages && <span className="text-white-50">Págs: {docSummary.pages.startPage}–{docSummary.pages.endPage || 'fin'}</span>}
                                     <span><i className="bi bi-speedometer2 me-1 text-info"></i>confianza extracción: <strong>{docSummary.confidence}</strong></span>
                                     {docSummary.ocrUsed && <span className="badge bg-warning text-dark">OCR</span>}
                                     <span className="text-white-50">Formato: {docSummary.format}</span>

@@ -56,18 +56,14 @@ export default function ImportValidationStep({ session, onBack, onNext }) {
                 </div>
             </div>
 
-            <ul className="nav nav-tabs mb-3">
-                <li className="nav-item">
-                    <button type="button" data-testid="u2-val-tab-issues" className={`nav-link ${tab === 'issues' ? 'active' : ''}`} onClick={() => setTab('issues')}>
-                        <i className="bi bi-list-check me-1"></i>Validación ({report.reasons.length + blocks.length > 0 ? report.reasons.length : 'ok'})
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button type="button" data-testid="u2-val-tab-sim" className={`nav-link ${tab === 'simulation' ? 'active' : ''}`} onClick={() => setTab('simulation')}>
-                        <i className="bi bi-play-circle me-1"></i>Simulación (sin escribir)
-                    </button>
-                </li>
-            </ul>
+            <div className="btn-group mb-3" role="group" aria-label="Validación o simulación">
+                <button type="button" data-testid="u2-val-tab-issues" className={`btn ${tab === 'issues' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTab('issues')}>
+                    <i className="bi bi-list-check me-1"></i>Validación ({report.reasons.length + blocks.length > 0 ? report.reasons.length : 'ok'})
+                </button>
+                <button type="button" data-testid="u2-val-tab-sim" className={`btn ${tab === 'simulation' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTab('simulation')}>
+                    <i className="bi bi-play-circle me-1"></i>Simulación (sin escribir)
+                </button>
+            </div>
 
             {tab === 'issues' && (
                 <div data-testid="u2-val-issues">
@@ -97,12 +93,17 @@ export default function ImportValidationStep({ session, onBack, onNext }) {
 
                     {report.reasons.length > 0 ? (
                         <div className="list-group">
-                            {report.reasons.map((r, i) => (
-                                <div key={i} className={`list-group-item list-group-item-${reasonTone(r)} d-flex gap-2 align-items-start`}>
-                                    <i className={`bi ${reasonIcon(r)} mt-1`}></i>
-                                    <span className="small">{r}</span>
-                                </div>
-                            ))}
+                            {report.reasons.map((r, i) => {
+                                const tone = reasonTone(r);
+                                const bar = tone === 'danger' ? 'var(--bs-danger)' : 'var(--bs-warning)';
+                                const icon = tone === 'danger' ? 'text-danger' : 'text-warning';
+                                return (
+                                    <div key={i} className="list-group-item bg-dark text-white border-secondary d-flex gap-2 align-items-start" style={{ borderLeft: `3px solid ${bar}` }}>
+                                        <i className={`bi ${reasonIcon(r)} mt-1 ${icon}`}></i>
+                                        <span className="small">{r}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="alert alert-success"><i className="bi bi-check-circle me-2"></i>Sin puntos pendientes.</div>

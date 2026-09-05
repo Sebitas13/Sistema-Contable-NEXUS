@@ -179,7 +179,7 @@ export default function ImportReviewStep({
                     </div>
                     <div className="list-group list-group-flush">
                         {pendingWarnings.slice(0, 5).map(({ w, i }) => (
-                            <div key={i} className="list-group-item bg-dark text-white d-flex gap-2 align-items-start">
+                            <div key={i} className="list-group-item bg-dark text-white border-secondary d-flex gap-2 align-items-start" style={{ borderLeft: '3px solid var(--bs-warning)' }}>
                                 <span className="small flex-grow-1">{w.message || w.type} {w.code ? <code>{w.code}</code> : ''}</span>
                                 <button type="button" data-testid={`u2-resolve-warn-${i}`} className="btn btn-sm btn-outline-warning" onClick={() => onResolveReview(`${region.regionId}:w${i}`)}>
                                     Marcar revisado
@@ -238,7 +238,7 @@ export default function ImportReviewStep({
                     <tbody>
                         {pageRows.map(row => (
                             <React.Fragment key={row.uid}>
-                                <tr className={row.isBlocked ? 'table-danger' : ''}>
+                                <tr className={row.isBlocked ? 'bg-danger bg-opacity-25' : ''}>
                                     <td className="text-center">
                                         <input type="checkbox" className="form-check-input bg-dark border-secondary"
                                             checked={selected.includes(row.uid)}

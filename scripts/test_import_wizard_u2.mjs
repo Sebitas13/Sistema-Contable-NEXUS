@@ -97,6 +97,14 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A28.optIn',
         accounts.includes('open-universal-wizard') && accounts.includes('setShowUniversalWizard') && !accounts.includes('setImportEngineMode'),
         'opt-in U-9: botón dedicado que monta el universal sin tocar el flag global');
+    // U-9b: anti-carrera + hoja vigente visible (regresión reportada por usuario)
+    const wizSrc = contents['UniversalImportWizard.jsx'];
+    criterion('A29.noStaleRace',
+        wizSrc.includes('requestRef') && wizSrc.includes('isCurrent()') && wizSrc.includes('superada'),
+        'orquestador ignora completions tardías de extracciones/análisis superados');
+    criterion('A30.visibleSheet',
+        contents['ImportFileStep.jsx'].includes('u2-active-sheet'),
+        'resumen muestra la hoja vigente (diagnosticable a golpe de vista)');
     const boundarySrc = contents['ImportErrorBoundary.jsx'];
     criterion('A17.boundaryMechanics',
         boundarySrc.includes('getDerivedStateFromError') && boundarySrc.includes('componentDidCatch') &&
@@ -409,7 +417,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // RESUMEN
 // ─────────────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(95));
-console.log(`RESULTADO WIZARD U-8: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
+console.log(`RESULTADO WIZARD U-9: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
 console.log('\n── CRITERIOS ──');
 for (const c of CRITERIA) {

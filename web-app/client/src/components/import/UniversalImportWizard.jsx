@@ -82,6 +82,9 @@ export default function UniversalImportWizard({
     const companyId = company?.id ?? null;
     const lastOpRef = useRef(null); // { kind: 'extract'|'analyze' } para reintentar
     const autoStartedRef = useRef(false);
+    // Guardia anti-carrera: solo la operación MÁS RECIENTE puede publicar
+    // resultados. Las completions tardías de operaciones superadas se ignoran.
+    const requestRef = useRef(0);
 
     const busy = phase === 'extracting' ? 'extracting' : (phase === 'analyzing' ? 'analyzing' : null);
     const isPdf = formatName === 'PDF';
@@ -115,10 +118,13 @@ export default function UniversalImportWizard({
     }
 
     async function runExtract(fileToUse, opts = {}) {
+        const myReq = ++requestRef.current;
+        const isCurrent = () => requestRef.current === myReq;
         setPhase('extracting');
         setError(null);
         try {
             const { adapter, doc: extracted, ms } = await extract(fileToUse, opts);
+            if (!isCurrent()) return null; // superada por otra operación: ignorar
             setFile(fileToUse);
             setFormatName(adapterLabel(adapter));
             const names = (extracted.source && extracted.source.sheetNames) || [];
@@ -144,6 +150,7 @@ export default function UniversalImportWizard({
             setPhase('ready');
             return extracted;
         } catch (err) {
+            if (!isCurrent()) return null;
             setFile(fileToUse);
             setDoc(null);
             fail('extracción', err);
@@ -152,11 +159,14 @@ export default function UniversalImportWizard({
     }
 
     async function runAnalyze(docToUse, fileToUse) {
+        const myReq = ++requestRef.current;
+        const isCurrent = () => requestRef.current === myReq;
         setPhase('analyzing');
         setError(null);
         try {
             const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
             const analysis = UniversalPlanAnalyzer.analyzeCanonicalDocument(docToUse);
+            if (!isCurrent()) return null; // superada: ignorar
             const ms = Math.round(((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0));
             if (!analysis || !Array.isArray(analysis.regions) || analysis.regions.length === 0) {
                 throw new Error('El análisis no produjo ninguna región utilizable (¿hoja vacía o sin códigos?).');
@@ -186,6 +196,7 @@ export default function UniversalImportWizard({
             setPhase('diagnosed');
             return next;
         } catch (err) {
+            if (!isCurrent()) return null;
             fail('análisis', err);
             return null;
         }
@@ -325,6 +336,7 @@ export default function UniversalImportWizard({
             fileName: file ? file.name : null,
             format: formatName,
             sheets,
+            sheetName: sheetName || null,
             regionCount: session ? session.regions.length : 0,
             activeRegion: session ? session.activeRegionId : null,
             nodeCount: active ? active.contract.nodes.length : 0,
@@ -338,13 +350,16 @@ export default function UniversalImportWizard({
             guard,
             error: error ? `${error.where}: ${error.message}` : null
         });
-    }, [phase, uiStep, session, file, formatName, sheets, guard, error, onStateChange]);
+    }, [phase, uiStep, session, file, formatName, sheets, sheetName, guard, error, onStateChange]);
 
     const docSummary = doc ? {
         rows: doc.rows ? doc.rows.length : 0,
         confidence: doc.extractionConfidence ?? '—',
         ocrUsed: !!doc.ocrUsed,
-        format: (doc.source && doc.source.format) || formatName || '—'
+        format: (doc.source && doc.source.format) || formatName || '—',
+        // Hoja/páginas VIGENTES de esta extracción (diagnosticable a golpe de vista)
+        sheet: (docMeta && docMeta.sheetName) || null,
+        pages: (docMeta && docMeta.pages) ? docMeta.pages : null
     } : null;
 
     return (

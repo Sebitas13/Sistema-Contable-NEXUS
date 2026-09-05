@@ -33,7 +33,11 @@ const CORPUS = [
     { name: 'U5-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2, expectBlocks: 0 },
     // Caso limpio: camina 1→6 (resuelve todo en revisión, resumen en verde,
     // confirmación deshabilitada sin empresa). Generado, no copiado.
-    { name: 'U5-CSV', generated: 'CODIGO,NOMBRE\n1,ACTIVO\n11,CAJA\n1101,CAJA MN\n', publicName: 'u2-mini.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 0, walkToSix: true }
+    { name: 'U5-CSV', generated: 'CODIGO,NOMBRE\n1,ACTIVO\n11,CAJA\n1101,CAJA MN\n', publicName: 'u2-mini.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 0, walkToSix: true },
+    // Cambio de hoja a mitad de sesión (regresión U-9b): subir sin hoja
+    // (Hoja1 por defecto) → cambiar a Hoja5 → el resumen y el análisis
+    // deben seguir a la hoja vigente, nunca a la primera.
+    { name: 'U9-SHEETSWITCH', localPath: 'PUCT/Planes de cuentas.xlsx', switchTo: 'Hoja5', expectRows: 578, expectNodes: 577 }
 ];
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -94,6 +98,7 @@ async function main() {
             fs.writeFileSync(path.join(corpusDir, item.publicName), item.generated, 'utf8');
             continue;
         }
+        if (!item.file) continue; // casos con ruta local directa (sheet-switch)
         const f = path.join(root, item.file);
         if (fs.existsSync(f)) fs.copyFileSync(f, path.join(corpusDir, item.publicName));
     }
@@ -109,7 +114,85 @@ async function main() {
     await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`);
     log('✅ Navegador listo');
 
+    // Regresión U-9b: cambio de hoja a mitad de sesión con subida manual.
+    const runSwitchCase = async (item) => {
+        const url = `http://127.0.0.1:${port}/wizard-harness.html`;
+        const tab = await fetch(`http://127.0.0.1:${debugPort}/json/new?about:blank`, { method: 'PUT' }).then(r => r.json());
+        const s = cdpSession(tab);
+        await s.ready;
+        await s.send('Page.enable');
+        await s.send('Runtime.enable');
+        await s.send('DOM.enable');
+        const apiHits = [];
+        await s.send('Page.navigate', { url });
+        const evl = s.evl;
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        const readSnap = async () => {
+            try {
+                const raw = await evl('window.__WIZARD_U2__ ? JSON.stringify(window.__WIZARD_U2__) : "null"');
+                return JSON.parse(raw || 'null');
+            } catch { return null; }
+        };
+        const textOf = async (sel) => {
+            try {
+                return await evl(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); return el ? el.innerText : null; })()`);
+            } catch { return null; }
+        };
+        try {
+            // Esperar el picker por evaluate (robusto ante re-renders).
+            let pickerReady = false;
+            for (let i = 0; i < 30 && !pickerReady; i++) {
+                await sleep(1000);
+                try {
+                    pickerReady = await evl(`!!document.querySelector('input[data-testid="u2-file-input"]')`);
+                } catch { pickerReady = false; }
+            }
+            if (!pickerReady) return { switchCase: { error: 'sin picker' }, browserReal: false, apiHits };
+            // Nodo fresco para la subida (los nodeIds caducan con cada render).
+            const docNode = await s.send('DOM.getDocument', {});
+            const inputId = (await s.send('DOM.querySelector', { nodeId: docNode.result.root.nodeId, selector: 'input[data-testid="u2-file-input"]' })).result.nodeId;
+            if (!inputId) return { switchCase: { error: 'sin picker' }, browserReal: false, apiHits };
+            await s.send('DOM.setFileInputFiles', { nodeId: inputId, files: [path.join(root, item.localPath)] });
+            let initial = null;
+            for (let i = 0; i < 30; i++) {
+                await sleep(1000);
+                const t = await textOf('[data-testid="u2-extraction-summary"]');
+                if (t && /filas extraídas/.test(t)) { initial = t; break; }
+            }
+            if (!initial) return { switchCase: { error: 'sin resumen inicial' }, browserReal: true, apiHits };
+            await evl(`(() => { const sel = document.querySelector('[data-testid="u2-sheet-select"]'); sel.value = ${JSON.stringify(item.switchTo)}; sel.dispatchEvent(new Event('change', { bubbles: true })); return 1; })()`);
+            let after = null;
+            for (let i = 0; i < 30; i++) {
+                await sleep(1000);
+                const t = await textOf('[data-testid="u2-extraction-summary"]');
+                const active = await evl(`(() => { const el = document.querySelector('[data-testid="u2-active-sheet"]'); return el ? el.textContent : null; })()`);
+                if (t && active === item.switchTo) { after = { text: t, active }; break; }
+            }
+            let diagnosed = null;
+            if (after) {
+                await evl(`document.querySelector('[data-testid="u2-analyze-btn"]').click()`);
+                for (let i = 0; i < 60; i++) {
+                    await sleep(1000);
+                    const parsed = await readSnap();
+                    if (parsed && parsed.phase === 'diagnosed' && parsed.uiStep === 2) { diagnosed = parsed; break; }
+                }
+            }
+            await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
+            s.close();
+            return { switchCase: { initial, after, diagnosed, snapSheet: (diagnosed || {}).sheetName ?? null }, browserReal: true, apiHits };
+        } catch (e) {
+            try { await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`); } catch { }
+            try { s.close(); } catch { }
+            return { switchCase: { error: e.message }, browserReal: false, apiHits };
+        }
+    };
+
     const runCase = async (item) => {
+        // Caso subida manual local (sheet-switch): sin ?file=, el harness
+        // muestra el picker del wizard y se sube por CDP.
+        if (item.localPath) {
+            return await runSwitchCase(item);
+        }
         const q = `?file=wizard-corpus/${item.publicName}${item.sheet ? '&sheet=' + encodeURIComponent(item.sheet) : ''}${item.pages ? '&pages=' + item.pages : ''}&auto=1`;
         const url = `http://127.0.0.1:${port}/wizard-harness.html${q}`;
         const tab = await fetch(`http://127.0.0.1:${debugPort}/json/new?about:blank`, { method: 'PUT' }).then(r => r.json());
@@ -269,13 +352,37 @@ async function main() {
     };
 
     let pass = 0, fail = 0;
+    const onlyArg = (process.argv.find(a => a.startsWith('--only=')) || '').slice('--only='.length);
     for (const item of CORPUS) {
-        if (!item.generated) {
+        if (onlyArg && !item.name.includes(onlyArg)) continue;
+        if (!item.generated && item.file) {
             const f = path.join(root, item.file);
             if (!fs.existsSync(f)) { log(`⚠️ ${item.name}: archivo no existe`); continue; }
         }
         try {
-            const { snap, browserReal, apiHits, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic } = await runCase(item);
+            const res = await runCase(item);
+            // Caso sheet-switch U-9b (flujo propio).
+            if (item.localPath) {
+                const sc = res.switchCase || {};
+                const swChecks = [
+                    ['navegador real', res.browserReal === true],
+                    ['resumen inicial (Hoja1)', typeof sc.initial === 'string' && /590 filas/.test(sc.initial)],
+                    ['resumen sigue a la hoja (Hoja5)', !!(sc.after && /578 filas/.test(sc.after.text) && sc.after.active === item.switchTo)],
+                    ['snapshot sheetName', sc.snapSheet === item.switchTo],
+                    ['diagnóstico con la hoja vigente (577)', !!(sc.diagnosed && sc.diagnosed.nodeCount === item.expectNodes)],
+                    ['cero /api/*', res.apiHits.length === 0]
+                ];
+                const swBad = swChecks.filter(([, ok]) => !ok).map(([name]) => name);
+                if (swBad.length === 0) {
+                    pass++;
+                    log(`✅ ${item.name}: subida manual Hoja1 (590) → cambio a Hoja5 (578) → diagnóstico 577 · la UI sigue a la hoja vigente`);
+                } else {
+                    fail++;
+                    log(`❌ ${item.name}: falla en [${swBad.join(', ')}] sc=${JSON.stringify(sc)}`);
+                }
+                continue;
+            }
+            const { snap, browserReal, apiHits, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic } = res;
             // Caso guard U-9: PUCT excluido antes de analizar.
             if (item.expectGuard) {
                 const g = guard || {};
