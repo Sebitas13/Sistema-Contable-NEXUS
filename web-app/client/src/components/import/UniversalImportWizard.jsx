@@ -18,10 +18,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import NexusModal from '../NexusModal.jsx';
 import { detectFormat } from '../../utils/FormatAdapter.js';
 import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
-import { createImportSession, selectRegion, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
+import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, resolveReview, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
 import ImportFileStep from './ImportFileStep.jsx';
 import ImportDiagnosticStep from './ImportDiagnosticStep.jsx';
 import ImportValidationStep from './ImportValidationStep.jsx';
+import ImportReviewStep from './ImportReviewStep.jsx';
 
 const SUPPORTED_LABEL = '.xlsx, .xls, .xlsm, .pdf, .csv, .txt';
 const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen', 'Confirmación'];
@@ -54,9 +55,9 @@ export default function UniversalImportWizard({
     const [analysisMs, setAnalysisMs] = useState(null);
     const [session, setSession] = useState(null);
     const [phase, setPhase] = useState('pick'); // pick|extracting|ready|analyzing|diagnosed|error
-    const [uiStep, setUiStep] = useState(1); // 1..3 en U-3 (4..6 llegan en U-4+)
+    const [uiStep, setUiStep] = useState(1); // 1..4 en U-4 (5..6 llegan en U-5+)
     const [error, setError] = useState(null); // { where, message }
-    const [showU4Notice, setShowU4Notice] = useState(false);
+    const [showU5Notice, setShowU5Notice] = useState(false);
     const lastOpRef = useRef(null); // { kind: 'extract'|'analyze' } para reintentar
     const autoStartedRef = useRef(false);
 
@@ -108,7 +109,7 @@ export default function UniversalImportWizard({
             setSession(null);
             setAnalysisMs(null);
             setUiStep(1);
-            setShowU4Notice(false);
+            setShowU5Notice(false);
             setPhase('ready');
             return extracted;
         } catch (err) {
@@ -154,7 +155,7 @@ export default function UniversalImportWizard({
         if (!nextFile) {
             setFile(null); setDoc(null); setSession(null); setSheets([]);
             setSheetName(''); setError(null); setPhase('pick'); setUiStep(1);
-            setShowU4Notice(false);
+            setShowU5Notice(false);
             return;
         }
         await runExtract(nextFile, {});
@@ -202,6 +203,38 @@ export default function UniversalImportWizard({
         setSession(prev => (prev ? selectRegion(prev, regionId) : prev));
     }
 
+    // Capa de overrides (paso 4): cada handler aplica UNA operación pura de
+    // ImportSession. La sesión es inmutable: siempre se reemplaza, nunca se muta.
+    function handleOverride(uid, field, value) {
+        setSession(prev => (prev ? applyOverride(prev, uid, field, value) : prev));
+    }
+    function handleExclude(uid) {
+        setSession(prev => (prev ? excludeRow(prev, uid, true) : prev));
+    }
+    function handleInclude(uid) {
+        setSession(prev => (prev ? excludeRow(prev, uid, false) : prev));
+    }
+    function handleConfirmNature(uid, nature) {
+        setSession(prev => (prev ? confirmNature(prev, uid, nature) : prev));
+    }
+    function handleResolveReview(target) {
+        setSession(prev => (prev ? resolveReview(prev, target) : prev));
+    }
+    function handleBulkType(uids, type) {
+        setSession(prev => {
+            if (!prev) return prev;
+            let next = prev;
+            for (const uid of uids) {
+                try {
+                    next = applyOverride(next, uid, 'type', type);
+                } catch {
+                    // uid inválido o fila excluida a mitad del lote: se omite y se sigue
+                }
+            }
+            return next;
+        });
+    }
+
     // Piloto automático del harness E2E (solo cuando se pide explícitamente).
     useEffect(() => {
         if (!autoStart || !initialFile || autoStartedRef.current) return;
@@ -223,6 +256,8 @@ export default function UniversalImportWizard({
         const active = session ? session.regions.find(r => r.regionId === session.activeRegionId) : null;
         let validation = null;
         let simulation = null;
+        let userActions = null;
+        let effectiveNodes = null;
         if (session) {
             try {
                 const rep = canImportReport(session);
@@ -232,6 +267,7 @@ export default function UniversalImportWizard({
                     blocks: sum.issues.blocks,
                     reviews: (sum.issues.reviewWarningsUnresolved || 0) + (sum.issues.nodeReviewsUnresolved || 0) + (sum.issues.unknownNatureUnresolved || 0)
                 };
+                userActions = { ...sum.userActions };
             } catch { validation = null; }
             try {
                 const sim = simulate(session, { companyId: null });
@@ -241,6 +277,7 @@ export default function UniversalImportWizard({
                     fingerprint: sim.fingerprint ? String(sim.fingerprint).slice(0, 16) : null,
                     reason: sim.reason || null
                 };
+                effectiveNodes = sim.effectiveNodeCount;
             } catch { simulation = null; }
         }
         onStateChange({
@@ -257,6 +294,8 @@ export default function UniversalImportWizard({
             unaccounted: active ? (active.contract.dataLoss?.unaccountedRows ?? 0) : 0,
             validation,
             simulation,
+            userActions,
+            effectiveNodes,
             error: error ? `${error.where}: ${error.message}` : null
         });
     }, [phase, uiStep, session, file, formatName, sheets, error, onStateChange]);
@@ -292,7 +331,7 @@ export default function UniversalImportWizard({
                         const cls = current ? 'btn-primary' : (done ? 'btn-outline-primary' : 'btn-outline-secondary disabled');
                         const inner = (<><span className="badge bg-dark me-1">{n}</span>{label}</>);
                         return reachable ? (
-                            <button key={label} type="button" data-testid={`u2-step-${n}`} className={`btn btn-sm ${cls}`} onClick={() => { setUiStep(n); setShowU4Notice(false); }}>
+                            <button key={label} type="button" data-testid={`u2-step-${n}`} className={`btn btn-sm ${cls}`} onClick={() => { setUiStep(n); setShowU5Notice(false); }}>
                                 {inner}
                             </button>
                         ) : (
@@ -326,7 +365,7 @@ export default function UniversalImportWizard({
                     <ImportDiagnosticStep
                         session={session}
                         onSelectRegion={handleSelectRegion}
-                        onBack={() => { setUiStep(1); setShowU4Notice(false); }}
+                        onBack={() => { setUiStep(1); setShowU5Notice(false); }}
                         onNext={() => setUiStep(3)}
                     />
                 )}
@@ -334,9 +373,23 @@ export default function UniversalImportWizard({
                 {uiStep === 3 && session && (
                     <ImportValidationStep
                         session={session}
-                        onBack={() => { setUiStep(2); setShowU4Notice(false); }}
-                        onNext={() => setShowU4Notice(true)}
-                        showNotice={showU4Notice}
+                        onBack={() => { setUiStep(2); setShowU5Notice(false); }}
+                        onNext={() => setUiStep(4)}
+                    />
+                )}
+
+                {uiStep === 4 && session && (
+                    <ImportReviewStep
+                        session={session}
+                        onOverride={handleOverride}
+                        onExclude={handleExclude}
+                        onInclude={handleInclude}
+                        onConfirmNature={handleConfirmNature}
+                        onResolveReview={handleResolveReview}
+                        onBulkType={handleBulkType}
+                        onBack={() => { setUiStep(3); setShowU5Notice(false); }}
+                        onNext={() => setShowU5Notice(true)}
+                        showNotice={showU5Notice}
                     />
                 )}
 

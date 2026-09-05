@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * test_import_wizard_u2.mjs — Suite del UniversalImportWizard pasos 1–3 (Fase 7 U-3).
+ * test_import_wizard_u2.mjs — Suite del UniversalImportWizard pasos 1–4 (Fase 7 U-4).
  *
  *  A. Alcance estático: el wizard nuevo no toca red/backend, no filtra
  *     inteligencia legacy (SmartImportWizard/AccountPlanProfile) y el montaje
  *     en Accounts.jsx conserva el fallback legacy.
  *  B. Contrato UI↔engine: con corpus real (DASH Hoja2) se verifica que cada
- *     campo que consumen Diagnóstico y Validación/Simulación existe con la
- *     forma esperada (incl. ImportContractValidator + simulate en memoria).
+ *     campo que consumen Diagnóstico, Validación/Simulación y Revisión existe
+ *     con la forma esperada (incl. Validator + simulate + flujos de overrides
+ *     que maneja el paso 4).
  *  C. CSV: el engine extrae y analiza CSV (capacidad nueva vs legacy).
  *  D. Detección de formatos.
  *
@@ -37,7 +38,7 @@ function criterion(id, ok, detail = '') {
 const T0 = Date.now();
 function elapsed() { return `${((Date.now() - T0) / 1000).toFixed(1)}s`; }
 
-const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'engineFlag.js'];
+const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'engineFlag.js'];
 const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 
 // ─────────────────────────────────────────────────────────────
@@ -58,7 +59,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A6.noLegacyIntel', !all.includes('SmartImportWizard') && !all.includes('AccountPlanProfile'), 'sin imports de SmartImportWizard ni AccountPlanProfile (cero inteligencia legacy)');
 
     // Allowlist de imports del orquestador
-    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx']);
+    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx']);
     const imports = [...contents['UniversalImportWizard.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     const bad = imports.filter(i => !allow.has(i) && !i.startsWith('react'));
     criterion('A7.importAllowlist', imports.length > 0 && bad.length === 0, `imports del orquestador dentro de la allowlist (${imports.length} imports)${bad.length ? ' — fuera: ' + bad.join(',') : ''}`);
@@ -69,6 +70,8 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A9.fileImports', fileImports.every(i => i === 'react'), 'ImportFileStep solo importa react (presentacional puro)');
     const valImports = [...contents['ImportValidationStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     criterion('A11.valImports', valImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractValidator.js'), 'ImportValidationStep: react + importSession + Validator del engine (presenta veredictos, no decide)');
+    const revImports = [...contents['ImportReviewStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+    criterion('A12.revImports', revImports.every(i => i === 'react' || i === '../../importSession/index.js'), 'ImportReviewStep: react + importSession (overrides con traza, sin re-inferir)');
 
     const accounts = fs.readFileSync(path.join(root, 'web-app/client/src/pages/Accounts.jsx'), 'utf8');
     criterion('A10.mountFallback',
@@ -146,6 +149,72 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 }
 
 // ─────────────────────────────────────────────────────────────
+// E. FLUJOS DE REVISIÓN (las secuencias exactas que ejecuta el paso 4)
+// ─────────────────────────────────────────────────────────────
+{
+    const rNode = (code, extra = {}) => Object.assign({
+        code, rawCode: code, name: code, normalizedCode: code, transformations: [],
+        requiresReview: false, level: 1, parent: null,
+        parentInfo: { code: null, method: 'EXPLICIT', confidence: 1, evidence: [], requiresReview: false },
+        type: 'Activo', nature: 'EXPLICIT', natureConfidence: 1, natureReason: 'source_column',
+        natureSource: 'source_column', classification: 'LEAF', isPostable: 'EXPLICIT_TRUE', postableConfidence: 1
+    }, extra);
+    const rContract = mkReviewContractNodes => ({
+        contractVersion: '1.0', schemaVersion: '1.0', analyzerVersion: '2.1.0',
+        source: { file: 'r.xlsx', sheet: 'S', headers: ['CODIGO', 'NOMBRE'], rowCount: mkReviewContractNodes.length },
+        columnMapping: { codeColumn: 0, nameColumn: 1, parentColumn: null, typeColumn: null },
+        hierarchy: { separator: null, levelLengths: [], levelCount: 0 }, separator: null, levels: [],
+        rootNodes: [], nodeCounts: { total: mkReviewContractNodes.length, roots: 0, groups: 0, leaves: mkReviewContractNodes.length },
+        leafCounts: mkReviewContractNodes.length,
+        stats: { totalRows: mkReviewContractNodes.length, validRows: mkReviewContractNodes.length, rejectedRows: 0 },
+        nodes: mkReviewContractNodes, transformations: [], rejectedRows: [],
+        warnings: [{ type: 'IMPLICIT_LEVEL_GAP', severity: 'REVIEW', from: '1', to: '11', message: 'Salto implícito' }],
+        errors: [], confidence: { overall: 0.75, secondBest: 0, ambiguityMargin: 0.2 },
+        requiresConfirmation: true,
+        dataLoss: { silentTransformationCount: 0, semanticCollisionCount: 0, identityCollisionCount: 0, droppedRowCount: 0, droppedCellCount: 0, unmappedColumnCount: 0, unresolvedNodeCount: 0, dataLossCount: 0, unaccountedRows: 0, collisions: [] },
+        silentCorruptionCount: 0
+    });
+    const reviewContract = rContract([
+        rNode('1', { name: 'ACTIVO', classification: 'ROOT', nature: 'INFERRED', natureConfidence: 0.6, isPostable: 'INFERRED_TRUE' }),
+        rNode('11', { name: 'CAJA', level: 2, parent: '1', cls: undefined, classification: 'LEAF', parentInfo: { code: '1', method: 'PAD_TO_BLOCK', confidence: 0.91, evidence: ['hermano en bloque'], requiresReview: true } }),
+        rNode('1101', { name: 'CAJA MN', level: 3, parent: '11', classification: 'LEAF' })
+    ]);
+
+    // B14: bulk type (la secuencia del botón "Asignar tipo"): N overrides con traza
+    let s = S.createImportSession({ regions: [reviewContract] });
+    const rid = s.regions[0].regionId;
+    for (const uid of [`${rid}:0`, `${rid}:1`, `${rid}:2`]) {
+        s = S.applyOverride(s, uid, 'type', 'Pasivo');
+    }
+    const effB14 = S.effectiveContractOf(s);
+    criterion('B14.bulk', effB14.nodes.every(n => n.type === 'Pasivo') && s.overrides.length === 3 && s.overrides.every(o => 'originalValue' in o && 'at' in o), 'bulk type: 3 overrides con traza, effective refleja los 3');
+
+    // B15: excluir → editar excluida → re-incluir (el override sobrevive y se aplica)
+    s = S.excludeRow(s, `${rid}:1`);
+    s = S.applyOverride(s, `${rid}:1`, 'name', 'CAJA EDITADA');
+    criterion('B15.excludedEdit', S.effectiveContractOf(s).nodes.length === 2, 'override sobre fila excluida no entra al effective');
+    s = S.excludeRow(s, `${rid}:1`, false);
+    const effB15 = S.effectiveContractOf(s);
+    criterion('B15b.reapply', effB15.nodes.length === 3 && effB15.nodes[1].name === 'CAJA EDITADA', 'al re-incluir, el override se re-aplica');
+
+    // B16: resolver warning + nodo + confirmar raíz INFERRED → gates en verde
+    s = S.resolveReview(s, `${rid}:w0`);
+    s = S.resolveReview(s, `${rid}:1`);
+    s = S.confirmNature(s, `${rid}:0`, 'Activo');
+    criterion('B16.gatesClear', S.canImport(s) === true, 'warn + nodo resueltos + raíz confirmada → canImport=true');
+
+    // B17: lote con un uid inválido no tumba la secuencia (semántica del handler bulk)
+    let s2 = S.createImportSession({ regions: [reviewContract] });
+    const rid2 = s2.regions[0].regionId;
+    let applied = 0;
+    for (const uid of [`${rid2}:0`, `${rid2}:99`, `${rid2}:2`]) {
+        try { s2 = S.applyOverride(s2, uid, 'type', 'Gasto'); applied++; }
+        catch { /* uid inválido: se omite y se sigue */ }
+    }
+    criterion('B17.bulkRobust', applied === 2 && S.effectiveContractOf(s2).nodes.filter(n => n.type === 'Gasto').length === 2, 'bulk con uid inválido: aplica los válidos sin lanzar');
+}
+
+// ─────────────────────────────────────────────────────────────
 // C. CSV (capacidad nueva vs legacy)
 // ─────────────────────────────────────────────────────────────
 {
@@ -173,7 +242,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // RESUMEN
 // ─────────────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(95));
-console.log(`RESULTADO WIZARD U-3: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
+console.log(`RESULTADO WIZARD U-4: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
 console.log('\n── CRITERIOS ──');
 for (const c of CRITERIA) {

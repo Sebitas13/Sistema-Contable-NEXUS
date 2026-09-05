@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * wizard_e2e_u2.mjs — E2E REAL del UniversalImportWizard (pasos 1–3) en navegador.
+ * wizard_e2e_u2.mjs — E2E REAL del UniversalImportWizard (pasos 1–4) en navegador.
  *
  * Flujo verificado: File API real → UniversalImportWizard → FormatAdapter →
  * CanonicalDocument → UniversalPlanAnalyzer → ImportSession → diagnóstico UI →
- * validación (gates) + simulación (payload en memoria).
+ * validación (gates) + simulación (payload en memoria) → revisión (edición real
+ * de celda + exclusión real de fila con traza en la sesión).
  * Cero red hacia el backend: se intercepta TODO el tráfico y se exige que
  * ninguna request toque /api/* (ni POST, ni GET).
  *
- * Gate manual de U-3 (no forma parte de `npm test`: requiere Edge/Chrome + minutos).
+ * Gate manual de U-4 (no forma parte de `npm test`: requiere Edge/Chrome + minutos).
  * Exit: 0 si todo PASS; 1 si algún caso falla; 2 si no hay navegador.
  */
 import { spawn } from 'child_process';
@@ -26,9 +27,9 @@ const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const browserPath = fs.existsSync(EDGE) ? EDGE : (fs.existsSync(CHROME) ? CHROME : null);
 
 const CORPUS = [
-    { name: 'U3-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectNodes: 2000, expectRegions: 1, expectBlocks: 5 },
-    { name: 'U3-DASH(Hoja2)', file: 'PUCT/Planes de cuentas.xlsx', publicName: 'u2-hoja2.xlsx', sheet: 'Hoja2', pages: null, expectNodes: 200, expectRegions: 1, expectBlocks: 1 },
-    { name: 'U3-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2, expectBlocks: 0 }
+    { name: 'U4-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectNodes: 2000, expectRegions: 1, expectBlocks: 5 },
+    { name: 'U4-DASH(Hoja2)', file: 'PUCT/Planes de cuentas.xlsx', publicName: 'u2-hoja2.xlsx', sheet: 'Hoja2', pages: null, expectNodes: 200, expectRegions: 1, expectBlocks: 1 },
+    { name: 'U4-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2, expectBlocks: 0 }
 ];
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -147,11 +148,62 @@ async function main() {
                 } catch { /* contexto aún no listo */ }
             }
         } catch (e) {
-            step3 = { error: 'click-next: ' + e.message };
+            step3 = { error: 'click-next-3: ' + e.message };
+        }
+        // Paso 4: clic en "Continuar a revisión", editar + excluir de verdad
+        let step4 = null, afterEdit = null, afterExclude = null;
+        try {
+            if (step3 && step3.uiStep === 3) {
+                await s.evl('document.querySelector(\'[data-testid="u2-next-btn"]\').click()');
+            }
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                try {
+                    const raw = await s.evl('window.__WIZARD_U2__ ? JSON.stringify(window.__WIZARD_U2__) : "null"');
+                    const parsed = JSON.parse(raw || 'null');
+                    if (parsed && parsed.uiStep === 4) { step4 = parsed; break; }
+                } catch { /* contexto aún no listo */ }
+            }
+            if (step4) {
+                // Edición real de celda (nombre de la primera fila)
+                await s.evl(`(() => {
+                    const el = document.querySelector('[data-testid^="u2-cell-name-"]');
+                    if (!el) return 'no-input';
+                    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                    setter.call(el, 'EDITADA E2E');
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    return 'edited';
+                })()`);
+                for (let i = 0; i < 15; i++) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    try {
+                        const raw = await s.evl('window.__WIZARD_U2__ ? JSON.stringify(window.__WIZARD_U2__) : "null"');
+                        const parsed = JSON.parse(raw || 'null');
+                        if (parsed && parsed.userActions && parsed.userActions.overrides >= 1) { afterEdit = parsed; break; }
+                    } catch { }
+                }
+                // Exclusión real de fila (primera fila)
+                await s.evl(`(() => {
+                    const btn = document.querySelector('[data-testid^="u2-del-"]');
+                    if (!btn) return 'no-btn';
+                    btn.click();
+                    return 'excluded';
+                })()`);
+                for (let i = 0; i < 15; i++) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    try {
+                        const raw = await s.evl('window.__WIZARD_U2__ ? JSON.stringify(window.__WIZARD_U2__) : "null"');
+                        const parsed = JSON.parse(raw || 'null');
+                        if (parsed && parsed.userActions && parsed.userActions.exclusions >= 1) { afterExclude = parsed; break; }
+                    } catch { }
+                }
+            }
+        } catch (e) {
+            step4 = step4 || { error: 'paso4: ' + e.message };
         }
         await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
         s.close();
-        return { snap, browserReal, apiHits, step3 };
+        return { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude };
     };
 
     let pass = 0, fail = 0;
@@ -159,7 +211,7 @@ async function main() {
         const f = path.join(root, item.file);
         if (!fs.existsSync(f)) { log(`⚠️ ${item.name}: archivo no existe`); continue; }
         try {
-            const { snap, browserReal, apiHits, step3 } = await runCase(item);
+            const { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude } = await runCase(item);
             if (!snap || !browserReal || snap.phase !== 'diagnosed') {
                 fail++;
                 log(`❌ ${item.name}: SIN DIAGNÓSTICO (phase=${snap?.phase} browser=${browserReal} err=${snap?.error || '—'})`);
@@ -185,13 +237,23 @@ async function main() {
                     ['fingerprint presente', typeof step3.simulation.fingerprint === 'string' && step3.simulation.fingerprint.length > 0]
                 );
             }
+            // Paso 4: revisión con edición y exclusión reales
+            if (!step4 || step4.uiStep !== 4) {
+                checks.push(['paso=4', false]);
+            } else {
+                checks.push(
+                    ['paso=4', true],
+                    ['edición registra override', !!(afterEdit && afterEdit.userActions && afterEdit.userActions.overrides >= 1)],
+                    ['exclusión registra + reduce effective', !!(afterExclude && afterExclude.userActions && afterExclude.userActions.exclusions >= 1 && afterExclude.effectiveNodes === afterExclude.nodeCount - afterExclude.userActions.exclusions)]
+                );
+            }
             const bad = checks.filter(([, ok]) => !ok).map(([name]) => name);
             if (bad.length === 0) {
                 pass++;
-                log(`✅ ${item.name}: paso=2→3 regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · validación can=false · simulación bloqueada con fingerprint · cero red /api/*`);
+                log(`✅ ${item.name}: paso=2→3→4 regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · validación can=false · simulación bloqueada · edición+exclusión con traza · cero red /api/*`);
             } else {
                 fail++;
-                log(`❌ ${item.name}: falla en [${bad.join(', ')}] snap=${JSON.stringify(snap)} step3=${JSON.stringify(step3)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
+                log(`❌ ${item.name}: falla en [${bad.join(', ')}] step4=${JSON.stringify(step4)} afterEdit=${JSON.stringify(afterEdit?.userActions)} afterExclude=${JSON.stringify(afterExclude?.userActions)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
             }
         } catch (e) {
             fail++;
@@ -202,7 +264,7 @@ async function main() {
     try { fs.rmSync(corpusDir, { recursive: true, force: true }); } catch { }
     try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch { }
     try { vite.kill(); edge.kill(); } catch { }
-    log(`\nWizard E2E U-3: ${pass} PASS / ${fail} FAIL`);
+    log(`\nWizard E2E U-4: ${pass} PASS / ${fail} FAIL`);
     process.exit(fail > 0 ? 1 : 0);
 }
 

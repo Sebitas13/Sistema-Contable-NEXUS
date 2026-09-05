@@ -23,7 +23,7 @@ function reasonIcon(reason) {
     return 'bi-exclamation-triangle';
 }
 
-export default function ImportValidationStep({ session, onBack, onNext, showNotice }) {
+export default function ImportValidationStep({ session, onBack, onNext }) {
     const [tab, setTab] = useState('issues'); // issues | simulation
 
     const report = useMemo(() => canImportReport(session), [session]);
@@ -189,14 +189,6 @@ export default function ImportValidationStep({ session, onBack, onNext, showNoti
                     Continuar a revisión <i className="bi bi-arrow-right ms-2"></i>
                 </button>
             </div>
-
-            {showNotice && (
-                <div className="alert alert-info mt-3" data-testid="u2-u4-notice">
-                    <i className="bi bi-info-circle me-2"></i>
-                    <strong>Paso 4 (Revisión con overrides explícitos) llega en el incremento U-4.</strong> La
-                    resolución de estos puntos se hará allí, con traza completa.
-                </div>
-            )}
         </div>
     );
 }
