@@ -11,6 +11,7 @@
  *                                   forense, payload parity, pad-to-block II, etc.)
  *   5. test_import_session.mjs       (ImportSession U-1: capa pura de sesión)
  *   6. test_import_wizard_u2.mjs     (Wizard U-6: alcance estático + contrato UI↔engine)
+ *   7. shadow_differential.mjs       (U-7: diferencial shadow legacy vs universal)
  *
  * Exit code != 0 si alguna suite falla.
  */
@@ -26,7 +27,8 @@ const suites = [
     { file: 'contract_audit.mjs', label: 'Auditoría de contrato' },
     { file: 'production_gate.mjs', label: 'Production readiness gate' },
     { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' },
-    { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-6 (flag+fallback+6 pasos)' }
+    { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-6 (flag+fallback+6 pasos)' },
+    { file: 'shadow_differential.mjs', label: 'Shadow differential (U-7)' }
 ];
 
 let failures = 0;

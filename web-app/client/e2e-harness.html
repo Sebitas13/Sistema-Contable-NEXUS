@@ -43,6 +43,7 @@
   import { ImportContractValidator } from '/src/utils/ImportContractValidator.js';
   import { CompatibilityAdapter } from '/src/utils/CompatibilityAdapter.js';
   import { nodesFingerprint } from '/src/utils/ImportContractSchema.js';
+  import * as ShadowComparator from '/src/utils/ShadowComparator.js';
   // Marcar el entorno para que el runner CDP pueda confirmar que es un navegador real
   window.__E2E_BROWSER__ = true;
   window.__E2E_RESULTS__ = [];
@@ -89,6 +90,10 @@
     drop.style.display = 'none';
     loadFromParams();
   }
+
+  // ── Modo dual CDP/headless: ?dual=1&kind=dash — compara legacy vs universal
+  //    en el propio navegador (ver scripts/shadow_e2e.mjs). ──
+  const DUAL_KIND = new URLSearchParams(location.search).get('kind');
 
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
 
@@ -150,6 +155,28 @@
             blockTypes: [...new Set((c.errors||[]).filter(e => e.severity==='BLOCK').map(e => e.type))],
             contractVersion: c.contractVersion
           });
+        }
+        // ── Diferencial shadow en navegador (solo modo dual, primera región tabla)
+        if (DUAL_KIND && analysis.regions.length > 0) {
+          try {
+            const grid = doc.rows.map(r => r.cells.map(c => (c.rawValue ?? '').toString()));
+            const { tuples } = ShadowComparator.tuplesFromGrid(grid, DUAL_KIND);
+            const detected = ShadowComparator.detectLegacyKind(tuples);
+            const legacy = ShadowComparator.buildLegacyPreview(detected.kind, tuples);
+            const sourceCodes = new Set();
+            for (const row of grid) for (const cell of row) { const v = (cell || '').trim(); if (v) sourceCodes.add(v); }
+            const c0 = analysis.regions[0];
+            const diff = ShadowComparator.classify(legacy.rows, c0, { file: file.name, sourceCodes, allowlist: [] });
+            say(`⚖️ shadow dual (${detected.kind}): veredicto ${diff.verdict} — SAME=${diff.counts.SAME} IMP=${diff.counts.IMPROVEMENT} REG=${diff.counts.REGRESSION} UNK=${diff.counts.UNKNOWN}`, diff.verdict === 'PASS' ? 'ok' : 'err');
+            pushResult({
+              file: file.name, differential: true, kind: detected.kind, verdict: diff.verdict,
+              counts: diff.summary,
+              sample: diff.items.filter(i => i.verdict === 'REGRESSION' || i.verdict === 'UNKNOWN').slice(0, 5)
+            });
+          } catch (e) {
+            say(`❌ dual: ${e.message}`, 'err');
+            pushResult({ file: file.name, differential: true, verdict: 'ERROR', error: e.message });
+          }
         }
         say(`⏱ Total ${((performance.now()-t0)/1000).toFixed(2)}s`);
         fileReport.totalMs = (performance.now()-t0).toFixed(0);
