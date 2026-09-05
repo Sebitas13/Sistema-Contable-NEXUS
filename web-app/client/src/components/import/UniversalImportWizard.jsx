@@ -32,6 +32,10 @@ import ImportConfirmationStep from './ImportConfirmationStep.jsx';
 
 const SUPPORTED_LABEL = '.xlsx, .xls, .xlsm, .pdf, .csv, .txt';
 const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen', 'Confirmación'];
+// Identificador visible de build del asistente: sirve para verificar en el
+// navegador que se está ejecutando una versión con los arreglos de hoja
+// (U-9b+). Subir al tocar el wizard.
+const WIZARD_BUILD = 'U-9d';
 
 function adapterLabel(adapter) {
     if (!adapter) return null;
@@ -425,7 +429,7 @@ export default function UniversalImportWizard({
                 <div className="card glass-panel border-secondary mb-3" data-testid="u2-mode-banner">
                     <div className="card-body py-2 small d-flex align-items-center gap-2 flex-wrap">
                         <i className="bi bi-flask me-1 text-info"></i>
-                        <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.{importCount > 0 && <> <span className="badge bg-dark border ms-1">{importCount} import{importCount === 1 ? '' : 's'} con esta herramienta en este navegador</span></>}</span>
+                        <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.{importCount > 0 && <> <span className="badge bg-dark border ms-1">{importCount} import{importCount === 1 ? '' : 's'} con esta herramienta en este navegador</span></>} <span className="badge bg-dark border ms-1 text-white-50" title="Identificador de build: si no ves U-9b o superior aquí, tu navegador/deploy está sirviendo una versión vieja del asistente">build {WIZARD_BUILD}</span></span>
                         <button type="button" data-testid="u2-use-classic-btn" className="btn btn-sm btn-outline-secondary"
                             title="Volver al asistente clásico (se recuerda tu preferencia)"
                             onClick={() => { try { setImportEngineMode('legacy'); } catch { /* sin almacenamiento: igual se cierra */ } if (onClose) onClose(); }}>
