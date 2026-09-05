@@ -20,6 +20,7 @@ import { detectFormat } from '../../utils/FormatAdapter.js';
 import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
 import { useCompany } from '../../context/CompanyContext.jsx';
 import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, resolveReview, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
+import { setImportEngineMode } from './engineFlag.js';
 import ImportFileStep from './ImportFileStep.jsx';
 import ImportDiagnosticStep from './ImportDiagnosticStep.jsx';
 import ImportValidationStep from './ImportValidationStep.jsx';
@@ -326,9 +327,14 @@ export default function UniversalImportWizard({
             contentClassName="shadow-lg"
         >
             <div className="modal-body p-4" data-testid="u2-wizard" data-u2-phase={phase}>
-                <div className="alert alert-secondary py-2 small d-flex align-items-center gap-2">
+                <div className="alert alert-secondary py-2 small d-flex align-items-center gap-2 flex-wrap" data-testid="u2-mode-banner">
                     <i className="bi bi-flask me-1"></i>
-                    <span>Vista previa del nuevo asistente (en memoria, sin importar). El asistente clásico sigue siendo el camino productivo.</span>
+                    <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.</span>
+                    <button type="button" data-testid="u2-use-classic-btn" className="btn btn-sm btn-outline-secondary"
+                        title="Volver al asistente clásico (se recuerda tu preferencia)"
+                        onClick={() => { try { setImportEngineMode('legacy'); } catch { /* sin almacenamiento: igual se cierra */ } if (onClose) onClose(); }}>
+                        Usar asistente clásico
+                    </button>
                 </div>
 
                 <div className="d-flex flex-wrap gap-1 mb-3" data-testid="u2-stepper" aria-label="Progreso del asistente">

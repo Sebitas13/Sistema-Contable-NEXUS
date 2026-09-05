@@ -26,6 +26,7 @@ const { UniversalPlanAnalyzer } = await import(pathToFileURL(path.join(root, 'we
 const { ImportContractValidator } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
 const { contractFingerprint } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractSchema.js')).href);
 const { deriveCompanyStructure } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/companyStructure.js')).href);
+const { getImportEngineMode, setImportEngineMode, isUniversalEnabled } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/engineFlag.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 
 const CRITERIA = [];
@@ -38,7 +39,7 @@ function criterion(id, ok, detail = '') {
 const T0 = Date.now();
 function elapsed() { return `${((Date.now() - T0) / 1000).toFixed(1)}s`; }
 
-const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'ImportSummaryStep.jsx', 'ImportConfirmationStep.jsx', 'engineFlag.js'];
+const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'ImportSummaryStep.jsx', 'ImportConfirmationStep.jsx', 'ImportErrorBoundary.jsx', 'engineFlag.js'];
 const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 
 // ─────────────────────────────────────────────────────────────
@@ -57,10 +58,10 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A5.localStorageOnlyFlag',
         !components.includes('localStorage') && contents['engineFlag.js'].includes('importEngine'),
         'localStorage solo en engineFlag.js (clave importEngine)');
-    criterion('A6.noLegacyIntel', !all.includes('SmartImportWizard') && !all.includes('AccountPlanProfile'), 'sin imports de SmartImportWizard ni AccountPlanProfile (cero inteligencia legacy)');
+    criterion('A6.noLegacyIntel', !all.includes('AccountPlanProfile') && WIZ_FILES.filter(f => contents[f].includes('SmartImportWizard')).join(',') === 'ImportErrorBoundary.jsx', 'AccountPlanProfile en ningún archivo; SmartImportWizard solo en ImportErrorBoundary (fallback de emergencia documentado)');
 
     // Allowlist de imports del orquestador
-    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx']);
+    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './engineFlag.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx']);
     const imports = [...contents['UniversalImportWizard.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     const bad = imports.filter(i => !allow.has(i) && !i.startsWith('react'));
     criterion('A7.importAllowlist', imports.length > 0 && bad.length === 0, `imports del orquestador dentro de la allowlist (${imports.length} imports)${bad.length ? ' — fuera: ' + bad.join(',') : ''}`);
@@ -91,6 +92,17 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A10.mountFallback',
         accounts.includes('SmartImportWizard') && accounts.includes('UniversalImportWizard') && accounts.includes('isUniversalEnabled()'),
         'Accounts.jsx conserva SmartImportWizard (fallback) + montaje condicional por isUniversalEnabled()');
+    const boundarySrc = contents['ImportErrorBoundary.jsx'];
+    criterion('A17.boundaryMechanics',
+        boundarySrc.includes('getDerivedStateFromError') && boundarySrc.includes('componentDidCatch') &&
+        boundarySrc.includes("setImportEngineMode('legacy')") && boundarySrc.includes('<SmartImportWizard'),
+        'ImportErrorBoundary: captura render, persiste fallback legacy y monta el clásico con los mismos callbacks');
+    criterion('A18.boundaryMount',
+        accounts.includes('ImportErrorBoundary') && accounts.includes('<UniversalImportWizard'),
+        'Accounts.jsx monta el universal dentro del boundary (fallback automático ante fallos)');
+    criterion('A19.modeBanner',
+        contents['UniversalImportWizard.jsx'].includes('u2-mode-banner') && contents['UniversalImportWizard.jsx'].includes('u2-use-classic-btn'),
+        'orquestador muestra banner de modo + botón de cambio manual al clásico');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -289,6 +301,17 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 }
 
 // ─────────────────────────────────────────────────────────────
+// G. FEATURE FLAG (lógica pura; en Node no hay window → default legacy)
+// ─────────────────────────────────────────────────────────────
+{
+    criterion('B21.flagDefault', getImportEngineMode() === 'legacy' && isUniversalEnabled() === false, 'sin window/URL/storage → default legacy (producción intacta por defecto)');
+    criterion('B21b.flagSet', setImportEngineMode('universal') === 'universal', 'setImportEngineMode acepta valores válidos sin lanzar');
+    let threw = false;
+    try { setImportEngineMode('turbo'); } catch { threw = true; }
+    criterion('B21c.flagInvalid', threw, 'setImportEngineMode rechaza valores inválidos');
+}
+
+// ─────────────────────────────────────────────────────────────
 // C. CSV (capacidad nueva vs legacy)
 // ─────────────────────────────────────────────────────────────
 {
@@ -316,7 +339,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // RESUMEN
 // ─────────────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(95));
-console.log(`RESULTADO WIZARD U-5: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
+console.log(`RESULTADO WIZARD U-6: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
 console.log('\n── CRITERIOS ──');
 for (const c of CRITERIA) {

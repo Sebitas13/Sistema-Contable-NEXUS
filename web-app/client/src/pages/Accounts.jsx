@@ -6,6 +6,7 @@ import { useCompany } from '../context/CompanyContext';
 import { exportToExcel } from '../utils/exportUtils';
 import SmartImportWizard from '../components/SmartImportWizard';
 import UniversalImportWizard from '../components/import/UniversalImportWizard';
+import ImportErrorBoundary from '../components/import/ImportErrorBoundary';
 import { isUniversalEnabled } from '../components/import/engineFlag';
 import MahoragaWheel from '../components/MahoragaWheel';
 import NexusModal from '../components/NexusModal';
@@ -373,13 +374,18 @@ export default function Accounts() {
             </div>
 
 
-            {/* Smart Import Wizard (legacy por defecto; universal solo con ?engine=universal) */}
+            {/* Smart Import Wizard (legacy por defecto; universal solo con ?engine=universal, con fallback automático al clásico ante fallos) */}
             {showImportWizard && (
                 isUniversalEnabled() ? (
-                    <UniversalImportWizard
+                    <ImportErrorBoundary
                         onClose={() => setShowImportWizard(false)}
                         onSuccess={fetchAccounts}
-                    />
+                    >
+                        <UniversalImportWizard
+                            onClose={() => setShowImportWizard(false)}
+                            onSuccess={fetchAccounts}
+                        />
+                    </ImportErrorBoundary>
                 ) : (
                     <SmartImportWizard
                         onClose={() => setShowImportWizard(false)}

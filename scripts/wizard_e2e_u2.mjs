@@ -165,7 +165,7 @@ async function main() {
             step3 = { error: 'click-next-3: ' + e.message };
         }
         // Paso 4: clic en "Continuar a revisión", editar + excluir de verdad
-        let step4 = null, afterEdit = null, afterExclude = null, step5 = null, step6 = null, confirmDisabled = null, noCompany = null;
+        let step4 = null, afterEdit = null, afterExclude = null, step5 = null, step6 = null, confirmDisabled = null, noCompany = null, switchedClassic = null;
         try {
             if (step3 && step3.uiStep === 3) {
                 await clickNext();
@@ -230,13 +230,21 @@ async function main() {
                     confirmDisabled = await s.evl('(() => { const b = document.querySelector(\'[data-testid="u2-confirm-btn"]\'); return b ? b.disabled === true : null; })()');
                     noCompany = await s.evl('!!document.querySelector(\'[data-testid="u2-no-company"]\')');
                 }
+                // Cambio manual al clásico: persiste legacy + cierra (onClose del harness)
+                if (step6 && step6.uiStep === 6) {
+                    await s.evl(`document.querySelector('[data-testid="u2-use-classic-btn"]').click()`);
+                    await sleep(1500);
+                    const stored = await s.evl(`localStorage.getItem('importEngine')`);
+                    const closedSnap = await readSnap();
+                    switchedClassic = { stored, closed: !!(closedSnap && closedSnap.closed) };
+                }
             }
         } catch (e) {
             step4 = step4 || { error: 'paso4: ' + e.message };
         }
         await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
         s.close();
-        return { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany };
+        return { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic };
     };
 
     let pass = 0, fail = 0;
@@ -246,7 +254,7 @@ async function main() {
             if (!fs.existsSync(f)) { log(`⚠️ ${item.name}: archivo no existe`); continue; }
         }
         try {
-            const { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany } = await runCase(item);
+            const { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic } = await runCase(item);
             if (!snap || !browserReal || snap.phase !== 'diagnosed') {
                 fail++;
                 log(`❌ ${item.name}: SIN DIAGNÓSTICO (phase=${snap?.phase} browser=${browserReal} err=${snap?.error || '—'})`);
@@ -283,7 +291,9 @@ async function main() {
                     ['paso=5 resumen', !!(step5 && step5.uiStep === 5)],
                     ['paso=6 confirmación', !!(step6 && step6.uiStep === 6)],
                     ['confirm deshabilitado sin empresa', confirmDisabled === true],
-                    ['aviso sin empresa visible', noCompany === true]
+                    ['aviso sin empresa visible', noCompany === true],
+                    ['switch manual persiste legacy', !!(switchedClassic && switchedClassic.stored === 'legacy')],
+                    ['switch manual cierra (onClose)', !!(switchedClassic && switchedClassic.closed === true)]
                 );
             } else {
                 checks.push(

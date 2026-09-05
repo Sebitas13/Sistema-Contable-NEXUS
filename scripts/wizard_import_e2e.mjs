@@ -176,6 +176,25 @@ async function main() {
         }
         log('✅ App real con empresa seleccionada');
 
+        // U-6: default legacy idéntico — sin ?engine= debe abrir el clásico.
+        await s.evl(`history.pushState({}, '', '/app/accounts'); window.dispatchEvent(new PopStateEvent('popstate'))`);
+        await sleep(3000);
+        await s.evl(`(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Importar')).click())()`);
+        await sleep(2500);
+        const legacyOpen = await s.evl(`(() => {
+            const hasU2 = !!document.querySelector('[data-testid="u2-wizard"]');
+            const hasLegacy = document.body.innerText.includes('Selecciona el Archivo');
+            return { hasU2, hasLegacy };
+        })()`);
+        if (legacyOpen.hasU2 || !legacyOpen.hasLegacy) throw new Error('default sin flag no abrió el clásico: ' + JSON.stringify(legacyOpen));
+        await s.evl(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+        await sleep(1500);
+        const legacyClosed = await s.evl(`!document.body.innerText.includes('Selecciona el Archivo')`);
+        if (!legacyClosed) throw new Error('el clásico no se cerró con Escape');
+        log('✅ Default legacy idéntico (abre clásico, sin rastro universal)');
+        await s.evl(`history.pushState({}, '', '/app/accounts?engine=universal'); window.dispatchEvent(new PopStateEvent('popstate'))`);
+        await sleep(3000);
+
         // 5) Abrir wizard + subir CSV
         await s.evl(`(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Importar')).click())()`);
         await sleep(2500);
