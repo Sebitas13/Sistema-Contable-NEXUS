@@ -97,6 +97,12 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A28.optIn',
         accounts.includes('open-universal-wizard') && accounts.includes('setShowUniversalWizard') && !accounts.includes('setImportEngineMode'),
         'opt-in U-9: botón dedicado que monta el universal sin tocar el flag global');
+    // U-9f: los bundlers minifican Function.name (ExcelAdapter → "Ds" en prod).
+    // El wizard NUNCA compara adapter.name contra strings: solo referencias.
+    const wizSrcAll = WIZ_FILES.filter(f => f.endsWith('.jsx')).map(f => contents[f]).join('\n');
+    criterion('A31.noAdapterNameCompare',
+        !/adapter\.name\s*===?/.test(wizSrcAll) && contents['UniversalImportWizard.jsx'].includes('adapter === ExcelAdapter'),
+        'wizard compara adapters por referencia (minification-proof; el bug multi-hoja en prod)');
     // U-9b: anti-carrera + hoja vigente visible (regresión reportada por usuario)
     const wizSrc = contents['UniversalImportWizard.jsx'];
     criterion('A29.noStaleRace',

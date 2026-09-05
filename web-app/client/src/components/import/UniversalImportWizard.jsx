@@ -16,7 +16,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import NexusModal from '../NexusModal.jsx';
-import { detectFormat } from '../../utils/FormatAdapter.js';
+import { detectFormat, ExcelAdapter, PdfAdapter } from '../../utils/FormatAdapter.js';
 import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
 import { useCompany } from '../../context/CompanyContext.jsx';
 import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, resolveReview, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
@@ -35,14 +35,25 @@ const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen',
 // Identificador visible de build del asistente: sirve para verificar en el
 // navegador que se está ejecutando una versión con los arreglos de hoja
 // (U-9b+). Subir al tocar el wizard.
-const WIZARD_BUILD = 'U-9d';
+const WIZARD_BUILD = 'U-9f';
 
 function adapterLabel(adapter) {
+    // Comparación por REFERENCIA, jamás por adapter.name: los bundlers de
+    // producción minifican los nombres de clase (ExcelAdapter → "Ds") y
+    // `Function.prototype.name` deja de coincidir. Este fue el bug multi-hoja
+    // en prod (dev/E2E iban en verde porque dev no minifica).
     if (!adapter) return null;
-    if (adapter.name === 'ExcelAdapter') return 'Excel';
-    if (adapter.name === 'PdfAdapter') return 'PDF';
-    if (adapter.name === 'CsvAdapter') return 'CSV/TXT';
-    return adapter.name;
+    if (adapter === ExcelAdapter) return 'Excel';
+    if (adapter === PdfAdapter) return 'PDF';
+    return 'CSV/TXT';
+}
+
+function isExcelAdapter(adapter) {
+    return adapter === ExcelAdapter;
+}
+
+function isPdfAdapter(adapter) {
+    return adapter === PdfAdapter;
 }
 
 export default function UniversalImportWizard({
@@ -98,11 +109,11 @@ export default function UniversalImportWizard({
     const analyzedRef = useRef(null);    // { name, label } | null
     const [pendingNotice, setPendingNotice] = useState(null); // string | null
 
-    function sourceLabelFor(adapterName, sheet, startPage, endPage) {
-        if (adapterName === 'ExcelAdapter') {
+    function sourceLabelFor(adapter, sheet, startPage, endPage) {
+        if (isExcelAdapter(adapter)) {
             return sheet ? `la hoja «${sheet}»` : null;
         }
-        if (adapterName === 'PdfAdapter') {
+        if (isPdfAdapter(adapter)) {
             const s = startPage || 1;
             return endPage && endPage !== s ? `las páginas ${s}–${endPage}` : `la página ${s}`;
         }
@@ -126,9 +137,9 @@ export default function UniversalImportWizard({
         }
         const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
         let extracted;
-        if (adapter.name === 'ExcelAdapter' && opts.sheetName) {
+        if (isExcelAdapter(adapter) && opts.sheetName) {
             extracted = await adapter.extract({ file: fileToUse, sheetName: opts.sheetName });
-        } else if (adapter.name === 'PdfAdapter') {
+        } else if (isPdfAdapter(adapter)) {
             extracted = await adapter.extract(fileToUse, {
                 startPage: opts.startPage || 1,
                 endPage: opts.endPage || undefined
@@ -155,16 +166,16 @@ export default function UniversalImportWizard({
             const effectiveSheet = opts.sheetName || names[0] || '';
             setSheetName(prev => opts.sheetName || prev || effectiveSheet);
             setDoc(extracted);
-            setDocMeta({ sheetName: adapter.name === 'ExcelAdapter' ? effectiveSheet : null, pages: adapter.name === 'PdfAdapter' ? { ...pdfPages, ...(opts.pages || {}) } : null });
+            setDocMeta({ sheetName: isExcelAdapter(adapter) ? effectiveSheet : null, pages: isPdfAdapter(adapter) ? { ...pdfPages, ...(opts.pages || {}) } : null });
             setExtractionMs(ms);
             // ¿La re-extracción invalida un análisis previo del MISMO archivo?
             // (cambio de hoja/páginas). El usuario vio girar el spinner al
             // cambiar de hoja y espera el paso 2 actualizado: avisarle que esa
             // operación fue SOLO extracción y hay que re-analizar.
-            const effectivePages = adapter.name === 'PdfAdapter' ? { ...pdfPages, ...(opts.pages || {}) } : null;
+            const effectivePages = isPdfAdapter(adapter) ? { ...pdfPages, ...(opts.pages || {}) } : null;
             const newLabel = sourceLabelFor(
-                adapter.name,
-                adapter.name === 'ExcelAdapter' ? effectiveSheet : null,
+                adapter,
+                isExcelAdapter(adapter) ? effectiveSheet : null,
                 effectivePages ? effectivePages.startPage : null,
                 effectivePages ? (effectivePages.endPage || null) : null
             );
