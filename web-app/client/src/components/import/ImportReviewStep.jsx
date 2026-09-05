@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import {
-    canImportReport, summaryOf, effectiveContractOf
+    canImportReport, effectiveContractOf
 } from '../../importSession/index.js';
 
 // Vocabulario de tipos de cuenta (mismo que el asistente clásico; el backend
@@ -91,7 +91,6 @@ export default function ImportReviewStep({
 }) {
     const { region, rows, excludedRows } = useMemo(() => reviewRowsOf(session), [session]);
     const report = useMemo(() => canImportReport(session), [session]);
-    const summary = useMemo(() => summaryOf(session), [session]);
 
     const [page, setPage] = useState(1);
     const [selected, setSelected] = useState([]);

@@ -103,6 +103,26 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A19.modeBanner',
         contents['UniversalImportWizard.jsx'].includes('u2-mode-banner') && contents['UniversalImportWizard.jsx'].includes('u2-use-classic-btn'),
         'orquestador muestra banner de modo + botón de cambio manual al clásico');
+    // U-8: limpieza bloqueada — sin imports muertos conocidos
+    const revSrc = contents['ImportReviewStep.jsx'];
+    criterion('A20.noDeadImports', !revSrc.includes('summaryOf'), 'ImportReviewStep sin summaryOf muerto (U-8)');
+    const harnessSrc = fs.readFileSync(path.join(root, 'web-app/client/e2e-harness.html'), 'utf8');
+    criterion('A21.noDeadHarnessImport', !harnessSrc.includes('nodesFingerprint'), 'e2e-harness sin import muerto de nodesFingerprint (U-8)');
+    // U-8 condición: jamás activación global de Universal en código de app
+    const appFiles = [];
+    const walkSrc = (dir) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            const p = path.join(dir, e.name);
+            if (e.isDirectory()) { walkSrc(p); continue; }
+            if (/\.(jsx?|html)$/.test(e.name)) appFiles.push(p);
+        }
+    };
+    walkSrc(path.join(root, 'web-app/client/src'));
+    const activators = appFiles.filter(f => {
+        const c = fs.readFileSync(f, 'utf8');
+        return c.includes(`setImportEngineMode('universal')`) || c.includes(`setImportEngineMode("universal")`);
+    });
+    criterion('A22.noGlobalActivation', activators.length === 0, 'ningún archivo de app activa Universal globalmente (PUCT sigue legacy por defecto)' + (activators.length ? ` — infractores: ${activators.join(',')}` : ''));
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -339,7 +359,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 // RESUMEN
 // ─────────────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(95));
-console.log(`RESULTADO WIZARD U-6: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
+console.log(`RESULTADO WIZARD U-8: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
 console.log('\n── CRITERIOS ──');
 for (const c of CRITERIA) {
