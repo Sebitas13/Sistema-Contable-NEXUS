@@ -65,10 +65,15 @@ function cdpSession(tab) {
         pend.set(id, (m) => { clearTimeout(timer); res(m); });
         ws.send(JSON.stringify({ id, method, params }));
     });
-    const evl = async (expr) => {
+const evl = async (expr) => {
         const m = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
         if (m.error) throw new Error(m.error.message);
-        if (m.result && m.result.exceptionDetails) throw new Error('evalexc ' + JSON.stringify(m.result.exceptionDetails).slice(0, 300));
+        if (m.result && m.result.exceptionDetails) {
+            const desc = (m.result.exceptionDetails.exception && m.result.exceptionDetails.exception.description) || 'desconocido';
+            console.error('EVALEXC en:', String(expr).slice(0, 160));
+            console.error('EVALEXC msg:', String(desc).slice(0, 300));
+            throw new Error('evalexc: ' + desc);
+        }
         return m.result && m.result.result ? m.result.result.value : undefined;
     };
     return { ready, send, evl, close: () => ws.close() };
@@ -265,7 +270,26 @@ async function main() {
             }
             throw new Error('timeout esperando ' + what);
         };
-        const clickTestid = async (tid) => s.evl(`document.querySelector('[data-testid="${tid}"]').click()`);
+        const clickTestid = async (tid) => {
+            const ok = await s.evl(`(() => { const el = document.querySelector('[data-testid="${tid}"]'); if (!el) return false; el.click(); return true; })()`);
+            if (!ok) throw new Error('botón ' + tid + ' no presente');
+        };
+        // Esperar el botón Analizar (aparece tras la extracción de la subida).
+        let analyzeReady = false;
+        for (let i = 0; i < 30 && !analyzeReady; i++) {
+            await sleep(1000);
+            analyzeReady = await s.evl(`!!document.querySelector('[data-testid="u2-analyze-btn"]')`);
+        }
+        if (!analyzeReady) {
+            const dbg = await s.evl(`(() => ({
+                phase: (document.querySelector('[data-testid="u2-wizard"]') || {}).getAttribute ? document.querySelector('[data-testid="u2-wizard"]').getAttribute('data-u2-phase') : null,
+                guard: !!document.querySelector('[data-testid="u2-puct-guard"]'),
+                summary: (document.querySelector('[data-testid="u2-extraction-summary"]') || {}).innerText || null,
+                error: (document.querySelector('[data-testid="u2-error"]') || {}).innerText || null,
+                body: document.body.innerText.slice(0, 300)
+            }))()`);
+            throw new Error('botón Analizar ausente: ' + JSON.stringify(dbg));
+        }
         await clickTestid('u2-analyze-btn');
         await waitSel('[data-testid="u2-diag"]', 60, 'diagnóstico');
         await clickTestid('u2-next-btn');
@@ -290,7 +314,10 @@ async function main() {
             if (enabled) break;
         }
         const canProceed = await s.evl(`(() => { const b = document.querySelector('[data-testid="u2-next-btn"]'); return b ? b.disabled === false : null; })()`);
-        if (!canProceed) throw new Error('gates no se pusieron en verde tras resolver en la UI');
+        if (!canProceed) {
+            const detail = await s.evl(`(() => { const g = document.querySelector('[data-testid="u2-gates-live"]'); return g ? g.innerText : null; })()`);
+            throw new Error('gates no en verde: ' + JSON.stringify(detail));
+        }
         await clickTestid('u2-next-btn');
         await waitSel('[data-testid="u2-summary"]', 30, 'resumen');
         log('✅ Paso 5 resumen con gates en verde');
@@ -299,7 +326,10 @@ async function main() {
 
         // 8) CONFIRMAR IMPORT REAL
         const confirmEnabled = await s.evl(`(() => { const b = document.querySelector('[data-testid="u2-confirm-btn"]'); return b ? b.disabled === false : null; })()`);
-        if (!confirmEnabled) throw new Error('botón Confirmar deshabilitado con empresa activa y gates verdes');
+        if (!confirmEnabled) {
+            const detail = await s.evl(`(() => { const b = document.querySelector('[data-testid="u2-confirm-btn"]'); const g = document.querySelector('[data-testid="u2-no-company"]'); return { disabled: b ? b.disabled : null, noCompany: !!g, body: document.body.innerText.slice(0, 200) }; })()`);
+            throw new Error('botón Confirmar deshabilitado: ' + JSON.stringify(detail));
+        }
         await clickTestid('u2-confirm-btn');
         let receipt = null;
         for (let i = 0; i < 90; i++) {
@@ -310,6 +340,32 @@ async function main() {
         if (!receipt) throw new Error('sin recibo de importación (¿falló el POST?)');
         log('✅ Recibo: ' + receipt.replace(/\n/g, ' ').slice(0, 140));
         if (!/3 cuentas importadas/.test(receipt)) throw new Error('recibo inesperado: ' + receipt.slice(0, 200));
+        // Bitácora de vuelo: el camino completo quedó persistido localmente.
+        const trailInfo = await s.evl(`(() => {
+            try {
+                const trails = JSON.parse(localStorage.getItem('universalImportTrails') || '[]');
+                const t = trails[trails.length - 1];
+                if (!t) return null;
+                const kinds = [...new Set((t.events || []).map(e => e.kind))];
+                const results = (t.events || []).filter(e => e.kind === 'result');
+                const last = results[results.length - 1] || null;
+                const raw = JSON.stringify(t);
+                return {
+                    fileName: t.fileName, events: (t.events || []).length, kinds,
+                    result: last ? { successCount: last.successCount, status: last.status } : null,
+                    hasCompanyId: /\\b(companyId|company_id|nit|legal_name|selectedCompany)\\b/.test(String(raw || ''))
+                };
+            } catch (e2) { return { error: String(e2 && e2.message || e2) }; }
+        })()`);
+        if (!trailInfo || !/plan\.csv$/.test(trailInfo.fileName || '')) throw new Error('bitácora ausente o de otro archivo: ' + JSON.stringify(trailInfo));
+        if (!trailInfo.result || trailInfo.result.successCount !== 3 || trailInfo.result.status !== 'completed') {
+            throw new Error('bitácora sin resultado completed×3: ' + JSON.stringify(trailInfo.result));
+        }
+        for (const k of ['extraction', 'analysis', 'simulation', 'result']) {
+            if (!(trailInfo.kinds || []).includes(k)) throw new Error(`bitácora sin fase ${k}: ` + JSON.stringify(trailInfo.kinds));
+        }
+        if (trailInfo.hasCompanyId) throw new Error('la bitácora contiene identificadores empresariales');
+        log(`✅ Bitácora: ${trailInfo.events} eventos (${(trailInfo.kinds || []).join(',')}) sin identificadores`);
         // El contrato punteado no declara longitudes: la máscara NO debe inventarse.
         if (!/no determinada por el análisis — no actualizada/.test(receipt)) {
             throw new Error('el recibo debía declarar estructura no actualizada (sin longitudes declaradas)');

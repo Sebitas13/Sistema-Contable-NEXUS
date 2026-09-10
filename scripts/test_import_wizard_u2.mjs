@@ -9,6 +9,12 @@
  *     que consumen los pasos (incl. fingerprints pre/post y gates del resumen).
  *  C. CSV: el engine extrae y analiza CSV (capacidad nueva vs legacy).
  *  D. Detección de formatos.
+ *  E. Flujos de revisión (overrides/bulk/exclusiones).
+ *  F. Resumen (fingerprints y datos de reconciliación).
+ *  G. Feature flag (default legacy).
+ *  H. PUCT-guard (exclusión dura).
+ *  I. Import log (sin PII).
+ *  J. Flight recorder / bitácora (sin PII, cap, inmutabilidad).
  *
  * Uso: node scripts/test_import_wizard_u2.mjs
  */
@@ -28,6 +34,7 @@ const { contractFingerprint } = await import(pathToFileURL(path.join(root, 'web-
 const { deriveCompanyStructure } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/companyStructure.js')).href);
 const { needsLegacyWizard, hasSingleDigitSymptom, gridFromDoc } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/puctGuard.js')).href);
 const { readImportLog, appendImportLog, countImportLog } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importLog.js')).href);
+const { startTrail, trailEvent, readTrails, saveTrail, clearTrails } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importTrail.js')).href);
 const { getImportEngineMode, setImportEngineMode, isUniversalEnabled } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/engineFlag.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 
@@ -41,7 +48,7 @@ function criterion(id, ok, detail = '') {
 const T0 = Date.now();
 function elapsed() { return `${((Date.now() - T0) / 1000).toFixed(1)}s`; }
 
-const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'ImportSummaryStep.jsx', 'ImportConfirmationStep.jsx', 'ImportErrorBoundary.jsx', 'engineFlag.js'];
+const WIZ_FILES = ['UniversalImportWizard.jsx', 'ImportFileStep.jsx', 'ImportDiagnosticStep.jsx', 'ImportValidationStep.jsx', 'ImportReviewStep.jsx', 'ImportSummaryStep.jsx', 'ImportConfirmationStep.jsx', 'ImportTrailViewer.jsx', 'ImportErrorBoundary.jsx', 'engineFlag.js'];
 const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 
 // ─────────────────────────────────────────────────────────────
@@ -63,7 +70,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A6.noLegacyIntel', !all.includes('AccountPlanProfile') && WIZ_FILES.filter(f => contents[f].includes('SmartImportWizard')).join(',') === 'ImportErrorBoundary.jsx', 'AccountPlanProfile en ningún archivo; SmartImportWizard solo en ImportErrorBoundary (fallback de emergencia documentado)');
 
     // Allowlist de imports del orquestador
-    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './engineFlag.js', './puctGuard.js', './importLog.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx']);
+    const allow = new Set(['react', '../NexusModal.jsx', '../../utils/FormatAdapter.js', '../../utils/UniversalPlanAnalyzer.js', '../../context/CompanyContext.jsx', '../../importSession/index.js', './engineFlag.js', './puctGuard.js', './importLog.js', './importTrail.js', './ImportFileStep.jsx', './ImportDiagnosticStep.jsx', './ImportValidationStep.jsx', './ImportReviewStep.jsx', './ImportSummaryStep.jsx', './ImportConfirmationStep.jsx', './ImportTrailViewer.jsx']);
     const imports = [...contents['UniversalImportWizard.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     const bad = imports.filter(i => !allow.has(i) && !i.startsWith('react'));
     criterion('A7.importAllowlist', imports.length > 0 && bad.length === 0, `imports del orquestador dentro de la allowlist (${imports.length} imports)${bad.length ? ' — fuera: ' + bad.join(',') : ''}`);
@@ -80,7 +87,10 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A13.sumImports', sumImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractSchema.js'), 'ImportSummaryStep: react + importSession + Schema (fingerprints, sin red)');
     const confSrc = contents['ImportConfirmationStep.jsx'];
     const confImports = [...confSrc.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
-    criterion('A14.confImports', confImports.every(i => ['react', 'axios', '../../api.js', '../../importSession/index.js', './companyStructure.js', './importLog.js', '../ToastProvider.jsx'].includes(i)), 'ImportConfirmationStep: react + axios + api + importSession + companyStructure + importLog + toast (único archivo con red)');
+    criterion('A14.confImports', confImports.every(i => ['react', 'axios', '../../api.js', '../../importSession/index.js', './companyStructure.js', './importLog.js', './importTrail.js', '../ToastProvider.jsx'].includes(i)), 'ImportConfirmationStep: react + axios + api + importSession + companyStructure + importLog + importTrail + toast (único archivo con red)');
+    const viewerSrc = contents['ImportTrailViewer.jsx'];
+    const viewerImports = [...viewerSrc.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+    criterion('A32.viewerImports', viewerImports.every(i => ['react', '../NexusModal.jsx', './importTrail.js'].includes(i)), 'ImportTrailViewer: react + modal + importTrail (solo lectura/export local)');
     const apiTargets = [...confSrc.matchAll(/\/api\/[a-zA-Z/_:-]*/g)].map(m => m[0]);
     const onlyKnown = apiTargets.every(t => t.startsWith('/api/accounts/bulk') || t.startsWith('/api/companies/'));
     criterion('A15.apiTargets', apiTargets.length >= 2 && onlyKnown, `paso 6 solo invoca endpoints productivos conocidos: ${[...new Set(apiTargets)].join(', ')}`);
@@ -368,6 +378,47 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
 
     const guardSrc = fs.readFileSync(path.join(importDir, 'puctGuard.js'), 'utf8');
     criterion('H8.pure', !/^\s*import\s/m.test(guardSrc) && !guardSrc.includes('require('), 'puctGuard.js: cero dependencias (puro)');
+}
+
+// ─────────────────────────────────────────────────────────────
+// J. FLIGHT RECORDER (bitácora por importación, sin PII)
+// ─────────────────────────────────────────────────────────────
+{
+    const trailSrcFull = fs.readFileSync(path.join(importDir, 'importTrail.js'), 'utf8');
+    // Sin comentarios: los identificadores pueden mencionarse en docs, jamás en datos.
+    const trailSrc = trailSrcFull.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\/\/[^\n"']*$/gm, '');
+    const trailIdHits = ['companyId', 'company_id', 'selectedCompany', 'nit', 'legal_name']
+        .filter(t => new RegExp(`\\b${t}\\b`).test(trailSrc));
+    criterion('J1.noIdentifiers', trailIdHits.length === 0, 'importTrail sin identificadores empresariales' + (trailIdHits.length ? ` — hallado: ${trailIdHits.join(',')}` : ''));
+    criterion('J2.pure', !/^\s*import\s/m.test(trailSrc) && !trailSrc.includes('require('), 'importTrail.js: cero dependencias (puro)');
+
+    // store falso para probar persistencia sin window
+    const fakeStore = () => {
+        let data = {};
+        return {
+            getItem: (k) => (k in data ? data[k] : null),
+            setItem: (k, v) => { data[k] = String(v); },
+            removeItem: (k) => { delete data[k]; }
+        };
+    };
+    const store = fakeStore();
+    const t0 = startTrail({ fileName: 'plan.csv', fileSize: 10, at: 1000 });
+    criterion('J3.start', t0.fileName === 'plan.csv' && Array.isArray(t0.events) && t0.events.length === 0 && t0.at === 1000, 'startTrail crea traza vacía determinista');
+    const t1 = trailEvent(t0, 'override', { uid: 'r:0', field: 'name', originalValue: 'A', value: 'B' }, 1001);
+    criterion('J4.immutable', t0.events.length === 0 && t1.events.length === 1 && t1.events[0].uid === 'r:0' && t1.events[0].at === 1001, 'trailEvent inmutable con traza completa');
+    criterion('J5.roundtrip', saveTrail(t1, store) === true && readTrails(store).length === 1 && readTrails(store)[0].events[0].value === 'B', 'save/read roundtrip en storage');
+    // cap 20 FIFO
+    for (let i = 0; i < 25; i++) {
+        const t = startTrail({ fileName: `f${i}.csv`, at: 2000 + i });
+        saveTrail(t, store);
+    }
+    const all = readTrails(store);
+    criterion('J6.cap', all.length === 20 && all[0].fileName === 'f5.csv' && all[19].fileName === 'f24.csv', 'cap 20 con FIFO (sobreviven f5..f24)');
+    criterion('J7.clear', clearTrails(store) === true && readTrails(store).length === 0, 'clearTrails vacía');
+    // códigos/nombres SÍ (necesarios para auditar), identificadores NO
+    const t2 = trailEvent(startTrail({ fileName: 'p.csv', at: 1 }), 'override', { uid: 'r:0', field: 'name', originalValue: 'CAJA', value: 'CAJA MN' }, 2);
+    const dumped = JSON.stringify(t2);
+    criterion('J8.content', dumped.includes('CAJA MN') && !/\b(companyId|company_id|nit|legal_name|selectedCompany)\b/.test(dumped), 'la traza lleva códigos/nombres (auditables) y ningún identificador');
 }
 
 // ─────────────────────────────────────────────────────────────

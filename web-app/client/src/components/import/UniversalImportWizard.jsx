@@ -23,12 +23,14 @@ import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNa
 import { setImportEngineMode } from './engineFlag.js';
 import { needsLegacyWizard, hasSingleDigitSymptom } from './puctGuard.js';
 import { countImportLog } from './importLog.js';
+import { startTrail, trailEvent, saveTrail, readTrails } from './importTrail.js';
 import ImportFileStep from './ImportFileStep.jsx';
 import ImportDiagnosticStep from './ImportDiagnosticStep.jsx';
 import ImportValidationStep from './ImportValidationStep.jsx';
 import ImportReviewStep from './ImportReviewStep.jsx';
 import ImportSummaryStep from './ImportSummaryStep.jsx';
 import ImportConfirmationStep from './ImportConfirmationStep.jsx';
+import ImportTrailViewer from './ImportTrailViewer.jsx';
 
 const SUPPORTED_LABEL = '.xlsx, .xls, .xlsm, .pdf, .csv, .txt';
 const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen', 'Confirmación'];
@@ -86,6 +88,38 @@ export default function UniversalImportWizard({
             return 0;
         }
     });
+    // Bitácora de vuelo (U-9, monitoreo): traza ordenada de esta importación.
+    // Vive en ref (la UI no depende de ella; el visor lee el storage) y cada
+    // evento se persiste al momento (best-effort, jamás bloquea el flujo).
+    const trailRef = useRef(null);
+    const [showTrails, setShowTrails] = useState(false);
+    const [trailCount, setTrailCount] = useState(() => safeTrailCount());
+    function safeTrailCount() {
+        try {
+            return readTrails().length;
+        } catch {
+            return 0;
+        }
+    }
+    function pushTrail(kind, detail) {
+        if (!trailRef.current) return;
+        try {
+            const next = trailEvent(trailRef.current, kind, detail || {});
+            trailRef.current = next;
+            saveTrail(next);
+        } catch {
+            // la bitácora jamás bloquea el flujo
+        }
+    }
+    function startFileTrail(fileToUse) {
+        try {
+            const t = startTrail({ fileName: fileToUse.name, fileSize: fileToUse.size || 0 });
+            trailRef.current = t;
+            saveTrail(t);
+        } catch {
+            // sin bitácora, el flujo sigue igual
+        }
+    }
     // Empresa activa (solo se usa en el paso 6). Sin provider (harness E2E)
     // companyId queda null y la confirmación se deshabilita con mensaje.
     let company = null;
@@ -187,6 +221,19 @@ export default function UniversalImportWizard({
                 );
             }
             lastExtractRef.current = { name: fileToUse.name, label: newLabel };
+            // Bitácora: nueva traza si cambió el archivo; si no, evento de extracción.
+            if (!trailRef.current || trailRef.current.fileName !== fileToUse.name) {
+                startFileTrail(fileToUse);
+            }
+            pushTrail('extraction', {
+                format: adapterLabel(adapter),
+                sheets: names.length,
+                sheet: isExcelAdapter(adapter) ? effectiveSheet : null,
+                pages: isPdfAdapter(adapter) ? { ...pdfPages, ...(opts.pages || {}) } : null,
+                rows: extracted.rows ? extracted.rows.length : 0,
+                confidence: extracted.extractionConfidence ?? null,
+                ms
+            });
             setSession(null);
             setAnalysisMs(null);
             setUiStep(1);
@@ -242,6 +289,17 @@ export default function UniversalImportWizard({
             // síncronas, sin stale closures de React).
             analyzedRef.current = lastExtractRef.current;
             setPendingNotice(null);
+            pushTrail('analysis', {
+                regions: analysis.regions.map(r => ({
+                    regionId: r.region?.id ?? null,
+                    mode: r.region?.extractionMode ?? null,
+                    nodes: (r.nodes || []).length,
+                    requiresConfirmation: !!r.requiresConfirmation,
+                    blocks: (r.errors || []).filter(e => e && e.severity === 'BLOCK').length,
+                    reviews: (r.warnings || []).filter(w => w && w.severity === 'REVIEW').length
+                })),
+                ms
+            });
             const next = createImportSession({
                 source: { fileName: fileToUse.name, fileSize: fileToUse.size || 0 },
                 extraction: {
@@ -319,21 +377,38 @@ export default function UniversalImportWizard({
     }
 
     // Capa de overrides (paso 4): cada handler aplica UNA operación pura de
-    // ImportSession. La sesión es inmutable: siempre se reemplaza, nunca se muta.
+    // ImportSession y la registra en la bitácora. La sesión es inmutable:
+    // siempre se reemplaza, nunca se muta.
+    function originalOf(uid, field) {
+        try {
+            const sep = uid.lastIndexOf(':');
+            const region = session.regions.find(r => r.regionId === uid.slice(0, sep));
+            const node = region && region.contract.nodes[Number.parseInt(uid.slice(sep + 1), 10)];
+            return node ? node[field] : undefined;
+        } catch {
+            return undefined;
+        }
+    }
     function handleOverride(uid, field, value) {
+        const originalValue = session ? originalOf(uid, field) : undefined;
         setSession(prev => (prev ? applyOverride(prev, uid, field, value) : prev));
+        pushTrail('override', { uid, field, originalValue, value });
     }
     function handleExclude(uid) {
         setSession(prev => (prev ? excludeRow(prev, uid, true) : prev));
+        pushTrail('exclude', { uid });
     }
     function handleInclude(uid) {
         setSession(prev => (prev ? excludeRow(prev, uid, false) : prev));
+        pushTrail('include', { uid });
     }
     function handleConfirmNature(uid, nature) {
         setSession(prev => (prev ? confirmNature(prev, uid, nature) : prev));
+        pushTrail('confirm', { uid, nature });
     }
     function handleResolveReview(target) {
         setSession(prev => (prev ? resolveReview(prev, target) : prev));
+        pushTrail('resolve', { target });
     }
     function handleBulkType(uids, type) {
         setSession(prev => {
@@ -348,6 +423,34 @@ export default function UniversalImportWizard({
             }
             return next;
         });
+        pushTrail('bulk', { uids: Array.isArray(uids) ? uids.slice() : [], field: 'type', value: type });
+    }
+
+    // Navegación con registro: al entrar a validación (3) o resumen (5) se
+    // guarda el estado de puertas + simulación (evidencia del camino).
+    function goStep(n) {
+        if ((n === 3 || n === 5) && session) {
+            try {
+                const rep = canImportReport(session);
+                pushTrail('validation', { step: n, can: rep.can, reasons: rep.reasons });
+            } catch {
+                // la bitácora jamás bloquea el flujo
+            }
+        }
+        if (n === 5 && session) {
+            try {
+                const sim = simulate(session, { companyId: null });
+                pushTrail('simulation', {
+                    allowed: !!sim.allowed,
+                    total: sim.expectedCounts ? sim.expectedCounts.total : sim.effectiveNodeCount,
+                    fingerprint: sim.fingerprint,
+                    reason: sim.reason || null
+                });
+            } catch {
+                // la bitácora jamás bloquea el flujo
+            }
+        }
+        setUiStep(n);
     }
 
     // Piloto automático del harness E2E (solo cuando se pide explícitamente).
@@ -522,6 +625,8 @@ export default function UniversalImportWizard({
                         onFile={handleFileSelected}
                         onAnalyze={handleAnalyze}
                         onRetry={handleRetry}
+                        trailCount={trailCount}
+                        onShowTrails={() => setShowTrails(true)}
                     />
                 )}
 
@@ -529,16 +634,16 @@ export default function UniversalImportWizard({
                     <ImportDiagnosticStep
                         session={session}
                         onSelectRegion={handleSelectRegion}
-                        onBack={() => setUiStep(1)}
-                        onNext={() => setUiStep(3)}
+                        onBack={() => goStep(1)}
+                        onNext={() => goStep(3)}
                     />
                 )}
 
                 {uiStep === 3 && session && (
                     <ImportValidationStep
                         session={session}
-                        onBack={() => setUiStep(2)}
-                        onNext={() => setUiStep(4)}
+                        onBack={() => goStep(2)}
+                        onNext={() => goStep(4)}
                     />
                 )}
 
@@ -551,16 +656,16 @@ export default function UniversalImportWizard({
                         onConfirmNature={handleConfirmNature}
                         onResolveReview={handleResolveReview}
                         onBulkType={handleBulkType}
-                        onBack={() => setUiStep(3)}
-                        onNext={() => setUiStep(5)}
+                        onBack={() => goStep(3)}
+                        onNext={() => goStep(5)}
                     />
                 )}
 
                 {uiStep === 5 && session && (
                     <ImportSummaryStep
                         session={session}
-                        onBack={() => setUiStep(4)}
-                        onNext={() => setUiStep(6)}
+                        onBack={() => goStep(4)}
+                        onNext={() => goStep(6)}
                     />
                 )}
 
@@ -569,9 +674,10 @@ export default function UniversalImportWizard({
                         session={session}
                         companyId={companyId}
                         companyName={company?.name || null}
-                        onBack={() => setUiStep(5)}
+                        onBack={() => goStep(5)}
                         onSuccess={onSuccess}
                         onClose={onClose}
+                        logTrail={(kind, detail) => pushTrail(kind, detail)}
                     />
                 )}
 
@@ -583,6 +689,12 @@ export default function UniversalImportWizard({
                     </small>
                 )}
             </div>
+            {showTrails && (
+                <ImportTrailViewer
+                    onClose={() => { setShowTrails(false); try { setTrailCount(safeTrailCount()); } catch { /* igual se cierra */ } }}
+                    onChanged={() => { try { setTrailCount(safeTrailCount()); } catch { /* sin conteo */ } }}
+                />
+            )}
         </NexusModal>
     );
 }

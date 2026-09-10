@@ -113,20 +113,30 @@ probar el nuevo → exigiría tocar `SmartImportWizard.jsx` (congelado). No.
 ## 6. Monitoreo honesto (sin inventar telemetría)
 
 No existe backend de telemetría y U-9 no lo crea. Monitoreo real disponible:
-1. **Log local** `universalImportLog` (localStorage, cap 50, FIFO):
-   `{ at, fileName, nodes, successCount, errorCount, companyPut, companyId, fp }`,
-   escrito al completar/cancelar/fallar un import (paso 6). Visible en consola
-   (`localStorage`) y resumido en el banner del wizard ("N imports con esta
-   herramienta en este navegador"). Capado y sin PII (nombres de cuenta NO).
-2. **Recibo post-import** (ya existe, U-5) como evidencia por operación.
-3. **Suites como gates**: `npm test` + E2E antes de cada despliegue de etapa;
-   A22 (sin activación global) + nuevo criterio "PUCT-guard activo".
-4. **Reporte de usuario**: el botón clásico + banner garantizan salida; los
+1. **Registrador de vuelo** `universalImportTrails` (localStorage, cap 20
+   bitácoras × 5000 eventos FIFO): cada importación deja el camino COMPLETO
+   desde el archivo hasta el recibo — extracción (formato/hoja/páginas/filas/
+   confianza/ms), análisis (regiones/nodos/BLOCK/REVIEW), validación (puertas
+   y motivos), cada corrección del usuario (`override` con valor original →
+   valor, `exclude/include/confirm/resolve/bulk`), simulación (fingerprint) y
+   resultado (successCount/errorCount/companyPut/status). Incluye códigos y
+   nombres del plan (imprescindibles para auditar) pero **jamás identificadores
+   empresariales** (D3). Visor propio en el wizard: ver detalle por evento,
+   copiar y descargar `.json` para envío (botón «Bitácora»). Reproducible:
+   misma entrada + mismas operaciones = mismo payload (el fingerprint es el
+   testigo), así que la traza + el archivo original permiten re-verificar sin
+   guardar el payload.
+2. **Log resumido** `universalImportLog` (cap 50): contadores por import, para
+   el badge del banner.
+3. **Recibo post-import** (ya existe, U-5) como evidencia por operación.
+4. **Suites como gates**: `npm test` + E2E antes de cada despliegue de etapa;
+   A22 (sin activación global) + criterio "PUCT-guard activo".
+5. **Reporte de usuario**: el botón clásico + banner garantizan salida; los
    fallos del boundary ya hacen `console.error` con contexto.
 
 Límite declarado: sin agregación remota, el "período controlado" se demuestra
-con reportes de los usuarios piloto + log local inspeccionable, no con
-dashboards. Si se quiere telemetría real, es otro proyecto (backend + tabla).
+con reportes de los usuarios piloto + bitácoras inspeccionables/exportables,
+no con dashboards. Si se quiere telemetría real, es otro proyecto (backend + tabla).
 
 ## 7. Rollback real (procedimiento, no promesa)
 
@@ -196,9 +206,9 @@ zona IA, `importSession/`, baseline y diseño congelados, PUCT/corpus.
 |---|---|---|
 | Cuentas importadas | Turso, `accounts` con `company_id` | Hasta borrar la empresa (cascada por `ON DELETE CASCADE` en schema) |
 | Estructura (`code_mask`) | `companies.code_mask` (solo si el contrato declara longitudes) | Igual que arriba |
-| Overrides/revisiones | Memoria React (sesión) | Se pierden al cerrar el wizard (por diseño: son decisiones pre-import) |
-| Evidencia por importación | `localStorage.universalImportLog` (este navegador + este origen) | Persiste; cap 50 FIFO |
-| Recibo | Pantalla paso 6 | Volátil (anotar al momento) |
+| Overrides/revisiones | Memoria React (sesión) + bitácora de vuelo | Sesión para operar; la bitácora las conserva con valor original → valor |
+| Evidencia por importación | `localStorage.universalImportTrails` (camino completo, cap 20×5000) y `universalImportLog` (resumen, cap 50) | Persiste; exportable a `.json` desde el visor |
+| Recibo | Pantalla paso 6 | Volátil (la bitácora lo registra) |
 
 Reglas del protocolo: UN navegador, UN origen (recomendado: URL de Vercel, que
 es la superficie real del rollout), NUNCA incógnito (borra el log), empresa de
@@ -219,10 +229,16 @@ NUNCA forzar un verde (p. ej. excluir todo para vaciar un BLOCK): eso falsea
 la evidencia. Un gate que no se pone en verde ES un hallazgo, se anota y se
 reporta.
 
-### 12.3 Checklist por importación (anotar)
-Archivo, nodos, BLOCKs (cómo se resolvieron), REVIEWs (cuántos clics),
-overrides (lista de la traza), recibo (`successCount/errorCount/companyPut`),
-conteo en Plan de Cuentas coincide SÍ/NO, `code_mask` actualizado SÍ/NO/omitido.
+### 12.3 Evidencia automática (ya no hace falta anotar a mano)
+Cada importación queda registrada sola en la bitácora de vuelo. Flujo recomendado:
+1. Haz la importación normalmente (el wizard registra todo el camino).
+2. Al terminar, pulsa «Bitácora» en el paso 1 → entrada más reciente → 
+   «Descargar» (o «Copiar») y envíame el `.json`. Ahí está TODO: archivo,
+   extracción, análisis, cada corrección con su valor original, simulación,
+   fingerprint y resultado.
+3. Solo si algo se sintió raro, añade una frase de contexto (qué esperabas).
+El visor muestra el número de eventos y el resultado por bitácora; «Borrar
+bitácoras» limpia cuando ya se enviaron (nada se sube solo; todo es local).
 
 ### 12.4 Leer la bitácora (consola del navegador)
 ```js

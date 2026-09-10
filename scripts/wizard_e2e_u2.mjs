@@ -346,9 +346,31 @@ async function main() {
         } catch (e) {
             step4 = step4 || { error: 'paso4: ' + e.message };
         }
+        // Bitácora local capturada ANTES de cerrar la pestaña (s sigue vivo aquí).
+        let trail = null;
+        try {
+            trail = await s.evl(`(() => {
+                try {
+                    const trails = JSON.parse(localStorage.getItem('universalImportTrails') || '[]');
+                    const t = trails[trails.length - 1];
+                    if (!t) return null;
+                    const kinds = [...new Set((t.events || []).map(e => e.kind))];
+                    const raw = JSON.stringify(t);
+                    const phases = ['extraction', 'analysis', 'simulation', 'result'];
+                    const missing = phases.filter(k => !kinds.includes(k));
+                    return {
+                        fileName: t.fileName, events: (t.events || []).length, kinds,
+                        missingPhases: missing,
+                        hasCompanyId: /\\b(companyId|company_id|nit|legal_name|selectedCompany)\\b/.test(raw)
+                    };
+                } catch (e2) { return { error: String(e2 && e2.message || e2) }; }
+            })()`);
+        } catch {
+            trail = null;
+        }
         await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
         s.close();
-        return { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic };
+        return { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic, trail };
     };
 
     let pass = 0, fail = 0;
@@ -382,7 +404,7 @@ async function main() {
                 }
                 continue;
             }
-            const { snap, browserReal, apiHits, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic } = res;
+            const { snap, browserReal, apiHits, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic, trail } = res;
             // Caso guard U-9: PUCT excluido antes de analizar.
             if (item.expectGuard) {
                 const g = guard || {};
@@ -443,7 +465,10 @@ async function main() {
                     ['confirm deshabilitado sin empresa', confirmDisabled === true],
                     ['aviso sin empresa visible', noCompany === true],
                     ['switch manual persiste legacy', !!(switchedClassic && switchedClassic.stored === 'legacy')],
-                    ['switch manual cierra (onClose)', !!(switchedClassic && switchedClassic.closed === true)]
+                    ['switch manual cierra (onClose)', !!(switchedClassic && switchedClassic.closed === true)],
+                    ['bitácora persistida', !!(res.trail && res.trail.fileName === item.publicName && res.trail.events >= 4)],
+                    ['bitácora cubre el camino', !!(res.trail && ['extraction', 'analysis', 'simulation'].every(k => (res.trail.kinds || []).includes(k)))],
+                    ['bitácora sin identificadores', !!(res.trail && res.trail.hasCompanyId === false)]
                 );
             } else {
                 checks.push(
@@ -453,13 +478,13 @@ async function main() {
                 );
             }
             const bad = checks.filter(([, ok]) => !ok).map(([name]) => name);
-            if (bad.length === 0) {
-                pass++;
-                log(`✅ ${item.name}: paso=2→3→4${item.walkToSix ? '→5→6' : ''} regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · gates activos · cero red /api/*`);
-            } else {
-                fail++;
-                log(`❌ ${item.name}: falla en [${bad.join(', ')}] step4=${JSON.stringify(step4)} afterEdit=${JSON.stringify(afterEdit?.userActions)} step5=${JSON.stringify(step5?.validation)} step6=${step6?.uiStep} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
-            }
+if (bad.length === 0) {
+                    pass++;
+                    log(`✅ ${item.name}: paso=2→3→4${item.walkToSix ? '→5→6' : ''} regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · gates activos · cero red /api/*${res.trail ? ` · bitácora ${res.trail.events} eventos` : ''}`);
+                } else {
+                    fail++;
+                    log(`❌ ${item.name}: falla en [${bad.join(', ')}] step4=${JSON.stringify(step4)} afterEdit=${JSON.stringify(afterEdit?.userActions)} step5=${JSON.stringify(step5?.validation)} step6=${step6?.uiStep} trail=${JSON.stringify(res.trail)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
+                }
         } catch (e) {
             fail++;
             log(`❌ ${item.name}: excepción ${e.message}`);

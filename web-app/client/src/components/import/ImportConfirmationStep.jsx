@@ -18,7 +18,7 @@ import { useToast } from '../ToastProvider.jsx';
 
 const BATCH_SIZE = 500;
 
-export default function ImportConfirmationStep({ session, companyId, companyName, onBack, onSuccess, onClose }) {
+export default function ImportConfirmationStep({ session, companyId, companyName, onBack, onSuccess, onClose, logTrail }) {
     const can = useMemo(() => canImport(session), [session]);
     const sim = useMemo(() => simulate(session, { companyId: companyId || null }), [session, companyId]);
     const [importing, setImporting] = useState(false);
@@ -54,6 +54,13 @@ export default function ImportConfirmationStep({ session, companyId, companyName
                 // el log jamás bloquea el flujo
             }
         };
+        const trail = (kind, detail) => {
+            try {
+                if (typeof logTrail === 'function') logTrail(kind, detail);
+            } catch {
+                // la bitácora jamás bloquea el flujo
+            }
+        };
         let success = 0, fails = 0;
         try {
             // Re-simular en el momento de confirmar: el payload nace del Effective actual.
@@ -61,6 +68,12 @@ export default function ImportConfirmationStep({ session, companyId, companyName
             if (!fresh.allowed || !fresh.payload) {
                 throw new Error(fresh.reason || 'La simulación previa al envío no está permitida.');
             }
+            trail('simulation', {
+                allowed: true,
+                total: fresh.expectedCounts ? fresh.expectedCounts.total : fresh.effectiveNodeCount,
+                fingerprint: fresh.fingerprint,
+                atConfirm: true
+            });
             const accounts = fresh.payload.accounts;
             const total = accounts.length;
             if (total === 0) throw new Error('No hay cuentas para importar.');
@@ -92,6 +105,7 @@ export default function ImportConfirmationStep({ session, companyId, companyName
             }
             setResult({ successCount: success, errorCount: fails, companyPut, total });
             logEntry({ nodes: total, successCount: success, errorCount: fails, companyPut, fp: fresh.fingerprint || null, status: 'completed' });
+            trail('result', { successCount: success, errorCount: fails, companyPut, total, fingerprint: fresh.fingerprint || null, status: 'completed' });
             if (fails === 0) toast?.success?.(`${success} cuentas importadas correctamente.`);
             else toast?.warning?.(`Importadas ${success} cuentas · ${fails} con error (duplicadas o inválidas).`);
             if (onSuccess) onSuccess();
@@ -99,10 +113,12 @@ export default function ImportConfirmationStep({ session, companyId, companyName
             if (axios.isCancel(err) || String(err.message || '').includes('cancelada')) {
                 toast?.info?.('Importación cancelada.');
                 logEntry({ nodes: 0, successCount: success, errorCount: fails, companyPut: 'skipped', fp: null, status: 'cancelled' });
+                trail('result', { successCount: success, errorCount: fails, companyPut: 'skipped', status: 'cancelled' });
             } else {
                 const message = 'Error en la importación: ' + (err.response?.data?.error || err.message);
                 setError(message);
                 logEntry({ nodes: 0, successCount: success, errorCount: fails, companyPut: 'skipped', fp: null, status: 'failed' });
+                trail('result', { successCount: success, errorCount: fails, companyPut: 'skipped', status: 'failed', error: message.slice(0, 300) });
             }
         } finally {
             setImporting(false);
