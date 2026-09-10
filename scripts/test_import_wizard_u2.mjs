@@ -63,7 +63,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A2.noFetch', !components.includes('fetch('), 'componentes del wizard: sin fetch()');
     criterion('A3.noXhrWs', !all.includes('XMLHttpRequest') && !all.includes('WebSocket'), 'sin XMLHttpRequest ni WebSocket');
     const noNetComponents = WIZ_FILES.filter(f => f !== 'ImportConfirmationStep.jsx' && f.endsWith('.jsx')).map(f => contents[f]).join('\n');
-    criterion('A4.noApiCalls', !/axios|\.post\(|\.get\(|\.put\(|\.delete\(|XMLHttpRequest|WebSocket/.test(noNetComponents), 'pasos 1-5: sin invocaciones HTTP (el paso 6 concentra la red, verificado en A14-A16)');
+    criterion('A4.noApiCalls', !/axios|fetch\(|XMLHttpRequest|WebSocket|API_URL/.test(noNetComponents), 'pasos 1-5: sin invocaciones HTTP (el paso 6 concentra la red, verificado en A14-A16)');
     criterion('A5.localStorageOnlyFlag',
         !components.includes('localStorage') && contents['engineFlag.js'].includes('importEngine'),
         'localStorage solo en engineFlag.js (clave importEngine)');

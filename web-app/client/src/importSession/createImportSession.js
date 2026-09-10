@@ -148,11 +148,22 @@ function clonePlain(value) {
     return value;
 }
 
-/** Mantiene SOLO issues clave-código cuyo código sigue presente en nodes. */
-function clearCodeKeyedIssues(issues, codesPresent) {
+/**
+ * Depura issues clave-código contra el contrato EFECTIVO.
+ * - Duplicados (duplicateCode/normalizedDuplicate): el issue existe mientras
+ *   haya ≥2 ocurrencias del código. Editar una fila o excluir una de ellas
+ *   resuelve el BLOCK/REVIEW (queda 1 ocurrencia) — sin deduplicar nada:
+ *   la acción es siempre explícita del usuario y queda trazada.
+ * - Otros issues clave-código: se mantienen mientras el código exista.
+ */
+const DUPLICATE_ISSUE_TYPES = new Set(['duplicateCode', 'normalizedDuplicate']);
+
+function clearCodeKeyedIssues(issues, codeCount) {
     return (issues || []).filter(issue => {
         if (issue && typeof issue === 'object' && typeof issue.code === 'string' && issue.code) {
-            return codesPresent.has(issue.code);
+            const count = codeCount.get(issue.code) || 0;
+            if (DUPLICATE_ISSUE_TYPES.has(issue.type)) return count >= 2;
+            return count >= 1;
         }
         return true;
     });
@@ -191,7 +202,7 @@ function effectiveRegionContract(session, region) {
         natureMap.set(conf.uid, conf.nature);
     }
 
-    const codesPresent = new Set();
+    const codeCount = new Map(); // normalizedCode efectivo -> ocurrencias
     const nodes = [];
     for (let index = 0; index < c.nodes.length; index++) {
         if (excludedUids.has(uidOf(region.regionId, index))) continue;
@@ -228,12 +239,13 @@ function effectiveRegionContract(session, region) {
         if (natureMap.has(uid)) {
             out.type = natureMap.get(uid);
         }
-        codesPresent.add(out.normalizedCode);
+        const codeKey = String(out.normalizedCode || out.code || '');
+        if (codeKey) codeCount.set(codeKey, (codeCount.get(codeKey) || 0) + 1);
         nodes.push(out);
     }
 
-    const errors = clearCodeKeyedIssues(c.errors || [], codesPresent);
-    const warnings = clearCodeKeyedIssues(c.warnings || [], codesPresent);
+    const errors = clearCodeKeyedIssues(c.errors || [], codeCount);
+    const warnings = clearCodeKeyedIssues(c.warnings || [], codeCount);
     const rootCount = nodes.filter(n => n.classification === 'ROOT').length;
     const groupCount = nodes.filter(n => n.classification === 'GROUP').length;
     const leafCount = nodes.filter(n => n.classification === 'LEAF').length;
@@ -288,10 +300,33 @@ function gateReasons(session, region) {
     const resolvedWarnKeys = new Set(sessionReviewResolutionsOf(session, region).filter(r => r.warnKey).map(r => r.warnKey));
     const confirmedUids = new Set(sessionNatureConfirmationsOf(session, region).map(e => e.uid));
 
-    // 1) BLOCK sin resolver (presentes en el contrato efectivo)
+    // 1) BLOCK sin resolver (contrato efectivo) — mensajes accionables.
+    // El usuario no siempre debe borrar: puede editar el valor señalado o
+    // excluir una de las filas; el BLOCK se limpia solo con la corrección.
     const blocks = effective.errors.filter(e => e && e.severity === 'BLOCK');
-    if (blocks.length > 0) {
-        reasons.push(`BLOCK sin resolver (${blocks.length}): ${blocks.map(b => b.code || `${b.from}→${b.to}`).join(', ')}`);
+    const blockedCodes = new Set();
+    for (const b of blocks) {
+        const isDup = DUPLICATE_ISSUE_TYPES.has(b.type);
+        if (typeof b.code === 'string' && b.code) blockedCodes.add(b.code);
+        if (isDup && b.code) {
+            reasons.push(`BLOCK sin resolver — código duplicado «${b.code}»: corrige el código de una de las filas (edita la celda) o exclúyela; se limpia al quedar 1 sola ocurrencia`);
+        } else {
+            reasons.push(`BLOCK sin resolver — ${b.type || 'bloqueo'}: ${b.message || `${b.from || ''}→${b.to || ''}`}`);
+        }
+    }
+
+    // 1b) Duplicados NUEVOS creados por ediciones del usuario: el analyzer
+    // original no los vio, pero el backend los rechazaría (UNIQUE). Conteo
+    // mecánico sobre el contrato efectivo: ≥2 códigos iguales = BLOCK.
+    const dupCounts = new Map();
+    for (const n of effective.nodes) {
+        const code = String(n.normalizedCode || n.code || '');
+        if (code) dupCounts.set(code, (dupCounts.get(code) || 0) + 1);
+    }
+    for (const [code, count] of dupCounts) {
+        if (count >= 2 && !blockedCodes.has(code)) {
+            reasons.push(`BLOCK sin resolver — código duplicado «${code}» ×${count} (creado por tus cambios): corrige una de las filas o exclúyela`);
+        }
     }
 
     // 2) REVIEW de warnings (severity REVIEW del contrato original) sin resolución

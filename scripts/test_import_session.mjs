@@ -271,12 +271,23 @@ const cleanContract = mkContract({ nodes: N() });
     });
     let s = S.createImportSession({ regions: [dupContract], now });
     criterion('B1.gate', S.canImport(s) === false, 'BLOCK de duplicado → canImport=false');
-    s = S.excludeRow(s, 'region_0:3');
-    criterion('B2.still', S.canImport(s) === false, 'excluir UNA de las dos filas duplicadas → sigue false (queda 1 ocurrencia)');
-    s = S.excludeRow(s, 'region_0:2');
-    criterion('B3.clear', S.canImport(s) === true, 'excluir TODAS las filas del código bloqueado → BLOCK limpio (sin política de dedup: el usuario removió las filas)');
-    const eff = S.effectiveContractOf(s);
-    criterion('B4.severity', eff.errors.length === 0 && eff.errors.every(e => e.severity === 'BLOCK'), 'no se convierte ni inventa severidad; el error desaparece con la causa');
+    // Corregir la numeración de UNA de las dos filas resuelve el BLOCK
+    const sEdit = S.applyOverride(s, 'region_0:3', 'code', '1102');
+    criterion('B2.editFix', S.canImport(sEdit) === true, 'editar el código de una fila → BLOCK limpio (acción explícita, sin dedup automática)');
+    // Excluir UNA de las dos también resuelve; la otra fila se conserva
+    const sExcl = S.excludeRow(s, 'region_0:3');
+    criterion('B2b.excludeOne', S.canImport(sExcl) === true && S.effectiveContractOf(sExcl).nodes.some(n => n.normalizedCode === '1101'), 'excluir UNA de las dos → BLOCK limpio y la otra fila se conserva');
+    // Excluir ambas sigue funcionando
+    const sBoth = S.excludeRow(sExcl, 'region_0:2');
+    criterion('B3.clear', S.canImport(sBoth) === true, 'excluir TODAS las filas del código bloqueado → BLOCK limpio');
+    const eff = S.effectiveContractOf(sEdit);
+    criterion('B4.severity', eff.errors.length === 0, 'no se convierte ni inventa severidad; el error desaparece con la causa (edición)');
+    // Duplicado NUEVO creado al editar hacia un código existente: el gate lo detecta
+    const newDup = S.applyOverride(S.createImportSession({ regions: [mkContract({ nodes: N() })], now }), 'region_0:2', 'code', '11');
+    const newDupReport = S.canImportReport(newDup);
+    criterion('B7.newDup',
+        S.canImport(newDup) === false && newDupReport.reasons.some(r => r.includes('creado por tus cambios')),
+        'editar hacia un código ya existente → BLOCK nuevo detectado (jamás llega al backend)');
 
     const silentContract = mkContract({ nodes: N(), silentCorruptionCount: 1, dataLoss: { dataLossCount: 1, silentTransformationCount: 1, unaccountedRows: 0 } });
     criterion('B5.silent', S.canImport(S.createImportSession({ regions: [silentContract], now })) === false, 'silentCorruptionCount=1 → canImport=false');

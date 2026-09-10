@@ -40,6 +40,14 @@ function reviewRowsOf(session) {
     const blockedCodes = new Set(
         (effective.errors || []).filter(e => e && e.severity === 'BLOCK' && e.code).map(e => e.code)
     );
+    // Duplicados efectivos (incluye los creados al editar): ≥2 códigos iguales
+    // es BLOCK para el backend (UNIQUE), aunque el analyzer no lo haya visto.
+    const codeCountSel = new Map();
+    for (const n of effective.nodes) {
+        const code = String(n.normalizedCode || n.code || '');
+        if (code) codeCountSel.set(code, (codeCountSel.get(code) || 0) + 1);
+    }
+    const dupCodes = new Set([...codeCountSel.entries()].filter(([, c]) => c >= 2).map(([code]) => code));
     const resolvedNodes = new Set(
         session.reviewResolutions.filter(r => r.uid && r.regionId === region.regionId).map(r => r.uid)
     );
@@ -68,7 +76,8 @@ function reviewRowsOf(session) {
             transformations: node.transformations || [],
             overriddenFields: Object.keys(ov),
             confirmed: uid in confByUid,
-            isBlocked: blockedCodes.has(ov.code ?? node.normalizedCode),
+            isBlocked: blockedCodes.has(ov.code ?? node.normalizedCode) || dupCodes.has(String(ov.code ?? node.normalizedCode)),
+            dupCount: codeCountSel.get(String(ov.code ?? node.normalizedCode)) || 0,
             needsReview: !!((node.requiresReview || (node.parentInfo && node.parentInfo.requiresReview)) && !resolvedNodes.has(uid)),
             isUnknown: node.isPostable === 'UNKNOWN' && !(uid in confByUid),
             inferredRoot: node.nature === 'INFERRED' && node.classification === 'ROOT' && !(uid in confByUid)
@@ -99,6 +108,7 @@ export default function ImportReviewStep({
     const [showExcluded, setShowExcluded] = useState(false);
     const [showRejected, setShowRejected] = useState(false);
     const [showTrace, setShowTrace] = useState(false);
+    const [onlyBlocked, setOnlyBlocked] = useState(false);
 
     useEffect(() => {
         setPage(1);
@@ -106,9 +116,11 @@ export default function ImportReviewStep({
         setExpandedUid(null);
     }, [session.activeRegionId]);
 
-    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    const blockedRows = rows.filter(r => r.isBlocked);
+    const visibleRows = onlyBlocked ? blockedRows : rows;
+    const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
     const safePage = Math.min(page, totalPages);
-    const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    const pageRows = visibleRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
     const myOverrides = session.overrides.filter(o => o.regionId === region.regionId);
     const myConfirmations = session.natureConfirmations.filter(e => e.regionId === region.regionId);
     const reviewWarnings = (region.contract.warnings || [])
@@ -143,6 +155,12 @@ export default function ImportReviewStep({
                 {report.can
                     ? <><strong>Listo para el resumen.</strong> Sin bloqueos ni revisiones pendientes en esta región.</>
                     : <><strong>Puertas en vivo:</strong> {report.reasons.length} punto(s) por resolver — cada corrección recalcula este panel.</>}
+                {!report.can && report.reasons.length > 0 && (
+                    <ul className="mb-0 mt-2 small" data-testid="u2-gate-reasons">
+                        {report.reasons.slice(0, 6).map((r, i) => <li key={i}>{r}</li>)}
+                        {report.reasons.length > 6 && <li>… y {report.reasons.length - 6} más</li>}
+                    </ul>
+                )}
             </div>
 
             <div className="card glass-panel border-secondary mb-3">
@@ -152,6 +170,13 @@ export default function ImportReviewStep({
                     <span className="badge bg-secondary">{myOverrides.length} overrides</span>
                     <span className="badge bg-secondary">{myConfirmations.length} naturalezas confirmadas</span>
                     <span className="badge bg-secondary">{pendingWarnings.length} REVIEW pendientes</span>
+                    {blockedRows.length > 0 && (
+                        <button type="button" data-testid="u2-only-blocked" className={`badge border-0 ${onlyBlocked ? 'bg-danger' : 'bg-danger bg-opacity-50'}`}
+                            title="Mostrar solo las filas con BLOCK"
+                            onClick={() => { setOnlyBlocked(v => !v); setPage(1); }}>
+                            {blockedRows.length} BLOCK {onlyBlocked ? '· quitar filtro' : '· ver solo estas'}
+                        </button>
+                    )}
                     <button type="button" className="btn btn-sm btn-link text-white-50 p-0 ms-auto" data-testid="u2-trace-toggle" onClick={() => setShowTrace(v => !v)}>
                         {showTrace ? 'Ocultar traza' : 'Ver traza de mis cambios'}
                     </button>
@@ -296,6 +321,17 @@ export default function ImportReviewStep({
                                 {expandedUid === row.uid && (
                                     <tr>
                                         <td colSpan="7" className="bg-dark">
+                                            {row.isBlocked && row.dupCount >= 2 && (
+                                                <div className="alert alert-danger py-2 small mb-2" data-testid={`u2-block-help-${row.uid}`}>
+                                                    <i className="bi bi-x-octagon me-2"></i>
+                                                    <strong>BLOCK — código duplicado «{row.code}» ({row.dupCount} filas con este código).</strong>{' '}
+                                                    El backend rechazaría las repetidas. Resuélvelo con UNA de estas acciones:
+                                                    <ul className="mb-0 mt-1">
+                                                        <li><strong>Corregir la numeración:</strong> edita la celda «Código» de esta fila (o de la otra ocurrencia) — el BLOCK se limpia solo al quedar 1 ocurrencia.</li>
+                                                        <li><strong>Excluir esta fila:</strong> botón de papelera (la otra ocurrencia se conserva); puedes re-incluirla luego desde «Ver excluidas».</li>
+                                                    </ul>
+                                                </div>
+                                            )}
                                             <div className="small d-flex flex-wrap gap-3 p-1">
                                                 <span>Padre: <code>{row.parent || '—'}</code> <span className="badge bg-dark border ms-1">{row.parentInfo?.method}</span> <span className="text-white-50">confianza {row.parentInfo?.confidence ?? '—'}</span></span>
                                                 <span className="text-white-50">Evidencia: {(row.parentInfo?.evidence || []).join(' · ') || '—'}</span>

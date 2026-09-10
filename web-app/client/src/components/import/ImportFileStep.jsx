@@ -25,9 +25,7 @@ export default function ImportFileStep({
     error,
     onFile,
     onAnalyze,
-    onRetry,
-    trailCount,
-    onShowTrails
+    onRetry
 }) {
     return (
         <div data-testid="u2-file-step">
