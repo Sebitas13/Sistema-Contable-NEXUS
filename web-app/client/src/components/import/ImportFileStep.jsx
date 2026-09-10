@@ -161,17 +161,7 @@ export default function ImportFileStep({
                         </div>
                     )}
 
-                    <div className="col-12 text-end pt-2 d-flex gap-2 justify-content-end flex-wrap">
-                        <button
-                            type="button"
-                            data-testid="u2-trail-btn"
-                            className="btn btn-outline-info px-4"
-                            onClick={onShowTrails}
-                            disabled={busy}
-                            title="Ver, copiar o descargar las bitácoras guardadas en este navegador"
-                        >
-                            <i className="bi bi-journal-text me-2"></i>Bitácora{trailCount > 0 ? ` (${trailCount})` : ''}
-                        </button>
+                    <div className="col-12 text-end pt-2">
                         <button
                             type="button"
                             data-testid="u2-analyze-btn"

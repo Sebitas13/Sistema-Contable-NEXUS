@@ -544,6 +544,11 @@ export default function UniversalImportWizard({
                     <div className="card-body py-2 small d-flex align-items-center gap-2 flex-wrap">
                         <i className="bi bi-flask me-1 text-info"></i>
                         <span className="flex-grow-1">Asistente universal (en memoria). El asistente clásico sigue siendo el camino productivo.{importCount > 0 && <> <span className="badge bg-dark border ms-1">{importCount} import{importCount === 1 ? '' : 's'} con esta herramienta en este navegador</span></>} <span className="badge bg-dark border ms-1 text-white-50" title="Identificador de build: si no ves U-9b o superior aquí, tu navegador/deploy está sirviendo una versión vieja del asistente">build {WIZARD_BUILD}</span></span>
+                        <button type="button" data-testid="u2-trail-btn" className="btn btn-sm btn-outline-info"
+                            title="Ver, copiar o descargar las bitácoras de importación guardadas en este navegador"
+                            onClick={() => { try { setTrailCount(safeTrailCount()); } catch { /* sin conteo */ } setShowTrails(true); }}>
+                            <i className="bi bi-journal-text me-1"></i>Bitácora{trailCount > 0 ? ` (${trailCount})` : ''}
+                        </button>
                         <button type="button" data-testid="u2-use-classic-btn" className="btn btn-sm btn-outline-secondary"
                             title="Volver al asistente clásico (se recuerda tu preferencia)"
                             onClick={() => { try { setImportEngineMode('legacy'); } catch { /* sin almacenamiento: igual se cierra */ } if (onClose) onClose(); }}>
