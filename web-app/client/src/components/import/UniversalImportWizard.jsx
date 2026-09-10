@@ -37,7 +37,7 @@ const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen',
 // Identificador visible de build del asistente: sirve para verificar en el
 // navegador que se está ejecutando una versión con los arreglos de hoja
 // (U-9b+). Subir al tocar el wizard.
-const WIZARD_BUILD = 'U-9g';
+const WIZARD_BUILD = 'U-9h';
 
 function adapterLabel(adapter) {
     // Comparación por REFERENCIA, jamás por adapter.name: los bundlers de
