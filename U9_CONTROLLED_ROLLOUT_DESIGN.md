@@ -134,6 +134,9 @@ No existe backend de telemetría y U-9 no lo crea. Monitoreo real disponible:
 5. **Reporte de usuario**: el botón clásico + banner garantizan salida; los
    fallos del boundary ya hacen `console.error` con contexto.
 
+Evidencia recopilada y analizada del piloto: `ANALISIS_PILOTO_U9.md`
+(incluye herramienta reproducible `scripts/analyze_import_trail.mjs`).
+
 Límite declarado: sin agregación remota, el "período controlado" se demuestra
 con reportes de los usuarios piloto + bitácoras inspeccionables/exportables,
 no con dashboards. Si se quiere telemetría real, es otro proyecto (backend + tabla).
