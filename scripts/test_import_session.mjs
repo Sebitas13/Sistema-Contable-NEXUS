@@ -226,6 +226,19 @@ const cleanContract = mkContract({ nodes: N() });
     criterion('U3.gateOk', S.canImport(s) === true, 'UNKNOWN confirmado → canImport=true');
     criterion('U4.simAllowed', S.simulate(s, { companyId: 'c1' }).allowed === true, 'simulate con naturaleza confirmada → allowed');
     criterion('U5.payloadType', S.simulate(s, { companyId: 'c1' }).payload.accounts.find(a => a.code === '9').type === 'Orden', 'payload usa el tipo confirmado');
+    // Cambiar el tipo DESPUÉS de confirmar: la última decisión manda (con traza)
+    const sChanged = S.applyOverride(s, 'region_0:0', 'type', 'Patrimonio');
+    const effChanged = S.effectiveContractOf(sChanged);
+    criterion('U7.changeAfterConfirm',
+        effChanged.nodes[0].type === 'Patrimonio' &&
+        sChanged.natureConfirmations.find(e => e.uid === 'region_0:0').nature === 'Patrimonio' &&
+        S.canImport(sChanged) === true &&
+        S.simulate(sChanged, { companyId: 'c1' }).payload.accounts.find(a => a.code === '9').type === 'Patrimonio',
+        'cambiar el tipo tras confirmar → efectivo, confirmación y payload usan el valor nuevo (no queda encerrado)');
+    criterion('U7b.trace',
+        sChanged.overrides.find(o => o.uid === 'region_0:0' && o.field === 'type').originalValue === 'Activo' &&
+        sChanged.overrides.find(o => o.uid === 'region_0:0' && o.field === 'type').value === 'Patrimonio',
+        'el cambio conserva la traza original → valor');
     try { S.confirmNature(s, 'region_0:0', ''); criterion('U6.emptyNature', false, 'confirmNature vacío debía lanzar'); }
     catch { criterion('U6.emptyNature', true, 'confirmNature con valor vacío lanza'); }
 }

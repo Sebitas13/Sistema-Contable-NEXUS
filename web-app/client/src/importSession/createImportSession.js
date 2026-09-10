@@ -460,7 +460,20 @@ export function applyOverride(session, uid, field, value) {
         value,
         at: nowOf(session)
     });
-    return { ...session, overrides: next };
+    let nextSession = { ...session, overrides: next };
+    // Regla de dominio: cambiar el tipo de un nodo ya confirmado ACTUALIZA esa
+    // confirmación (la última decisión explícita del usuario manda). Sin esto,
+    // la confirmación previa pisaba el override en el contrato efectivo y en
+    // el payload: el usuario quedaba "encerrado" con el tipo confirmado.
+    if (field === 'type') {
+        const conf = session.natureConfirmations.find(e => e.uid === uid);
+        if (conf && conf.nature !== String(value)) {
+            const natureNext = session.natureConfirmations.filter(e => e.uid !== uid);
+            natureNext.push({ ...conf, nature: String(value), at: nowOf(session) });
+            nextSession = { ...nextSession, natureConfirmations: natureNext };
+        }
+    }
+    return nextSession;
 }
 
 /** Excluye (o re-incluye con excluded=false) una fila. NO renumera nodos. */
