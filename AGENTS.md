@@ -30,9 +30,11 @@ Navegador ──> Vercel (React + Vite, SPA estática)
 
 - La base de datos real es **Turso (libSQL)** — NO SQLite local. `@libsql/client`.
 - Auth: contraseña única compartida (`APP_PASSWORD`) → token `sha256`. Gate en `index.js`.
-- Plan free de Render: **750 h/mes compartidas** entre Node + Python. El cron
-  `.github/workflows/keep-warm.yml` solo pinge 12 h/día (720 h/mes). **Nunca
-  agregar pingers 24/7 ni un tercer servicio free.**
+- Plan free de Render: **750 h/mes compartidas por workspace** entre Node +
+  Python y cualquier otro servicio free. El cron `.github/workflows/keep-warm.yml`
+  puede consumir ~725 h en 30 días y ~749 h en 31 días, sin contar tráfico fuera
+  de la franja. El margen es mínimo en meses largos. **Nunca agregar pingers 24/7
+  ni otro servicio free sin recalcular el consumo.**
 
 ---
 
@@ -112,14 +114,22 @@ de distribución. No es una página independiente.
 - La pestaña Depreciación de `Settings.jsx` y la tabla `company_adjustment_profiles`
   **alimentan el motor real**, aunque el endpoint diga `/api/ai/`.
 
-## 🔮 Mahoraga (asistente IA — experimental/decorativo)
+## 🔮 Mahoraga (asistente IA — experimental, no integral)
 
-Ver `MAHORAGA.md` para el mapa completo y el roadmap de activación. Reglas:
+Ver `MAHORAGA.md` para el mapa actual y el roadmap de implementación segura. Reglas:
 - `MahoragaWheel.jsx` (y `MahoragaWheel3D.jsx`) se conservan por valor estético.
-- El estado del controlador ya **se hidrata desde la DB** al arrancar.
-- `routes/orchestrator.js` + `services/cognitiveOrchestrator.js` están rotos
-  (dependencia `pg` inexistente); se cargan en try/catch y nunca se registran.
-- Cualquier activación real sigue el roadmap por etapas de `MAHORAGA.md`.
+- El modo global y el historial se persisten/hidratan parcialmente desde Turso;
+  las escrituras son best-effort. `active_pages` vive en el perfil de empresa y
+  solo controla la presentación de la rueda, no permisos.
+- Los modos `assisted`/`autonomous` no aplican cambios contables; no activarlos
+  creyendo que existe un asistente integral. Confirmar activación tampoco ejecuta
+  la inferencia pendiente.
+- `/api/skills/dispatch` falla porque `vm2` no está declarado/instalado. No
+  resolver añadiendo ejecución arbitraria; seguir el diseño tipado/read-only de
+  `MAHORAGA.md`.
+- `/api/ai/orchestrator` se intenta montar, pero su servicio no es confiable:
+  llamada a `inferWithModel` incompatible, auditoría placeholder y `pg` opcional
+  no declarado. No usar en producción.
 
 ---
 
@@ -150,8 +160,9 @@ Prácticamente todas las tablas core tienen `company_id` y todas las consultas
 filtran por él. Nunca introducir consultas sin filtro de empresa.
 
 ### Backups
-El import es **aditivo** (crea empresa "(Restaurado <fecha>)"): probar restore
-en producción es seguro, no pisa datos.
+El import es **aditivo** (crea empresa "(Restaurado <fecha>)"): no sobrescribe la
+empresa fuente, pero consume espacio y deja una empresa nueva; verificar el
+destino y limpiar explícitamente tras la prueba.
 
 ---
 
@@ -184,8 +195,10 @@ Resuelto (ver git log para detalle):
 - Mojibake reparado en Settings.jsx y ai.js (reparador con validación UTF-8).
 
 Pendiente conocido:
-- **A3**: tablas anchas en mobile (Worksheet ~21 columnas es la peor); los
-  modales NexusModal ya son scrollables.
+- **A3**: tablas anchas en mobile (Worksheet tiene 16 columnas numéricas más
+  identificadores; CSS oculta algunos campos y fija la cuenta, pero sigue el
+  scroll horizontal). `Worksheet.jsx` es zona protegida: autorización explícita
+  requerida antes de editarla. Los modales NexusModal ya son scrollables.
 - **Fase 6 (decisión pendiente)**: migración del SmartImportWizard al Universal
   Import Engine. Diseño DEFINITIVO listo en `IMPORT_WIZARD_MIGRATION_DESIGN.md`
   (PHASE 6 VERDICT: ARCHITECTURE READY · MIGRATION PLAN READY · IMPLEMENTATION
@@ -195,7 +208,10 @@ Pendiente conocido:
   el default, ImportSession como contenedor puro (sin lógica de análisis).
 - **Fase 7 U-9 Etapa 1 (rollout controlado, en curso)**: opt-in por botón
   "Importar (nuevo)" (default legacy intacto), PUCT-guard duro con redirección
-  al clásico, log local sin PII (`universalImportLog`), rollback por niveles.
+  al clásico, log local sin identificador de empresa (`universalImportLog` y
+  `universalImportTrails`), rollback por niveles. H1 (fingerprint largo) se
+  compacta como firma `u9fp1`; H2 registra overrides textuales al salir del campo
+  o Enter. Repetir ASFI para obtener el `result` que falta en su bitácora histórica.
   Diseño: `U9_CONTROLLED_ROLLOUT_DESIGN.md`. U-10 (retiro legacy) NO aprobado.
 - Engine: PGC (columna única "N. Nombre.") es PARTIAL en el flujo canónico
   automático (parser especial probado en Node, no auto-seleccionado).
@@ -208,5 +224,6 @@ Pendiente conocido:
 - ESLint: el script `lint` existe pero NO hay archivo de configuración.
 - `/api/skills/dispatch` responde 500 (depende de `vm2`, no declarada) —
   resolver al decidir el destino de Mahoraga.
-- Decisión pendiente: activar Mahoraga por etapas (roadmap) o podarlo dejando
-  solo la rueda. El estado del controlador ya persiste en DB.
+- Decisión pendiente: implementar el Mahoraga read-only descrito en `MAHORAGA.md`
+  o mantener/podar los paneles experimentales. La rueda se conserva y el motor
+  contable no se toca.

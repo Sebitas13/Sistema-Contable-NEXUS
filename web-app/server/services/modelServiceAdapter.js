@@ -78,9 +78,9 @@ async function llmCall(prompt, opts = {}) {
     const tokensInput = data.usage.prompt_tokens || Math.ceil(prompt.length / 4); // Estimación si no viene
     const tokensOutput = data.usage.completion_tokens || Math.ceil((data.choices?.[0]?.message?.content?.length || 0) / 4);
 
-    groqMonitor.recordUsage(model, tokensInput, tokensOutput, res.ok);
+    const usage = groqMonitor.recordUsage(model, tokensInput, tokensOutput, res.ok);
 
-    console.log(`🤖 Groq API: ${model} | Input: ${tokensInput}t | Output: ${tokensOutput}t | Cost: $${groqMonitor.recordUsage(model, 0, 0).cost?.toFixed(6) || 'N/A'}`);
+    console.log(`🤖 Groq API: ${model} | Input: ${tokensInput}t | Output: ${tokensOutput}t | Cost: $${usage.cost?.toFixed(6) || 'N/A'}`);
   }
 
   return data;

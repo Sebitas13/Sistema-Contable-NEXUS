@@ -4,11 +4,13 @@ name: Keep services warm
 # para no superar el límite del plan gratuito.
 #
 # ⚠️ CUOTA DE RENDER FREE: 750 horas/mes COMPARTIDAS entre TODOS los servicios free
-# del workspace. Dos servicios pingados 24/7 = 1440h/mes, se pasa del límite y
-# Render los suspende hasta el mes siguiente.
+# del workspace. Dos servicios pingados 24/7 consumen 1440h en 30 días (1488h en
+# 31 días), superan el límite y Render los suspende hasta el mes siguiente.
 #
-# Estrategia: pingar durante ~12 h/día (08:00-19:59 Bolivia / 12-23 UTC).
-#   12 h × 30 días × 2 servicios = 720 h/mes  ✅ cabe en 750 h con margen.
+# Estrategia: pingar durante la franja 08:00-19:59 Bolivia / 12-23 UTC.
+#   Último ping: 19:50; Render duerme tras 15 min sin tráfico.
+#   Uptime estimado: ~12h05 × 2 servicios/día = ~725h/30 días o ~749h/31 días.
+#   En meses de 31 días casi no hay margen; tráfico fuera de horario lo consume.
 #
 # Sinergia con el keep-alive interno (web-app/server/utils/keepAlive.js): mientras
 # Node está despierto, pinguea solo a Python cada 14 min. Así la ventana de 12 h

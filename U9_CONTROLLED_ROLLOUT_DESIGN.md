@@ -1,6 +1,8 @@
-# U-9 CONTROLLED ROLLOUT — DISEÑO (NO IMPLEMENTAR SIN APROBACIÓN)
+# U-9 CONTROLLED ROLLOUT — DISEÑO Y GUÍA OPERATIVA
 
-> Estado: PROPUESTA para revisión. U-8 = PASS. U-10 (retiro legacy) = NO APROBADO.
+> Estado al 2026-09-26: U-9 Etapa 1 está implementada y en período de prueba.
+> Este documento comenzó como diseño; las decisiones de Etapa 1 están registradas
+> al final. U-10 (retiro legacy/cambio de default) sigue NO APROBADO.
 > Principio rector: U-9 es un **rollout controlado con exposición progresiva,
 > monitoreo honesto y rollback real**. NO es un cambio ciego de default.
 > Condición innegociable: **PUCT multicolumna explícitamente excluido** (hallazgo U-7).
@@ -40,8 +42,8 @@ completa, y demostrar durante un período controlado que aguanta uso real
 ## 3. Modelo de exposición (etapas, con criterios de entrada/salida)
 
 ```
-Etapa 0 (hoy):   Universal solo vía ?engine=universal explícito. [ESTADO ACTUAL]
-Etapa 1 (U-9):   + botón opt-in "Importar (nuevo)" en Cuentas (§5)
+Etapa 0 (histórica): Universal solo vía ?engine=universal explícito.
+Etapa 1 (U-9, actual): botón opt-in "Importar (nuevo)" en Cuentas (§5)
                  + PUCT-guard duro (§4) + log local (§6) + procedimiento rollback (§7)
 Etapa 2 (futura, OTRA aprobación): cohorte por empresa (allowlist explícita).
 Etapa 3 (futura, OTRA aprobación): cambio de default (con PUCT-guard intacto).
@@ -51,7 +53,8 @@ Cada etapa exige: suites verdes + E2E verdes + criterios de salida medidos.
 U-9 implementa SOLO la Etapa 1. Las Etapas 2–3 se diseñan cuando la Etapa 1
 demuestre el período controlado (§8).
 
-**Criterio de entrada a Etapa 1** (ya cumplido): U-8 PASS + este diseño aprobado.
+**Criterio de entrada a Etapa 1** (cumplido): U-8 PASS + aprobación explícita del
+rollout controlado. El período de pruebas aún no demuestra cobertura universal.
 
 ## 4. PUCT-guard duro (exclusión en código, no solo en docs)
 
@@ -114,18 +117,19 @@ probar el nuevo → exigiría tocar `SmartImportWizard.jsx` (congelado). No.
 
 No existe backend de telemetría y U-9 no lo crea. Monitoreo real disponible:
 1. **Registrador de vuelo** `universalImportTrails` (localStorage, cap 20
-   bitácoras × 5000 eventos FIFO): cada importación deja el camino COMPLETO
+   bitácoras × 5000 eventos): cada importación deja el camino
    desde el archivo hasta el recibo — extracción (formato/hoja/páginas/filas/
    confianza/ms), análisis (regiones/nodos/BLOCK/REVIEW), validación (puertas
    y motivos), cada corrección del usuario (`override` con valor original →
    valor, `exclude/include/confirm/resolve/bulk`), simulación (fingerprint) y
    resultado (successCount/errorCount/companyPut/status). Incluye códigos y
-   nombres del plan (imprescindibles para auditar) pero **jamás identificadores
-   empresariales** (D3). Visor propio en el wizard: ver detalle por evento,
-   copiar y descargar `.json` para envío (botón «Bitácora»). Reproducible:
-   misma entrada + mismas operaciones = mismo payload (el fingerprint es el
-   testigo), así que la traza + el archivo original permiten re-verificar sin
-   guardar el payload.
+   nombres del plan, nombre de archivo y eventos, pero no `companyId`, NIT ni
+   razón social. Los nombres/códigos pueden ser sensibles. Fingerprints largos
+   se compactan como `u9fp1` para ahorrar cuota; firmas antiguas completas siguen
+   siendo comparables. La firma es determinista, no criptográfica. Si se agota la
+   cuota, se eliminan bitácoras anteriores para intentar guardar la actual.
+   El override textual se registra al salir del campo o con Enter. Visor propio:
+   ver detalle por evento, copiar y descargar `.json` desde «Bitácora».
 2. **Log resumido** `universalImportLog` (cap 50): contadores por import, para
    el badge del banner.
 3. **Recibo post-import** (ya existe, U-5) como evidencia por operación.
@@ -159,13 +163,17 @@ Procedimiento de rollback de Etapa 1 (a documentar en el informe U-9):
 
 ## 8. Criterios de aceptación U-9 y salida hacia U-10
 
-**Aceptación U-9** (todo verificable):
-- [ ] PUCT-guard: fixtures + harness E2E + app E2E en verde; PUCT5C no puede
+**Aceptación de implementación U-9**:
+- [x] PUCT-guard: fixtures + harness E2E + app E2E en verde; PUCT5C no puede
       llegar a diagnóstico por Universal (panel + redirección probados).
-- [ ] Opt-in abre Universal; default abre clásico (E2E app ambos caminos).
-- [ ] Log local escribe en import/cancel/error (E2E o Node según factibilidad).
-- [ ] `npm test` + build verdes; scope sin legacy/engine/backend/DB.
-- [ ] Informe U-9 con procedimiento de rollback ejecutado al menos en seco.
+- [x] Opt-in abre Universal; default abre clásico (E2E app ambos caminos).
+- [x] Log local y visor existen; cubiertos por pruebas Node y E2E de importación.
+- [x] `npm test` + build pasan; legacy/engine/backend/DB se mantienen fuera del rollout.
+
+**Cierre del período U-9** (todavía pendiente):
+- [ ] Informe de período con imports reales exitosos y recibo íntegro; ver
+      `ANALISIS_PILOTO_U9.md` (ASFI aún no tiene evento `result`).
+- [ ] Procedimiento de rollback ejecutado al menos en seco.
 
 **Salida hacia U-10** (requerida ANTES de discutir retiro legacy; NO parte de U-9):
 - Período controlado con imports reales exitosos en ≥2 formatos no-PUCT,
@@ -174,7 +182,12 @@ Procedimiento de rollback de Etapa 1 (a documentar en el informe U-9):
   en verde por cableado real, no por allowlist).
 - Decisión de negocio explícita (default flip = otra fase; retiro = U-10).
 
-## 9. Plan de implementación propuesto (commits pequeños, reversibles)
+## 9. Plan original de implementación (histórico; completado)
+
+Este plan describe la implementación de Etapa 1 y se conserva como registro;
+no es una lista de tareas pendientes ni una autorización para ampliar el alcance.
+Las comprobaciones de implementación están marcadas en §8. Lo pendiente ahora
+es cerrar el período de prueba con evidencia real y ejecutar el rollback en seco.
 
 1. `puctGuard.js` + suite Node (fixtures por señal A/B/C + negativos).
 2. Panel guard en paso 1 + redirección a clásico + tests harness/app.
@@ -184,13 +197,16 @@ Procedimiento de rollback de Etapa 1 (a documentar en el informe U-9):
 
 Cada commit: build + suites verdes, legacy/engine intactos, default intacto.
 
-## 10. Archivos a tocar / preservar (propuesta)
+## 10. Alcance original de archivos (referencia histórica)
 
-Tocar (solo app/import + tests + Accounts.jsx puntual):
+La propuesta original se limitaba a app/import, pruebas y un cambio puntual en
+`Accounts.jsx`. La lista no implica que esos cambios falten ni que deban repetirse:
 `import/puctGuard.js` (nuevo), `UniversalImportWizard.jsx` (paso 1 + banner),
 `Accounts.jsx` (botón opt-in), suites (`+guard`, harness, app E2E), runner labels.
-Preservar: `SmartImportWizard.jsx`, engine, `routes/*`, `db.js`, `schema.sql`,
-zona IA, `importSession/`, baseline y diseño congelados, PUCT/corpus.
+El alcance de Etapa 1 preservó `SmartImportWizard.jsx`, engine, backend, DB,
+zona IA, `importSession/`, baseline, diseño congelado y PUCT/corpus. Para el
+seguimiento actual, limitar los cambios al diagnóstico, las pruebas piloto y
+correcciones específicas aprobadas; no iniciar Fase 6 ni U-10 desde este documento.
 
 ## 11. Riesgos residuales declarados
 
@@ -255,9 +271,11 @@ del selector y el Plan de Cuentas queda vacío. El schema declara
 `ON DELETE CASCADE` en `accounts.company_id`; si el borrado fallara o dejara
 rastros, ESO también es un hallazgo (del backend, no del importador).
 
-## DECISIONES QUE REQUIEREN TU APROBACIÓN ANTES DE IMPLEMENTAR
+## DECISIONES REGISTRADAS
 
-- D1: Opt-in por botón separado (propuesto) vs solo `?engine=` actual.
-- D2: PUCT-guard con redirección dura (propuesto) vs solo aviso + gates.
-- D3: Log local con `companyId` (propuesto) vs sin identificador alguno.
-- D4: Alcance U-9 = Etapa 1 solamente (propuesto) — Etapas 2–3 fuera.
+- D1: **Aprobado e implementado** — opt-in por botón separado; legacy sigue predeterminado.
+- D2: **Aprobado e implementado** — guard PUCT con redirección dura al clásico.
+- D3: **Aprobado e implementado** — bitácora local sin `companyId` ni NIT; sí incluye
+  nombre de archivo y datos del plan necesarios para auditar.
+- D4: **Aprobado e implementado** — U-9 se limita a Etapa 1. Etapas 2–3 y U-10
+  requieren una aprobación diferente.

@@ -6,14 +6,14 @@ Sistema contable avanzado multi-empresa diseñado bajo la normativa contable y t
 
 ## 🌟 Características Clave
 
--   **Detección e Indexación de Ajustes**: Motor IA que detecta y propone de forma precisa asientos de depreciación, actualización por inflación (UFV) y provisiones.
+-   **Ajustes contables**: motor que calcula y propone asientos para depreciación, actualización por inflación (UFV/AITB), revaluaciones y provisiones según las reglas implementadas.
 -   **Gestión Multi-Empresa Completa**: Configuración dinámica de periodos fiscales según la actividad económica:
     -   *Comercial, Servicios, Bancos y Seguros* (cierre al 31 de Diciembre).
     -   *Industriales, Constructoras y Petroleras* (cierre al 31 de Marzo).
     -   *Gomeras, Castañeras, Agrícolas y Ganaderas* (cierre al 30 de Junio).
     -   *Mineras* (cierre al 30 de Septiembre).
--   **Seguridad y Modos de Autonomía**: Permite controlar el nivel de autonomía de la IA (Manual, Asistida y Autónoma) con interruptores de parada de emergencia.
--   **Sistema de Backup "Escudo del General"**: Importaciones y exportaciones seguras basadas en streaming (`archiver`/`unzipper`), resguardando la integridad referencial de 15 tablas e importando de forma aditiva (nunca sobreescribe datos).
+-   **Acceso a la aplicación**: el backend puede proteger la API con una contraseña compartida (`APP_PASSWORD`). No es un sistema de usuarios ni de permisos independientes por empresa.
+-   **Sistema de Backup "Escudo del General"**: exporta 15 tablas en un `.zip` y restaura de forma aditiva (crea otra empresa, no sobreescribe la existente). La exportación usa streaming; la importación descomprime y procesa JSON en memoria, con límites de tamaño.
 -   **Reportes Contables**: Generación instantánea de Libro Diario, Libro Mayor, Balances de Comprobación y Hojas de Trabajo configurables en lotes y exportables a PDF o Excel.
 
 ---
@@ -52,7 +52,7 @@ El sistema sigue una arquitectura distribuida de tres servicios independientes y
                                          leer libro mayor / cuentas)
 ```
 
-> **Nota sobre el rendimiento (Cold-Start)**: Debido a las limitaciones de los servidores gratuitos en Render, si el sistema ha estado inactivo, el motor de ajustes y el backend Express entrarán en estado de reposo. El primer inicio o consulta al motor de IA puede tardar entre 50 y 60 segundos mientras ambos contenedores se reactivan de manera secuencial y bidireccional.
+> **Nota sobre el rendimiento (cold start)**: el workflow de GitHub Actions mantiene ambos servicios de Render despiertos en la franja de 08:00 a 19:59, hora de Bolivia; fuera de ella pueden dormir. Con pings cada 10 min y 15 min hasta el spin-down, esa franja consume aproximadamente 725 h en 30 días o 749 h en 31 días de la cuota compartida de 750 h por workspace. En un mes de 31 días casi no hay margen para tráfico fuera de horario. El backend también revisa el motor Python mientras Node está activo y los ajustes reintentan el warmup, pero esto no elimina el cold start ni garantiza que todo servicio responda a tiempo. Ver [ARCHITECTURE.md](ARCHITECTURE.md#3-despliegue-y-cold-start).
 
 ---
 
@@ -65,10 +65,16 @@ Es fundamental distinguir las dos capas de Inteligencia Artificial presentes en 
 - Realiza el cálculo matemático y de prorrateo mensual para la **depreciación de activos fijos**, revaluaciones monetarias y ajustes por inflación (**AITB**) siguiendo trayectorias diarias de UFV e índices cambiarios.
 - Interactúa directamente a través de los endpoints `/api/ai/adjustments/*` y el asistente de la Hoja de Trabajo (`AdjustmentWizard.jsx`). **Este motor es estable e intocable.**
 
-### 2. Asistente Autónomo Mahoraga 🟡 *EXPERIMENTAL / INTERFAZ ESTÉTICA*
-- Referencia el diseño a futuro de un agente autónomo de gobernanza (ubicado en la pestaña *Mahoraga* en Configuración).
-- Integra una rueda de cognición animada (`MahoragaWheel.jsx`) y botones de interacción visual, pero no cuenta con un motor persistente en el backend (funciona principalmente con datos mockeados en memoria y un catálogo AST estático en `skills_output_combined.json`).
-- **Se conserva en el código por su alto valor estético y propósitos de desarrollo futuro.**
+### 2. Mahoraga 🟡 *EXPERIMENTAL; NO ES UN ASISTENTE INTEGRAL*
+- La pestaña de Configuración combina controles parciales, indicadores derivados de la base de datos y un catálogo técnico de funciones. El modo y el historial de activaciones tienen persistencia parcial en Turso; esto no equivale a un asistente conversacional ni a una autonomía contable funcional.
+- El catálogo `skills_output_combined.json` es un inventario AST con poca o ninguna descripción semántica. El endpoint de ejecución depende de `vm2`, que no está declarado/instalado en este repositorio; no debe considerarse una función disponible.
+- `MAHORAGA.md` describe qué funciona, qué es solo scaffolding y una ruta segura para una implementación futura. La rueda (`MahoragaWheel.jsx`) se conserva por decisión del usuario.
+
+### 3. Importador universal 🟡 *PILOTO OPT-IN; NO UNIVERSAL AÚN*
+- El importador clásico sigue siendo el predeterminado. El nuevo `UniversalImportWizard` se abre explícitamente desde **Importar (nuevo)**; no se ha aprobado retirar el clásico ni cambiar el predeterminado.
+- El nuevo flujo analiza, valida y prepara un contrato revisable antes de escribir. El guard deriva los planes PUCT multicolumna al asistente clásico. DASH, ASFI y VARLEN tienen bitácoras piloto; las tres proceden de hojas de un mismo libro Excel, así que todavía no prueban cobertura universal de formatos y fuentes.
+- En el piloto de septiembre, DASH (235 cuentas) y VARLEN (576) tienen recibos en bitácora. ASFI (2859 nodos analizados) no tiene evento `result`; no se puede afirmar que esa importación terminara correctamente. El detalle y los pasos para seguir probando están en [ANALISIS_PILOTO_U9.md](ANALISIS_PILOTO_U9.md) y [U9_CONTROLLED_ROLLOUT_DESIGN.md](U9_CONTROLLED_ROLLOUT_DESIGN.md).
+- El baseline congelado y la migración de Fase 6 son documentos distintos: [UNIVERSAL_IMPORT_ENGINE_BASELINE.md](UNIVERSAL_IMPORT_ENGINE_BASELINE.md) fija invariantes y limitaciones; [IMPORT_WIZARD_MIGRATION_DESIGN.md](IMPORT_WIZARD_MIGRATION_DESIGN.md) conserva el diseño aprobado solo como diseño.
 
 ---
 
@@ -168,7 +174,15 @@ cd "Sistema Contable"
 
 Para garantizar la seguridad de tus datos contables e históricos de IA, el sistema incluye un asistente de Backups robusto:
 - **Exportación**: Genera un empaquetado `.zip` que contiene un archivo `metadata.json` con la suma de verificación (SHA-256) y colecciones JSON independientes para cada una de las tablas del sistema.
-- **Importación**: Procesa el archivo `.zip`, verifica su integridad contra el checksum original y, de ser válido, inserta la información de forma **aditiva**. Mapea secuencialmente todas las claves foráneas (FK) a una nueva entidad de empresa, lo que previene colisiones o pérdidas de datos existentes.
+- **Importación**: verifica la integridad y restaura de forma **aditiva** con IDs remapeados a una nueva empresa. El JSON descomprimido se procesa en memoria (límite actual: 200 MB sin comprimir); no es una importación streaming. Las pruebas deben hacerse con un backup conocido y verificando los datos de la empresa restaurada.
+
+## Documentación del repositorio
+
+- [ARCHITECTURE.md](ARCHITECTURE.md): componentes, rutas, base de datos y flujos principales.
+- [DIAGNOSTICO.md](DIAGNOSTICO.md): auditoría histórica con el estado actual verificado y la deuda pendiente.
+- [MAHORAGA.md](MAHORAGA.md): diagnóstico y roadmap del asistente experimental.
+- [ANALISIS_PILOTO_U9.md](ANALISIS_PILOTO_U9.md): evidencia real del piloto del importador y lo que aún no se puede concluir.
+- [AGENTS.md](AGENTS.md): mapa breve del repositorio, comandos y reglas de mantenimiento.
 
 ---
 

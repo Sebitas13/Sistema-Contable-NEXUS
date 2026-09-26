@@ -34,7 +34,7 @@ const { contractFingerprint } = await import(pathToFileURL(path.join(root, 'web-
 const { deriveCompanyStructure } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/companyStructure.js')).href);
 const { needsLegacyWizard, hasSingleDigitSymptom, gridFromDoc } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/puctGuard.js')).href);
 const { readImportLog, appendImportLog, countImportLog } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importLog.js')).href);
-const { startTrail, trailEvent, readTrails, saveTrail, clearTrails } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importTrail.js')).href);
+const { startTrail, trailEvent, readTrails, saveTrail, clearTrails, compactFingerprint } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importTrail.js')).href);
 const { getImportEngineMode, setImportEngineMode, isUniversalEnabled } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/engineFlag.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 
@@ -419,6 +419,20 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     const t2 = trailEvent(startTrail({ fileName: 'p.csv', at: 1 }), 'override', { uid: 'r:0', field: 'name', originalValue: 'CAJA', value: 'CAJA MN' }, 2);
     const dumped = JSON.stringify(t2);
     criterion('J8.content', dumped.includes('CAJA MN') && !/\b(companyId|company_id|nit|legal_name|selectedCompany)\b/.test(dumped), 'la traza lleva códigos/nombres (auditables) y ningún identificador');
+
+    const largeFingerprint = 'canonical-contract:'.padEnd(1024 * 1024, 'x');
+    const compacted = trailEvent(startTrail({ fileName: 'large.xlsx', at: 3 }), 'simulation', { fingerprint: largeFingerprint });
+    criterion('J9.compactFingerprint', compacted.events[0].fingerprint === compactFingerprint(largeFingerprint) && compacted.events[0].fingerprint.length < 64, 'huella larga resumida a firma estable de longitud fija');
+
+    const quotaStore = fakeStore();
+    quotaStore.setItem('universalImportTrails', JSON.stringify([{ id: 'old', fileName: 'old.xlsx', events: [{ value: 'x'.repeat(8000) }] }]));
+    const unrestrictedSet = quotaStore.setItem;
+    quotaStore.setItem = (key, value) => {
+        if (String(value).length > 5000) throw new Error('quota exceeded');
+        unrestrictedSet(key, value);
+    };
+    const latest = startTrail({ fileName: 'latest.xlsx', at: 4 });
+    criterion('J10.quotaEviction', saveTrail(latest, quotaStore) && readTrails(quotaStore).length === 1 && readTrails(quotaStore)[0].fileName === 'latest.xlsx', 'si se agota la cuota, elimina bitácoras antiguas y conserva la actual');
 }
 
 // ─────────────────────────────────────────────────────────────

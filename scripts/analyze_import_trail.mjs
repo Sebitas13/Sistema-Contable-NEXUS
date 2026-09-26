@@ -35,6 +35,7 @@ if (!trailPath || !fs.existsSync(trailPath)) {
 const { ExcelAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
 const { UniversalPlanAnalyzer } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/UniversalPlanAnalyzer.js')).href);
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
+const { compactFingerprint } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/importTrail.js')).href);
 
 const trail = JSON.parse(fs.readFileSync(trailPath, 'utf8'));
 const ev = trail.events || [];
@@ -93,11 +94,14 @@ try {
     const sim = S.simulate(session, { companyId: null });
     const total = sim.expectedCounts ? sim.expectedCounts.total : sim.effectiveNodeCount;
     const lastSim = [...ev].reverse().find(e => e.kind === 'simulation');
-    const fpNow = sim.fingerprint ? String(sim.fingerprint) : null;
+    const fpNow = sim.fingerprint ? compactFingerprint(String(sim.fingerprint)) : null;
     const fpTrail = lastSim && lastSim.fingerprint ? String(lastSim.fingerprint) : null;
     console.log(`\nREPLAY (${fileArg} · hoja ${sheet}): acciones=${applied} omitidas=${skipped} canImport=${S.canImport(session)} total=${total}`);
     if (fpTrail && fpNow) {
-        console.log(`REPLAY fingerprint: ${fpTrail === fpNow ? '✅ IDÉNTICO a la bitácora' : '❌ DIFIERE (revisar)'}`);
+        const matches = fpTrail.startsWith('u9fp1:')
+            ? fpTrail === fpNow
+            : fpTrail === String(sim.fingerprint);
+        console.log(`REPLAY fingerprint: ${matches ? '✅ IDÉNTICO a la bitácora' : '❌ DIFIERE (revisar)'}`);
     } else {
         console.log('REPLAY fingerprint: no comparable (falta huella en bitácora o replay).');
     }

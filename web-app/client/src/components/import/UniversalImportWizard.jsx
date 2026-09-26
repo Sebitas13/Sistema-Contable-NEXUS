@@ -389,10 +389,10 @@ export default function UniversalImportWizard({
             return undefined;
         }
     }
-    function handleOverride(uid, field, value) {
+    function handleOverride(uid, field, value, { record = true } = {}) {
         const originalValue = session ? originalOf(uid, field) : undefined;
         setSession(prev => (prev ? applyOverride(prev, uid, field, value) : prev));
-        pushTrail('override', { uid, field, originalValue, value });
+        if (record) pushTrail('override', { uid, field, originalValue, value });
     }
     function handleExclude(uid) {
         setSession(prev => (prev ? excludeRow(prev, uid, true) : prev));

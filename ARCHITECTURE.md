@@ -3,7 +3,7 @@
 Documento de referencia para entender y explicar la app de punta a punta:
 stack, deploy, estructura de archivos, modelo de datos y flujos principales.
 
-> Última revisión: 2026-07-18.
+> Última revisión: 2026-09-26.
 
 ---
 
@@ -83,9 +83,14 @@ y `web-app/client`. Críticas:
   `GROQ_API_KEY` (si se usa LLM), `LLM_ENDPOINT`, `LLM_MODEL`.
 - **Frontend (Vite)**: `VITE_API_URL` (URL del backend).
 
-**Plan free de Render — cuota 750 h/mes COMPARTIDAS** entre todos los servicios
-del workspace. Por eso `keep-warm.yml` pinguea solo 12 h/día (12 × 30 × 2 = 720 h,
-deja margen). Fuera de esa ventana los servicios se duermen.
+**Plan free de Render — cuota de 750 h por workspace y mes calendario**,
+compartida entre todos sus servicios free. El cron pinguea cada 10 min entre
+08:00 y 19:59 Bolivia; el último ping (19:50) más los 15 min de inactividad antes
+del spin-down equivalen a ~12 h 5 min activos por servicio/día: ~725 h en 30 días
+y ~749 h en 31 días para Node + Python. En meses de 31 días casi no queda margen;
+tráfico fuera de horario o servicios free adicionales pueden agotar la cuota.
+Fuera de la ventana, ambos pueden dormir y el primer request puede tardar cerca
+de un minuto en despertar cada servicio.
 
 ---
 
@@ -360,10 +365,14 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   crea una **empresa nueva** con sufijo "(Restaurado <fecha>)" y reinserta todo
   remapeando IDs viejos→nuevos (cuentas, transacciones, items, centros de costo
   con `parent_id` en dos pasadas, etc.). Es **aditivo**: nunca pisa la empresa
-  existente. Por eso se puede probar en producción sin riesgo.
+  existente. No es una prueba sin riesgo: consume espacio y deja una empresa nueva.
+- La exportación usa `archiver` en streaming. La importación procesa el ZIP y
+  carga cada JSON en memoria; el límite actual del bundle descomprimido es 200 MB.
+  `SUPPORTED_TABLES` contiene 15 tablas; los catálogos de skills en archivos no
+  forman parte del backup.
 
 ### E) Importar plan de cuentas (`SmartImportWizard` → Universal Import Engine)
-1. **Producción (hoy)**: `SmartImportWizard.jsx` (Accounts.jsx:376) parsea Excel/PDF
+1. **Predeterminado en producción**: `SmartImportWizard.jsx` (Accounts.jsx) parsea Excel/PDF
    con heurísticas propias, genera preview editable y hace `POST /api/accounts/bulk`
    (lotes de 500, leyendo `successCount/errorCount` reales) + `PUT /api/companies/:id`
    con `code_mask`/`plan_structure` tras el import.
@@ -374,11 +383,19 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
    `CompatibilityAdapter.toBulkPayload`. Cero escrituras; `silentCorruption=0`,
    `unaccountedRows=0` garantizados por las suites (`npm test`: adversarial 42,
    shadow 68, contract audit 42, production gate 51 + Browser E2E real 6/6).
-3. **Migración (Fase 6, solo diseñada)**: feature-flag `importEngine` (default
-   legacy), `UniversalImportWizard` nuevo con 6 pasos, fallback intacto y
-   paridad differential antes de cambiar el default. Detalle y reglas en
-   `IMPORT_WIZARD_MIGRATION_DESIGN.md`; invariantes y resultados en
-   `UNIVERSAL_IMPORT_ENGINE_BASELINE.md`. **No implementar sin aprobación.**
+3. **Piloto U-9 Etapa 1 (implementado, opt-in)**: botón separado **Importar (nuevo)**
+   abre `UniversalImportWizard` de seis pasos; `Importar` sigue abriendo el clásico.
+   La validación, revisión y simulación preceden a la escritura; el paso final usa
+   `POST /api/accounts/bulk` en lotes de 500 y solo actualiza la estructura si el
+   contrato declara longitudes. La bitácora queda en `localStorage` del navegador.
+   El PUCT multicolumna redirige al clásico y no llega al backend desde el wizard.
+   Esto es un piloto, no cobertura universal: DASH, ASFI y VARLEN del piloto real
+   provienen de un mismo libro Excel; el recibo de ASFI quedó sin registrar. Ver
+   `U9_CONTROLLED_ROLLOUT_DESIGN.md` y `ANALISIS_PILOTO_U9.md`.
+4. **Fase 6 y U-10**: retirar el clásico, cambiar el predeterminado o activar
+   PUCT multicolumna NO está aprobado. `IMPORT_WIZARD_MIGRATION_DESIGN.md` conserva
+   el diseño de migración; `UNIVERSAL_IMPORT_ENGINE_BASELINE.md` es el baseline
+   congelado del motor.
 
 ### F) Login (graceful)
 1. Al cargar la app, `AuthContext` consulta `GET /api/auth/config`.
@@ -432,7 +449,8 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
 ## 10. Convenciones útiles para mantenimiento
 
 - **Distinción crítica**: hay un "motor de ajustes" que SÍ funciona (intocable) y un
-  "asistente Mahoraga" que es UI sin backend real. Detalles y rutas en
+  Mahoraga experimental con controles, algunos endpoints y persistencia parcial,
+  pero sin un asistente conversacional/herramientas conectados de extremo a extremo. Detalles en
   `MAHORAGA.md`. Para no romper el motor: nunca tocar `ai_adjustment_engine.py`,
   los endpoints `/api/ai/adjustments/*` y `/api/ai/profile/:companyId`, ni
   `AIAdjustmentPanel`, `AdjustmentWizard`, `ClosingWizard`, `Worksheet`.
@@ -443,7 +461,11 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   explícito.
 - **Cold-start de Render**: el `keep-warm.yml` actual cubre 12 h/día. Si se cambia
   el horario, recalcular la cuota (750 h/mes compartidas en el plan free).
-- **Backups son aditivos**: probar el restore en producción es seguro (crea una
-  empresa nueva "(Restaurado ...)"), no pisa nada.
+- **Hoja de Trabajo en móvil**: CSS oculta algunos campos secundarios y fija la
+  columna de cuenta, pero siguen visibles varios bloques numéricos y scroll
+  horizontal. Otros reportes también usan tablas anchas; `Worksheet.jsx` está
+  protegido por `AGENTS.md` y requiere autorización explícita antes de editarse.
+- **Backups son aditivos**, no invisibles: el restore crea una empresa nueva y
+  consume espacio, aunque no sobrescribe la empresa existente.
 - **DB vigente**: el backend usa `@libsql/client`; los restos legacy basados en
   `sqlite3` y `migrate.js` ya no forman parte del flujo actual.

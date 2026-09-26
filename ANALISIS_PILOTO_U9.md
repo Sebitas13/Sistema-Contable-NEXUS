@@ -100,4 +100,26 @@ intentos de forzar multicolumna por el wizard nuevo.
 - ASFI: evidencia incompleta por H1; requiere re-import o confirmación manual.
 - Fricción observada: alta (266 aceptaciones manuales en VARLEN, 687 correcciones
   de tipo por lote en ASFI) pero **explícita y trazable**, sin invenciones.
-- Antes de seguir acumulando bitácoras grandes, aplicar **P1**.
+- La recomendación P1 se implementó en código local después de este análisis;
+  ver la actualización fechada al final. Las importaciones históricas no cambian
+  de estado y ASFI sigue necesitando una nueva prueba con recibo.
+
+## 6. Seguimiento de hallazgos (2026-09-26)
+
+Esta sección actualiza el código y el proceso, no la evidencia del piloto del
+10 de septiembre.
+
+| Hallazgo | Seguimiento actual | Qué falta para cerrarlo |
+|---|---|---|
+| H1 — huella enorme / ASFI sin `result` | El código ahora guarda fingerprints largos como `u9fp1:<longitud>:<firma>` de tamaño acotado. `analyze_import_trail.mjs` compara firmas compactas nuevas y sigue aceptando bitácoras antiguas con fingerprint completo. Si el navegador agota cuota, `saveTrail` elimina bitácoras más antiguas para intentar preservar la actual. | La firma es determinista para comparar, no criptográfica; si la bitácora actual sola excede la cuota, el guardado aún puede fallar. Repetir ASFI en el build identificado y comprobar que la bitácora contiene `result`. La importación histórica sigue siendo desconocida. |
+| H2 — override por tecla | La revisión actualiza la sesión durante la escritura, pero el evento de bitácora se agrega al salir del campo o con Enter; se conserva el valor final en vez de cada estado intermedio. | Validar el comportamiento de edición con una prueba manual del wizard en navegador y confirmar que el valor final visible/simulado coincide con el guardado. |
+| Evidencia reproducible | `npm test` pasó, incluyendo J9 (compactación) y J10 (evicción por cuota); el build del cliente pasó. | El E2E manual del wizard y una nueva importación real no se sustituyen por pruebas unitarias. |
+
+La rutina que evita perder bitácoras prioriza la más reciente: al fallar la
+escritura elimina las entradas antiguas una por una. Las bitácoras llevan nombres
+de archivo y nombres/códigos de cuentas; no contienen `companyId` ni NIT, pero
+pueden ser comercialmente sensibles y deben enviarse solo para diagnóstico.
+
+Las tres entradas analizadas siguen siendo hojas del mismo libro Excel. El
+arreglo H1/H2 mejora la recolección de evidencia y la ergonomía del override;
+no aumenta por sí mismo la cobertura de formatos ni vuelve universal al motor.

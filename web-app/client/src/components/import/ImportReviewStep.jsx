@@ -8,7 +8,7 @@
  * gates se recalculan en vivo desde la sesión.
  */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
     canImportReport, effectiveContractOf
 } from '../../importSession/index.js';
@@ -109,11 +109,15 @@ export default function ImportReviewStep({
     const [showRejected, setShowRejected] = useState(false);
     const [showTrace, setShowTrace] = useState(false);
     const [onlyBlocked, setOnlyBlocked] = useState(false);
+    const [drafts, setDrafts] = useState({});
+    const pendingDrafts = useRef(new Set());
 
     useEffect(() => {
         setPage(1);
         setSelected([]);
         setExpandedUid(null);
+        setDrafts({});
+        pendingDrafts.current.clear();
     }, [session.activeRegionId]);
 
     const blockedRows = rows.filter(r => r.isBlocked);
@@ -141,11 +145,36 @@ export default function ImportReviewStep({
         setSelected(prev => allIn ? prev.filter(u => !ids.includes(u)) : [...new Set([...prev, ...ids])]);
     }
 
-    function commitField(uid, field, raw) {
+    function commitField(uid, field, raw, record = true) {
         const value = field === 'level' ? parseInt(raw, 10) : String(raw);
-        if (field === 'level' && (!Number.isInteger(value) || value < 1)) return;
-        if (field !== 'level' && String(value).trim() === '') return;
-        onOverride(uid, field, value);
+        if (field === 'level' && (!Number.isInteger(value) || value < 1)) return false;
+        if (field !== 'level' && String(value).trim() === '') return false;
+        onOverride(uid, field, value, { record });
+        return true;
+    }
+
+    function editTextField(uid, field, raw) {
+        const key = `${uid}:${field}`;
+        setDrafts(prev => ({ ...prev, [key]: raw }));
+        pendingDrafts.current.add(key);
+        commitField(uid, field, raw, false);
+    }
+
+    function finishTextField(uid, field, raw) {
+        const key = `${uid}:${field}`;
+        if (pendingDrafts.current.has(key)) commitField(uid, field, raw, true);
+        pendingDrafts.current.delete(key);
+        setDrafts(prev => {
+            if (!(key in prev)) return prev;
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
+    }
+
+    function draftValue(uid, field, value) {
+        const key = `${uid}:${field}`;
+        return key in drafts ? drafts[key] : value;
     }
 
     return (
@@ -272,13 +301,19 @@ export default function ImportReviewStep({
                                     <td>
                                         <input type="text" data-testid={`u2-cell-code-${row.uid}`}
                                             className="form-control form-control-sm bg-dark text-white border-secondary font-monospace"
-                                            value={row.code} onChange={e => commitField(row.uid, 'code', e.target.value)}
+                                            value={draftValue(row.uid, 'code', row.code)}
+                                            onChange={e => editTextField(row.uid, 'code', e.target.value)}
+                                            onBlur={e => finishTextField(row.uid, 'code', e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                                             title={row.overriddenFields.includes('code') ? `Original: ${region.contract.nodes[row.nodeIndex].code}` : row.rawCode} />
                                     </td>
                                     <td>
                                         <input type="text" data-testid={`u2-cell-name-${row.uid}`}
                                             className="form-control form-control-sm bg-dark text-white border-secondary"
-                                            value={row.name} onChange={e => commitField(row.uid, 'name', e.target.value)}
+                                            value={draftValue(row.uid, 'name', row.name)}
+                                            onChange={e => editTextField(row.uid, 'name', e.target.value)}
+                                            onBlur={e => finishTextField(row.uid, 'name', e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                                             title={row.overriddenFields.includes('name') ? `Original: ${region.contract.nodes[row.nodeIndex].name}` : ''} />
                                     </td>
                                     <td>
@@ -292,8 +327,10 @@ export default function ImportReviewStep({
                                     <td>
                                         <input type="number" min="1" data-testid={`u2-cell-level-${row.uid}`}
                                             className="form-control form-control-sm bg-dark text-white border-secondary text-center"
-                                            style={{ width: '60px' }} value={row.level}
-                                            onChange={e => commitField(row.uid, 'level', e.target.value)} />
+                                            style={{ width: '60px' }} value={draftValue(row.uid, 'level', row.level)}
+                                            onChange={e => editTextField(row.uid, 'level', e.target.value)}
+                                            onBlur={e => finishTextField(row.uid, 'level', e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
                                     </td>
                                     <td>
                                         <div className="d-flex flex-wrap gap-1">
