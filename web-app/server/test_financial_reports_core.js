@@ -58,6 +58,7 @@ const sparseNumericPlan = buildFinancialReports([
     { id: 20, code: '11', name: 'Activo corriente', type: 'Activo', level: 1, total_debit: 0, total_credit: 0 },
     { id: 21, code: '110101', name: 'Caja', type: 'Numérico', level: 3, total_debit: 125, total_credit: 0 },
     { id: 25, code: '110102', name: 'Cuenta sin uso', type: 'Numérico', level: 3, total_debit: 0, total_credit: 0 },
+    { id: 26, code: '12', name: 'Activo disponible', type: 'Activo', level: 2, total_debit: 0, total_credit: 0 },
     { id: 22, code: '31', name: 'Patrimonio', type: 'Patrimonio', level: 1, total_debit: 0, total_credit: 100 },
     { id: 23, code: '4.01', name: 'Ingresos', type: 'Numérico', total_credit: 40, period_credit: 40 },
     { id: 24, code: '6.01', name: 'Gastos', type: 'Numérico', total_debit: 15, period_debit: 15 }
@@ -65,7 +66,9 @@ const sparseNumericPlan = buildFinancialReports([
 assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '1101'), null,
     'Los niveles PUCT no declarados no se presentan como grupos ficticios.');
 assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '110102'), null,
-    'Las cuentas sin saldo no aparecen en el Balance General.');
+    'Las cuentas sin saldo quedan fuera del Balance General.');
+assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '12'), null,
+    'Las ramas completas sin saldo quedan fuera del Balance General.');
 assert.strictEqual(hasGeneratedGroupName(sparseNumericPlan.balanceGeneral.activos), false);
 assert.strictEqual(sparseNumericPlan.balanceGeneral.activos[0].name, 'Activo corriente');
 assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '110101')?.name, 'Caja',
