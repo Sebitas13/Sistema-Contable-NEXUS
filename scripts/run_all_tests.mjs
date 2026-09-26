@@ -13,6 +13,7 @@
  *   6. test_import_wizard_u2.mjs     (Wizard U-9: opt-in+guard+log+flag+pasos)
  *   7. shadow_differential.mjs       (U-7: diferencial shadow legacy vs universal)
  *   8. test_financial_reports_core.js (estados, jerarquía ASFI y cierre al centavo)
+ *   9. test_worksheet_accounts.mjs (filtro de filas sin actividad)
  *
  * Exit code != 0 si alguna suite falla.
  */
@@ -30,7 +31,8 @@ const suites = [
     { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' },
     { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-9 (guard+opt-in+log)' },
     { file: 'shadow_differential.mjs', label: 'Shadow differential (U-7)' },
-    { file: '../web-app/server/test_financial_reports_core.js', label: 'Estados y cierre contable (core puro)' }
+    { file: '../web-app/server/test_financial_reports_core.js', label: 'Estados y cierre contable (core puro)' },
+    { file: '../web-app/client/test_worksheet_accounts.mjs', label: 'Hoja de Trabajo (filas activas)' }
 ];
 
 let failures = 0;

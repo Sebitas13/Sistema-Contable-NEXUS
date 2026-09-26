@@ -258,17 +258,61 @@ function makeAccountGraph(accounts) {
 }
 
 function treeForBucket(graph, bucket) {
+    const accountNodes = [...graph.nodes.values()].filter(node => !node.virtual && node.bucket === bucket);
+    const accountsByCode = new Map(accountNodes.map(node => [node.code, node]));
+    const displayParents = new Map();
+    const displayChildren = new Map(accountNodes.map(node => [node, []]));
+    for (const node of accountNodes) {
+        let parent = node.parent;
+        let skippedVirtualParent = false;
+        while (parent && parent.virtual) {
+            if (parent.bucket !== bucket) {
+                parent = null;
+                break;
+            }
+            skippedVirtualParent = true;
+            parent = parent.parent;
+        }
+        if (parent && parent.bucket !== bucket) parent = null;
+
+        if (!parent && skippedVirtualParent) {
+            const level = Number(node.level);
+            for (let codeLength = node.code.length - 1; codeLength > 0; codeLength--) {
+                const candidate = accountsByCode.get(node.code.slice(0, codeLength));
+                if (!candidate) continue;
+                const candidateLevel = Number(candidate.level);
+                if (!Number.isFinite(level) || !Number.isFinite(candidateLevel) || candidateLevel < level) {
+                    parent = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (parent && parent !== node) {
+            displayParents.set(node, parent);
+            displayChildren.get(parent)?.push(node);
+        }
+    }
+
     const clones = new Map();
-    for (const node of graph.nodes.values()) {
-        if (node.bucket !== bucket) continue;
+    const hasBalance = new Map();
+    const hasVisibleBalance = (node) => {
+        if (hasBalance.has(node)) return hasBalance.get(node);
+        const active = node.ownBalance !== 0 ||
+            displayChildren.get(node).some(child => hasVisibleBalance(child));
+        hasBalance.set(node, active);
+        return active;
+    };
+
+    for (const node of accountNodes) {
+        if (!hasVisibleBalance(node)) continue;
         const displaySign = ['LIABILITY', 'EQUITY'].includes(bucket) ? -1 : 1;
         clones.set(node, {
-            id: node.virtual ? node.id : node.id,
+            id: node.id,
             code: node.code,
             name: node.name,
             type: node.type,
             esReguladora: isRegulatoryAccount(node),
-            esVirtual: node.virtual,
             ownBalance: amount(node.ownBalance * displaySign),
             total: 0,
             hijos: []
@@ -276,14 +320,19 @@ function treeForBucket(graph, bucket) {
     }
     const roots = [];
     for (const [node, clone] of clones) {
-        const parentClone = node.parent && clones.get(node.parent);
+        const parent = displayParents.get(node);
+        const parentClone = parent && clones.get(parent);
         if (parentClone) parentClone.hijos.push(clone);
         else roots.push(clone);
     }
     const sort = (list) => list.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
     const total = (node) => {
         sort(node.hijos);
-        node.total = node.ownBalance + node.hijos.reduce((sum, child) => sum + total(child), 0);
+        const totalCents = cents(node.ownBalance) + node.hijos.reduce((sum, child) => {
+            total(child);
+            return sum + cents(child.total);
+        }, 0);
+        node.total = amount(totalCents);
         return node.total;
     };
     sort(roots);

@@ -35,8 +35,16 @@ const dividendsReport = buildFinancialReports([
 ]);
 assert.strictEqual(dividendsReport.estadoResultados.totales.ventasNetas, 5.25,
     'La clasificación tributaria no excluye ingresos del resultado contable.');
-const hasVirtualGroup = (nodes) => nodes.some(node => node.esVirtual || hasVirtualGroup(node.hijos || []));
-assert.strictEqual(hasVirtualGroup(report.balanceGeneral.activos), true);
+const hasVirtualNode = (nodes) => nodes.some(node =>
+    node.esVirtual || String(node.id).startsWith('virtual-') || hasVirtualNode(node.hijos || [])
+);
+const hasGeneratedGroupName = (nodes) => nodes.some(node =>
+    /^Grupo\s/.test(node.name) || hasGeneratedGroupName(node.hijos || [])
+);
+assert.strictEqual(hasVirtualNode(report.balanceGeneral.activos), false,
+    'Los nodos inferidos nunca se exponen en el reporte visible.');
+assert.strictEqual(hasGeneratedGroupName(report.balanceGeneral.activos), false,
+    'El reporte visible solo presenta nombres reales y conceptos contables explicitos.');
 
 const findNode = (nodes, code) => {
     for (const node of nodes) {
@@ -49,17 +57,35 @@ const findNode = (nodes, code) => {
 const sparseNumericPlan = buildFinancialReports([
     { id: 20, code: '11', name: 'Activo corriente', type: 'Activo', level: 1, total_debit: 0, total_credit: 0 },
     { id: 21, code: '110101', name: 'Caja', type: 'Numérico', level: 3, total_debit: 125, total_credit: 0 },
+    { id: 25, code: '110102', name: 'Cuenta sin uso', type: 'Numérico', level: 3, total_debit: 0, total_credit: 0 },
     { id: 22, code: '31', name: 'Patrimonio', type: 'Patrimonio', level: 1, total_debit: 0, total_credit: 100 },
     { id: 23, code: '4.01', name: 'Ingresos', type: 'Numérico', total_credit: 40, period_credit: 40 },
     { id: 24, code: '6.01', name: 'Gastos', type: 'Numérico', total_debit: 15, period_debit: 15 }
 ]);
-const virtualPuctParent = findNode(sparseNumericPlan.balanceGeneral.activos, '1101');
-assert.strictEqual(virtualPuctParent?.esVirtual, true, 'El nivel PUCT ausente se representa sin crear cuenta contable.');
-assert.strictEqual(findNode([virtualPuctParent], '110101')?.esVirtual, false);
+assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '1101'), null,
+    'Los niveles PUCT no declarados no se presentan como grupos ficticios.');
+assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '110102'), null,
+    'Las cuentas sin saldo no aparecen en el Balance General.');
+assert.strictEqual(hasGeneratedGroupName(sparseNumericPlan.balanceGeneral.activos), false);
+assert.strictEqual(sparseNumericPlan.balanceGeneral.activos[0].name, 'Activo corriente');
+assert.strictEqual(findNode(sparseNumericPlan.balanceGeneral.activos, '110101')?.name, 'Caja',
+    'La cuenta activa conserva su jerarquia con la cuenta madre real y sin el nivel ausente.');
+assert.strictEqual(sparseNumericPlan.balanceGeneral.activos[0].total, 125);
+assert.strictEqual(sparseNumericPlan.balanceGeneral.totales.activo, 125,
+    'El subtotal de la cuenta madre no se vuelve a sumar como una cuenta adicional.');
 assert.strictEqual(sparseNumericPlan.estadoResultados.totales.utilidadNeta, 25, 'Los tipos genéricos conservan clasificación por clase de código.');
-assert.strictEqual(sparseNumericPlan.balanceGeneral.totales.activo, 125);
 assert.strictEqual(sparseNumericPlan.balanceGeneral.totales.patrimonio, 125);
 assert.strictEqual(sparseNumericPlan.balanceGeneral.ecuacionCuadra, true);
+
+const parentOwnBalanceReport = buildFinancialReports([
+    { id: 26, code: '1', name: 'Activo corriente', type: 'Activo', total_debit: 10, total_credit: 0 },
+    { id: 27, code: '1.01', name: 'Caja', type: 'Activo', parent_code: '1', total_debit: 25, total_credit: 0 }
+]);
+assert.strictEqual(parentOwnBalanceReport.balanceGeneral.activos[0].ownBalance, 10);
+assert.strictEqual(parentOwnBalanceReport.balanceGeneral.activos[0].hijos[0].total, 25);
+assert.strictEqual(parentOwnBalanceReport.balanceGeneral.activos[0].total, 35);
+assert.strictEqual(parentOwnBalanceReport.balanceGeneral.totales.activo, 35,
+    'El saldo propio de una cuenta madre y los saldos de sus hijas se suman una sola vez.');
 
 const closeAccounts = [
     { id: 10, code: '4.01', name: 'Ventas', type: 'Numérico', period_debit: 0, period_credit: 100.01 },

@@ -9,6 +9,7 @@ import API_URL from '../api';
 import AIAdjustmentPanel from '../components/AIAdjustmentPanel';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { getFiscalYearDetails } from '../utils/fiscalYearUtils';
+import { filterWorksheetAccounts } from '../utils/worksheetUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -41,6 +42,7 @@ export default function Worksheet() {
     const [isMobile, setIsMobile] = useState(false);
     const [hasResultClosing, setHasResultClosing] = useState(false);
     const [worksheetClosingWarning, setWorksheetClosingWarning] = useState('');
+    const displayAccounts = filterWorksheetAccounts(accounts);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -339,7 +341,7 @@ export default function Worksheet() {
     const utilidadNeta = bankersRound(totalIngresos - totalEgresos, 2);
 
     const handleExportExcel = () => {
-        const exportData = accounts.map((acc, index) => {
+        const exportData = displayAccounts.map((acc, index) => {
             const balance = Number(acc.balance) || 0;
             const ajustado = getAdjustedBalance(acc);
             const final = getEndingBalance(acc);
@@ -399,7 +401,7 @@ export default function Worksheet() {
             subText = `del ${formatSpanish(fStart)} al ${formatSpanish(fEnd)}`;
         }
 
-        exportToPDF(accounts, columns, 'Hoja de Trabajo', {
+        exportToPDF(displayAccounts, columns, 'Hoja de Trabajo', {
             subtitle: `Empresa: ${selectedCompany?.name} - Periodo: ${subText}`,
             orientation: 'landscape',
             hideDefaultDate: !!(selectedCompany?.current_year)
@@ -907,7 +909,7 @@ export default function Worksheet() {
                                             </div>
                                         </td>
                                     </tr>
-                                ) : accounts.length === 0 ? (
+                                ) : displayAccounts.length === 0 ? (
                                     <tr>
                                         <td colSpan="20" className="text-center py-4 text-muted">
                                             <i className="bi bi-inbox me-2"></i>No hay datos disponibles
@@ -915,7 +917,7 @@ export default function Worksheet() {
                                     </tr>
                                 ) : (
                                     <>
-                                        {accounts.map((acc, index) => {
+                                        {displayAccounts.map((acc, index) => {
                                             const cls = classifyAccount(acc);
                                             const isReguladora = cls.isReguladora;
                                             // Reguladoras no van al ER
