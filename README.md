@@ -1,6 +1,6 @@
 # Sistema Contable NEXUS (BVR Edition) 🛡️🚀
 
-Sistema contable avanzado multi-empresa diseñado bajo la normativa contable y tributaria de Bolivia. Este sistema automatiza de forma inteligente los **ajustes contables y el cierre fiscal** mediante un motor de Inteligencia Artificial y un sistema robusto de auditoría y feedback.
+Sistema contable multi-empresa orientado al marco contable y tributario boliviano. El motor Python propone **ajustes contables**; el cierre contable se propone por separado desde Node. Los reportes actuales son parciales y no calculan automáticamente el IUE ni la reserva legal.
 
 ---
 
@@ -14,7 +14,8 @@ Sistema contable avanzado multi-empresa diseñado bajo la normativa contable y t
     -   *Mineras* (cierre al 30 de Septiembre).
 -   **Acceso a la aplicación**: el backend puede proteger la API con una contraseña compartida (`APP_PASSWORD`). No es un sistema de usuarios ni de permisos independientes por empresa.
 -   **Sistema de Backup "Escudo del General"**: exporta 15 tablas en un `.zip` y restaura de forma aditiva (crea otra empresa, no sobreescribe la existente). La exportación usa streaming; la importación descomprime y procesa JSON en memoria, con límites de tamaño.
--   **Reportes Contables**: Generación instantánea de Libro Diario, Libro Mayor, Balances de Comprobación y Hojas de Trabajo configurables en lotes y exportables a PDF o Excel.
+-   **Reportes contables**: Libro Diario, Libro Mayor, Balance de Comprobación, Balance General y Estado de Resultados exportables. Estos dos últimos se calculan en el servidor por gestión; la Hoja de Trabajo es un borrador auxiliar y no alimenta los reportes ni el cierre.
+-   **Cierre contable**: propone el cierre de cuentas de resultado y de orden cuando sus asientos cuadran al centavo. No cierra cuentas permanentes ni estima IUE o reserva legal; requiere revisión contable antes de registrar.
 
 ---
 
@@ -183,6 +184,7 @@ Para garantizar la seguridad de tus datos contables e históricos de IA, el sist
 - [MAHORAGA.md](MAHORAGA.md): diagnóstico y roadmap del asistente experimental.
 - [ANALISIS_PILOTO_U9.md](ANALISIS_PILOTO_U9.md): evidencia real del piloto del importador y lo que aún no se puede concluir.
 - [AGENTS.md](AGENTS.md): mapa breve del repositorio, comandos y reglas de mantenimiento.
+- [docs/normativa/NORMATIVA_Y_APLICABILIDAD.md](docs/normativa/NORMATIVA_Y_APLICABILIDAD.md): base normativa revisada, alcance de los reportes y límites actuales de cálculo.
 
 ---
 

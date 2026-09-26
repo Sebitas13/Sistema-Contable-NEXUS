@@ -38,7 +38,11 @@ actualización aún no están committeados.
 | C4 — backup excluía tablas de costos/producción | **Resuelto para las 15 tablas declaradas** en `SUPPORTED_TABLES`/`backupCore`; skills y otros archivos locales siguen fuera del backup. |
 | A1 — keep-alive no iniciado | **Resuelto con límite deliberado**: Node inicia el keep-alive interno y `.github/workflows/keep-warm.yml` pinge ambos servicios 12 h/día. No evita que duerman fuera de la ventana ni los retrasos del scheduler. |
 | A2 — contingencia al despertar | **Mitigado, no eliminado**: warmup, reintentos/backoff y avisos del cliente existen; el fallback continúa siendo posible si falla el ciclo. |
-| A3 — tablas móviles | **Parcial; sigue pendiente**: `index.css` ya oculta metadatos y dos saldos secundarios, comprime celdas y fija la columna de cuenta en la Hoja de Trabajo. Esta todavía conserva muchos bloques numéricos y scroll horizontal; Diario, Mayor y Balance de Comprobación también tienen tablas anchas. `Worksheet.jsx` está protegido por `AGENTS.md`, así que requiere autorización explícita antes de modificarlo. |
+| A3 — tablas móviles | **Parcial; sigue pendiente**: `index.css` ya oculta metadatos y dos saldos secundarios, comprime celdas y fija la columna de cuenta en la Hoja de Trabajo. Esta todavía conserva muchos bloques numéricos y scroll horizontal; Diario, Mayor y Balance de Comprobación también tienen tablas anchas. En esta actualización se autorizó cambiar la lógica contable auxiliar, no rediseñar la tabla móvil. |
+| Reportes y hoja de trabajo | **Corregido en código**: Balance General, Estado de Resultados, Dashboard y datos del borrador Worksheet usan `GET /api/reports/financial-statements`. El balance es acumulado a fecha; el ER abarca solo la gestión y excluye asientos de cierre. Worksheet dejó de ser dependencia de reportes/cierre. |
+| Propuesta de cierre | **Reemplazada y probada en el núcleo**: cierra cuentas de resultado contra Pérdidas y Ganancias y lleva el saldo contable a Resultados Acumulados; no cierra cuentas permanentes, no estima IUE ni reserva legal y rechaza cierres ya existentes. Cada asiento y las cuentas de orden se validan al centavo. |
+| Jerarquía de cuentas ausente (PUCT/ASFI) | **Mitigado para presentación**: acepta padres no materializados como grupos virtuales, sin persistirlos ni cambiar códigos/cuentas. La selección por tipo, prefijo y jerarquía tiene pruebas de regresión. |
+| Cierres históricos de “Cuentas de Balance” | **Compatibilidad con advertencia**: el reporte excluye del saldo acumulado las partidas del antiguo asiento de cierre que llevaba cuentas permanentes a cero. No se reescriben ni borran transacciones; se informa cuántas fueron ignoradas. Si cae dentro de la gestión, el nuevo cierre no se habilita automáticamente y requiere revisión manual. |
 | A4 — error de archiver podía escapar | **Resuelto**: el export tiene listeners de error y el servidor incorpora manejadores globales. |
 | A5 — `accounting.db` versionado | **Resuelto**: no está en el índice actual de Git. No borrar bases o archivos locales sin revisar su estado. |
 | CORS de desarrollo demasiado abierto | **Pendiente, limitado a desarrollo**: el fallback de desarrollo acepta cualquier origen; revisar antes de exponer un backend de desarrollo a una red no confiable. |
@@ -77,6 +81,17 @@ actualización aún no están committeados.
   chunks grandes y `eval` en `pdfjs-dist`/DataForge; no son fallos de compilación.
 - El build no sustituye una prueba visual manual de la Hoja de Trabajo en un móvil
   real; esa comprobación sigue pendiente.
+- La verificación funcional del núcleo se amplió con casos de periodo, herencia de
+  jerarquía, padre PUCT virtual, balance patrimonial y asientos de cierre/orden al
+  centavo. No se ejecutó ningún endpoint ni cierre. Sin embargo, el smoke `require`
+  del router de reportes cargó `db.js` usando el `.env` local, cuyo host se confirmó
+  como el Turso de producción: `initializeSchema()` ejecutó el batch de DDL
+  `IF NOT EXISTS`, el `INSERT OR IGNORE` de la empresa semilla ID 1 y se intentaron
+  tres migraciones idempotentes. No se hicieron escrituras de asientos/cuentas; no
+  se verificó si la empresa semilla ya existía, por lo que no se afirma que la BD
+  haya quedado completamente intacta. En adelante, usar `node --check` o un Turso
+  aislado para smoke tests que carguen routers.
+- Alcance y fundamento normativo de estos cambios: `docs/normativa/NORMATIVA_Y_APLICABILIDAD.md`.
 
 ---
 
@@ -120,9 +135,9 @@ El viewport y el sidebar (hamburguesa) están **bien**. El problema son tablas c
 - `Journal.jsx:979-984` — modal de asiento no cabe en pantalla chica.
 - `Ledger.jsx`, `TrialBalance.jsx`, `FinancialStatements.jsx` (sangría `level*1.5rem` aplasta nombres a nivel 5).
 **Actualización:** sí existen reglas CSS de compresión, ocultamiento de algunas
-columnas y fijación de la cuenta. Aun así la Hoja de Trabajo mantiene 16 columnas
-numéricas agrupadas y el desplazamiento horizontal; en esta revisión no se cambió
-`Worksheet.jsx` porque está protegido por `AGENTS.md`.
+columnas y fijación de la cuenta. La lógica de sus columnas y saldos se corrigió,
+pero mantiene 16 columnas numéricas agrupadas y desplazamiento horizontal; el
+rediseño móvil todavía no se aborda.
 
 ### A4. Manejo de error de `archiver` puede tumbar Node (hallazgo histórico; resuelto)
 `backup.js:786-789` hace `throw` dentro de un callback async → excepción no capturada. Además no hay error handler global ni `process.on('unhandledRejection')`.

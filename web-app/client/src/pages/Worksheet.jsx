@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { TreeRow } from './FinancialStatements';
-import { generarEstadoResultados } from '../utils/IncomeStatementEngine';
 import { useCompany } from '../context/CompanyContext';
 
 // Importar API_URL explícitamente para evitar errores en producción
@@ -40,6 +39,8 @@ export default function Worksheet() {
     const [showAIPanel, setShowAIPanel] = useState(false);
     const [mahoragaActive, setMahoragaActive] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [hasResultClosing, setHasResultClosing] = useState(false);
+    const [worksheetClosingWarning, setWorksheetClosingWarning] = useState('');
 
     useEffect(() => {
         const checkMobile = () => {
@@ -76,50 +77,66 @@ export default function Worksheet() {
         setLoading(true);
         try {
             const companyId = selectedCompany.id;
-            // Fetch Balance de Comprobación data (excluding adjustments)
-            const bcResponse = await axios.get(`${API_URL}/api/reports/ledger`, {
-                params: { companyId, excludeAdjustments: true, excludeClosing: true }
-            });
+            const fiscal = getFiscalYearDetails(
+                selectedCompany.activity_type,
+                selectedCompany.current_year || new Date().getFullYear(),
+                selectedCompany.operation_start_date
+            );
+            const [reportResponse, bcResponse, adjResponse] = await Promise.all([
+                axios.get(`${API_URL}/api/reports/financial-statements`, {
+                    params: { companyId, startDate: fiscal.startDate, endDate: fiscal.endDate }
+                }),
+                axios.get(`${API_URL}/api/reports/ledger`, {
+                    params: { companyId, startDate: fiscal.startDate, endDate: fiscal.endDate, excludeAdjustments: true, excludeClosing: true }
+                }),
+                axios.get(`${API_URL}/api/reports/ledger`, {
+                    params: { companyId, startDate: fiscal.startDate, endDate: fiscal.endDate, adjustmentsOnly: true, excludeClosing: true }
+                })
+            ]);
             const bcData = bcResponse.data.data || [];
             setBcAccounts(bcData);
-
-            // Fetch Adjustments only data
-            const adjResponse = await axios.get(`${API_URL}/api/reports/ledger`, {
-                params: { companyId, adjustmentsOnly: true, excludeClosing: true }
-            });
             const adjData = adjResponse.data.data || [];
             setAdjustmentData(adjData);
+            const report = reportResponse.data;
+            setHasResultClosing(!!report.metadata?.hasResultClosing);
+            setWorksheetClosingWarning(report.worksheetClosing?.warning || '');
+            const bcById = new Map(bcData.map(account => [String(account.id), account]));
+            const adjById = new Map(adjData.map(account => [String(account.id), account]));
+            const bucketById = new Map(Object.entries(report.metadata?.classificationByAccountId || {}));
+            const collectBucket = (nodes, bucket) => {
+                for (const node of nodes || []) {
+                    if (!node.esVirtual) bucketById.set(String(node.id), bucket);
+                    collectBucket(node.hijos, bucket);
+                }
+            };
+            collectBucket(report.balanceGeneral?.activos, 'ASSET');
+            collectBucket(report.balanceGeneral?.pasivos, 'LIABILITY');
+            collectBucket(report.balanceGeneral?.patrimonio, 'EQUITY');
+            const collectItems = (items, bucket) => (items || []).forEach(item => bucketById.set(String(item.id), bucket));
+            collectItems(report.estadoResultados?.secciones?.ingresos, 'REVENUE');
+            collectItems(report.estadoResultados?.secciones?.costos, 'COST');
+            collectItems(report.estadoResultados?.secciones?.gastosAdmin, 'EXPENSE');
 
-            // Create a map of adjustments by account ID
-            const adjMap = {};
-            adjData.forEach(adj => {
-                adjMap[adj.id] = {
-                    adj_debit: adj.total_debit || 0,
-                    adj_credit: adj.total_credit || 0
+            const closeById = report.worksheetClosing?.byAccount || {};
+            const merged = (report.data || []).map(account => {
+                const bc = bcById.get(String(account.id)) || {};
+                const adjustment = adjById.get(String(account.id)) || {};
+                const close = closeById[String(account.id)] || {};
+                const total_debit = Number(bc.total_debit) || 0;
+                const total_credit = Number(bc.total_credit) || 0;
+                return {
+                    ...account,
+                    _financialBucket: bucketById.get(String(account.id)) || null,
+                    total_debit,
+                    total_credit,
+                    balance: total_debit - total_credit,
+                    adj_debit: Number(adjustment.total_debit) || 0,
+                    adj_credit: Number(adjustment.total_credit) || 0,
+                    ending_debit: Number(account.total_debit) || 0,
+                    ending_credit: Number(account.total_credit) || 0,
+                    closing_debit: Number(close.debit) || 0,
+                    closing_credit: Number(close.credit) || 0
                 };
-            });
-
-            // Merge: BC accounts + any adjustment-only accounts
-            const bcIds = new Set(bcData.map(a => a.id));
-            const adjOnlyAccounts = adjData.filter(a => !bcIds.has(a.id));
-
-            // Augment BC accounts with adjustment data
-            const merged = bcData.map(acc => ({
-                ...acc,
-                adj_debit: adjMap[acc.id]?.adj_debit || 0,
-                adj_credit: adjMap[acc.id]?.adj_credit || 0
-            }));
-
-            // Add adjustment-only accounts (with zero BC values)
-            adjOnlyAccounts.forEach(adj => {
-                merged.push({
-                    ...adj,
-                    total_debit: 0,
-                    total_credit: 0,
-                    balance: 0,
-                    adj_debit: adj.total_debit || 0,
-                    adj_credit: adj.total_credit || 0
-                });
             });
 
             // Sort by code
@@ -176,85 +193,13 @@ export default function Worksheet() {
         }
     };
 
-    // Función para calcular automáticamente impuestos, reservas e ingresos no imponibles
-    const calculateAutomaticAdjustments = () => {
-        try {
-            // Obtener cuentas ER del worksheet
-            const ingresos = accounts.filter(acc => classifyAccount(acc).isIngreso);
-            const egresos = accounts.filter(acc => classifyAccount(acc).isGasto);
-            // También buscar ingresos no imponibles directamente (que podrían estar excluidos por classifyAccount)
-            const ingresosNoImponibles = accounts.filter(acc => {
-                const name = (acc.name || '').toString().toLowerCase();
-                return /divid|compensacion.*tributaria|ingresos.*exterior|ingresos.*no.*imponibles/i.test(name);
-            });
-            // DEBUG: Ver qué cuentas se encuentran
-            console.log('Ingresos no imponibles detectados:', ingresosNoImponibles.map(acc => ({
-                code: acc.code,
-                name: acc.name,
-                balanceER: (acc.total_debit || 0) + (acc.adj_debit || 0) - ((acc.total_credit || 0) + (acc.adj_credit || 0))
-            })));
-            // Combinar TODAS las cuentas para el motor (incluyendo no imponibles)
-            const cuentasER = [...ingresos, ...egresos, ...ingresosNoImponibles].map(acc => {
-                const adjDeudor = (acc.total_debit || 0) + (acc.adj_debit || 0);
-                const adjAcreedor = (acc.total_credit || 0) + (acc.adj_credit || 0);
-                const balanceER = Number((adjDeudor - adjAcreedor).toFixed(2));
-
-                return {
-                    ...acc,
-                    balanceER
-                };
-            }).filter(acc => Math.abs(acc.balanceER) > 0.001);
-
-            // DEBUG: Ver cuentas finales que van al motor
-            console.log('Cuentas ER finales para motor:', cuentasER.map(acc => ({
-                code: acc.code,
-                name: acc.name,
-                balanceER: acc.balanceER
-            })));
-            // Determinar si aplica Reserva Legal según el tipo societario de la empresa seleccionada
-            const societalType = selectedCompany?.societal_type || '';
-            // Regex para detectar S.A., S.R.L., LTDA, S.C.A. (con o sin puntos, mayúsculas/minúsculas)
-            const aplicarReservaLegalAuto = /S\.?A|S\.?R\.?L|LTDA|S\.?C\.?A/i.test(societalType);
-
-
-            // Opciones de cálculo
-            const opciones = {
-                aplicarReservaLegal: overrideReservaLegal || aplicarReservaLegalAuto,
-                porcentajeReservaLegal: reservaLegalPct
-            };
-
-            // Usar el motor para calcular
-            const resultado = generarEstadoResultados(cuentasER, opciones);
-
-            return {
-                impuesto: bankersRound(resultado.totales.iue || 0, 2),
-                reservaLegal: bankersRound(resultado.totales.reservaLegal || 0, 2),
-                ingresosNoImponibles: bankersRound(resultado.totales.valNoImponibles || 0, 2),
-                utilidadNeta: bankersRound(resultado.totales.utilidadNeta || 0, 2),
-                utilidadLiquida: bankersRound(resultado.totales.utilidadLiquida || 0, 2)
-            };
-        } catch (error) {
-            console.error('Error en cálculo automático:', error);
-            return {
-                impuesto: 0,
-                reservaLegal: 0,
-                ingresosNoImponibles: 0,
-                utilidadNeta: 0,
-                utilidadLiquida: 0
-            };
-        }
-    };
-
-
-
-
-
     // Clasificar cuentas por tipo (más flexible): usar campos del plan, tipo o prefijo de código
     const classifyAccount = (acc) => {
         const rawType = (acc.type || '').toString();
         const type = rawType.trim();
         const group = (acc.group || acc.group_name || acc.category || acc.account_group || '').toString().trim();
         const code = (acc.code || '').toString().trim();
+        const reportBucket = acc._financialBucket;
         // Use adjusted balance for classification
         const adjDeudor = (acc.total_debit || 0) + (acc.adj_debit || 0);
         const adjAcreedor = (acc.total_credit || 0) + (acc.adj_credit || 0);
@@ -265,17 +210,19 @@ export default function Worksheet() {
         const lowerName = name.toLowerCase();
 
         // Classification Priority: Default Code Prefix -> Keyword Match -> Metadata Fallback
-        const isActivoType = /^1/.test(code) || /activo/i.test(t) || type.toLowerCase() === 'activo';
-        const isPasivoType = /^2/.test(code) || /pasivo/i.test(t) || type.toLowerCase() === 'pasivo';
-        const isPatrimonioType = /^3/.test(code) || /patrimonio/i.test(t) || type.toLowerCase() === 'patrimonio';
-        const isIngresoType = /^4/.test(code) || /ingreso/i.test(t) || type.toLowerCase() === 'ingreso';
-        const isEgresoType = /^5/.test(code) || /costo/i.test(t) || type.toLowerCase() === 'costo';
-        const isGastoType = /^6/.test(code) || /gasto|egreso/i.test(t) || type.toLowerCase() === 'gasto' || type.toLowerCase() === 'egreso';
+        const isActivoType = reportBucket ? reportBucket === 'ASSET' : (/^1/.test(code) || /activo/i.test(t) || type.toLowerCase() === 'activo');
+        const isPasivoType = reportBucket ? reportBucket === 'LIABILITY' : (/^2/.test(code) || /pasivo/i.test(t) || type.toLowerCase() === 'pasivo');
+        const isPatrimonioType = reportBucket ? reportBucket === 'EQUITY' : (/^3/.test(code) || /patrimonio/i.test(t) || type.toLowerCase() === 'patrimonio');
+        const isIngresoType = reportBucket ? reportBucket === 'REVENUE' : (/^4/.test(code) || /ingreso/i.test(t) || type.toLowerCase() === 'ingreso');
+        const isEgresoType = reportBucket ? reportBucket === 'COST' : (/^5/.test(code) || /costo/i.test(t) || type.toLowerCase() === 'costo');
+        const isGastoType = reportBucket ? reportBucket === 'EXPENSE' : (/^6/.test(code) || /gasto|egreso/i.test(t) || type.toLowerCase() === 'gasto' || type.toLowerCase() === 'egreso');
 
         const isReguladora = /regul/i.test(t);
-        const isOrden = /orden/i.test(t);
+        const isOrden = reportBucket ? reportBucket === 'ORDER' : /orden/i.test(t);
         const isResultado = /resulta/i.test(t);
         const isResultadosAcumulados = /resultad.*acumul/i.test(lowerName);
+        const isProfitClearing = reportBucket === 'CLEARING' ||
+            /p[eé]rdidas y ganancias|resultado del ejercicio|utilidad del ejercicio/i.test(lowerName);
 
         // Check if this is a variable-nature account (determined by balance, not type)
         const variablePatterns = [
@@ -314,22 +261,19 @@ export default function Worksheet() {
             finalIngreso = isIngresoType || resultadoAsIngreso;
         }
 
-        // Reguladoras no deben ir a ER
-        if (isReguladora) {
+        if (reportBucket && !isProfitClearing) {
+            finalGasto = reportBucket === 'EXPENSE' || reportBucket === 'COST';
+            finalIngreso = reportBucket === 'REVENUE';
+        }
+        if (isProfitClearing) {
             finalGasto = false;
             finalIngreso = false;
         }
 
-        // --- NON-TAXABLE INCOME (DIVIDENDOS) ---
-        // Excluded from standard ER columns to prevent double-counting 
-        // (Engine V5 will pick them up explicitly for Post-Tax addition)
-        const isNoImponible = /dividendos.*percibidos|ingreso.*compensacion.*tributaria|ingresos.*exterior/i.test(lowerName);
-        if (isNoImponible) {
-            finalIngreso = false; // Do not show in 'ER Ingreso' column
-            // They will likely remain safely in 'Balance Ajustado' without moving to ER columns
-            // Or move to Pasivo/Patrimonio? 
-            // If finalIngreso/finalGasto/isActivo/isPasivo are all false, they don't appear in 6-column view?
-            // Actually, we want to ensure they don't screw up the 'Utilidad' calc of worksheet.
+        // Reguladoras no deben ir a ER
+        if (isReguladora) {
+            finalGasto = false;
+            finalIngreso = false;
         }
 
         return {
@@ -357,10 +301,7 @@ export default function Worksheet() {
     const egresos = accounts.filter(acc => classifyAccount(acc).isGasto);
 
     // Nota: pasivos incluye cuentas tipo Pasivo y también cuentas Reguladoras (se muestran en P+P)
-    const pasivosFinal = accounts.filter(acc => {
-        const c = classifyAccount(acc);
-        return (c.isPasivo || c.isReguladora);
-    });
+    const pasivosFinal = accounts.filter(acc => classifyAccount(acc).isPasivo);
     // Reassign pasivos variable used later
     const _pasivos = pasivosFinal;
 
@@ -383,20 +324,28 @@ export default function Worksheet() {
         const adjAcreedor = (acc.total_credit || 0) + (acc.adj_credit || 0);
         return bankersRound(adjDeudor - adjAcreedor, 2);
     };
+    const getEndingBalance = (acc) => bankersRound(
+        (Number(acc.ending_debit) || 0) - (Number(acc.ending_credit) || 0),
+        2
+    );
 
     // Totales usando saldos AJUSTADOS (Directed sums with strict rounding per step)
     const totalIngresos = bankersRound(ingresos.reduce((sum, acc) => bankersRound(sum - getAdjustedBalance(acc), 2), 0), 2);
     const totalEgresos = bankersRound(egresos.reduce((sum, acc) => bankersRound(sum + getAdjustedBalance(acc), 2), 0), 2);
-    const totalActivos = bankersRound(activos.reduce((sum, acc) => bankersRound(sum + getAdjustedBalance(acc), 2), 0), 2);
-    const totalPasivos = bankersRound(_pasivos.reduce((sum, acc) => bankersRound(sum - getAdjustedBalance(acc), 2), 0), 2);
-    const totalPatrimonio = bankersRound(patrimonio.reduce((sum, acc) => bankersRound(sum - getAdjustedBalance(acc), 2), 0), 2);
+    const totalActivos = bankersRound(activos.reduce((sum, acc) => bankersRound(sum + getEndingBalance(acc), 2), 0), 2);
+    const totalPasivos = bankersRound(_pasivos.reduce((sum, acc) => bankersRound(sum - getEndingBalance(acc), 2), 0), 2);
+    const totalPatrimonio = bankersRound(patrimonio.reduce((sum, acc) => bankersRound(sum - getEndingBalance(acc), 2), 0), 2);
 
     const utilidadNeta = bankersRound(totalIngresos - totalEgresos, 2);
 
     const handleExportExcel = () => {
         const exportData = accounts.map((acc, index) => {
-            const deudor = acc.balance >= 0 ? acc.balance : 0;
-            const acreedor = acc.balance < 0 ? Math.abs(acc.balance) : 0;
+            const balance = Number(acc.balance) || 0;
+            const ajustado = getAdjustedBalance(acc);
+            const final = getEndingBalance(acc);
+            const deudor = Math.max(balance, 0);
+            const acreedor = Math.max(-balance, 0);
+            const cls = classifyAccount(acc);
 
             return {
                 'Nº': index + 1,
@@ -407,25 +356,23 @@ export default function Worksheet() {
                 'BC Haber': (acc.total_credit || 0).toFixed(2),
                 'BC Deudor': deudor.toFixed(2),
                 'BC Acreedor': acreedor.toFixed(2),
-                'Ajuste Debe': '0.00',
-                'Ajuste Haber': '0.00',
-                'BA Deudor': deudor.toFixed(2),
-                'BA Acreedor': acreedor.toFixed(2),
+                'Ajuste Debe': (Number(acc.adj_debit) || 0).toFixed(2),
+                'Ajuste Haber': (Number(acc.adj_credit) || 0).toFixed(2),
+                'BA Deudor': Math.max(ajustado, 0).toFixed(2),
+                'BA Acreedor': Math.max(-ajustado, 0).toFixed(2),
                 // usar clasificación flexible para ER y BG
                 ...(() => {
-                    const cls = classifyAccount(acc);
                     return {
-                        'ER Costo/Gasto': cls.isGasto ? Math.abs(acc.balance || 0).toFixed(2) : '0.00',
-                        'ER Ingreso': cls.isIngreso ? Math.abs(acc.balance || 0).toFixed(2) : '0.00',
-                        'BG Activo': cls.isActivo ? Math.abs(acc.balance || 0).toFixed(2) : '0.00',
-                        // Incluir cuentas de Pasivo/Patrimonio (incluye Resultados Acumulados)
-                        'BG Pasivo/Patrimonio': (((cls.isPasivo || cls.isPatrimonio || cls.isReguladora) && !cls.isResultadosAcumulados) ? Math.abs(acc.balance || 0).toFixed(2) : '0.00')
+                        'ER Costo/Gasto': cls.isGasto ? ajustado.toFixed(2) : '0.00',
+                        'ER Ingreso': cls.isIngreso ? (-ajustado).toFixed(2) : '0.00',
+                        'BG Activo': cls.isActivo ? final.toFixed(2) : '0.00',
+                        'BG Pasivo/Patrimonio': ((cls.isPasivo || cls.isPatrimonio) && !cls.isResultadosAcumulados) ? (-final).toFixed(2) : '0.00'
                     };
                 })(),
-                'Cierre Debe': '0.00',
-                'Cierre Haber': '0.00',
-                'Orden Deudoras': '0.00',
-                'Orden Acreedoras': '0.00'
+                'Cierre Debe': (Number(acc.closing_debit) || 0).toFixed(2),
+                'Cierre Haber': (Number(acc.closing_credit) || 0).toFixed(2),
+                'Orden Deudoras': cls.isOrden ? Math.max(ajustado, 0).toFixed(2) : '0.00',
+                'Orden Acreedoras': cls.isOrden ? Math.max(-ajustado, 0).toFixed(2) : '0.00'
             };
         });
         exportToExcel(exportData, 'Hoja de Trabajo', 'hoja_trabajo_completa');
@@ -461,37 +408,26 @@ export default function Worksheet() {
 
     // Validación de saldos
     const validarSaldo = (acc) => {
-        const cls = classifyAccount(acc);
-        const isReguladora = cls.isReguladora;
-        // Reguladoras no van al ER
-        const deudor = cls.isActivo ? Math.abs(acc.balance || 0) : (cls.isGasto && !isReguladora ? Math.abs(acc.balance || 0) : 0);
-        const acreedor = (!cls.isActivo && !cls.isGasto) ? Math.abs(acc.balance || 0) : 0;
+        const bcBalance = Number(acc.balance) || 0;
+        const deudor = Math.max(bcBalance, 0);
+        const acreedor = Math.max(-bcBalance, 0);
         const saldoBC = deudor - acreedor;
         const calculado = (acc.total_debit || 0) - (acc.total_credit || 0);
         return Math.abs(saldoBC - calculado) < 0.01; // Tolerancia de 1 centavo
     };
 
     // --- Editable rows (desde UTILIDAD BRUTA para abajo) ---
-    const [taxInput, setTaxInput] = useState('0'); // permite número o fórmula como '=UB*0.25'
-    const [utilidadLiquidaInput, setUtilidadLiquidaInput] = useState(''); // si vacío usa UN
-    const [reservaLegalPct, setReservaLegalPct] = useState(5);
-    const [overrideReservaLegal, setOverrideReservaLegal] = useState(false);
     const [adjustments, setAdjustments] = useState([]); // {id,label,input}
-    const [taxEditing, setTaxEditing] = useState(false);
     const [editingAdjId, setEditingAdjId] = useState(null);
-    const [utilidadLiquidaEditing, setUtilidadLiquidaEditing] = useState(false);
 
     const findResultadosAcumuladosAccount = () => {
         return accounts.find(a => /(resultad.*acumul)/i.test(a.name || '') && (a.type || '').toString().toLowerCase() === 'patrimonio') || null;
     };
 
     const resultadosAcumAccount = findResultadosAcumuladosAccount();
-    const rawBalance = Number(resultadosAcumAccount?.balance || 0);
+    const rawBalance = Number(resultadosAcumAccount ? getEndingBalance(resultadosAcumAccount) : 0);
     // RA_raw keeps signed value for formulas/context; RA_initial is the positive magnitude
     const RA_raw = rawBalance;
-    const RA_initial = Math.abs(rawBalance);
-    // RA account id (used when classifying/displaying rows)
-    const raAccountId = resultadosAcumAccount?.id;
 
     const evaluateExpression = (raw, ctx) => {
         if (raw === null || raw === undefined) return 0;
@@ -555,12 +491,8 @@ export default function Worksheet() {
             if (visited.has(ref)) return 0;
             visited.add(ref);
 
-            if (ref === 'TAX') return evaluateExpression(taxInput, ctxBase);
-            if (ref === 'UL') {
-                // utilidadLiquidaInput may reference other cells
-                if (utilidadLiquidaInput) return evaluateExpression(utilidadLiquidaInput, { ...ctxBase, TAX: computedTax, UN: utilidadNetaAfterTax });
-                return utilidadNetaAfterTax;
-            }
+            if (ref === 'TAX') return 0;
+            if (ref === 'UL') return utilidadNeta;
             // I# mapping: I2.. map to adjustments[0] onwards (I2 -> adjustments[0])
             const idx = parseInt(ref.slice(1), 10);
             if (idx >= 2) {
@@ -718,12 +650,8 @@ export default function Worksheet() {
     const saveEditableSection = () => {
         if (!selectedCompany?.id) return;
         const payload = {
-            taxInput,
-            utilidadLiquidaInput,
             adjustments,
-            blockOverrides,
-            reservaLegalPct,
-            overrideReservaLegal
+            blockOverrides
         };
         const key = `worksheet_custom_section_${selectedCompany.id}`;
         localStorage.setItem(key, JSON.stringify(payload));
@@ -737,21 +665,13 @@ export default function Worksheet() {
             const raw = localStorage.getItem(key);
             if (!raw) {
                 // Reset to defaults if no saved state
-                setTaxInput('0');
-                setUtilidadLiquidaInput('');
                 setAdjustments([]);
                 setBlockOverrides({});
-                setReservaLegalPct(5);
-                setOverrideReservaLegal(false);
                 return;
             }
             const obj = JSON.parse(raw);
-            if (obj.taxInput !== undefined) setTaxInput(obj.taxInput);
-            if (obj.utilidadLiquidaInput !== undefined) setUtilidadLiquidaInput(obj.utilidadLiquidaInput);
             if (Array.isArray(obj.adjustments)) setAdjustments(obj.adjustments);
             if (obj.blockOverrides && typeof obj.blockOverrides === 'object') setBlockOverrides(obj.blockOverrides);
-            if (obj.reservaLegalPct !== undefined) setReservaLegalPct(obj.reservaLegalPct);
-            if (obj.overrideReservaLegal !== undefined) setOverrideReservaLegal(obj.overrideReservaLegal);
         } catch (e) {
             // ignore
         }
@@ -767,76 +687,40 @@ export default function Worksheet() {
     const UB = utilidadNeta; // reutilizamos utilidadNeta actual como "utilidad bruta"
     const ctxBase = { UB, RA: RA_raw };
 
-    const computedTax = evaluateExpression(taxInput, ctxBase) || 0;
-    const utilidadNetaAfterTax = UB - computedTax;
-    const utilidadLiquida = (() => {
-        if (!utilidadLiquidaInput) return utilidadNetaAfterTax;
-        return evaluateExpression(utilidadLiquidaInput, { ...ctxBase, TAX: computedTax, UN: utilidadNetaAfterTax });
-    })();
-
-    // compute adjustments (sum of adjustments values)
-    const adjustmentsTotal = adjustments.reduce((s, a) => s + evaluateExpression(a.input || '0', { ...ctxBase, TAX: computedTax, UN: utilidadNetaAfterTax, UL: utilidadLiquida }), 0);
-
-    // La UTILIDAD LÍQUIDA debe ser UTILIDAD NETA después de impuesto menos los ajustes
-    const UL = utilidadLiquida - adjustmentsTotal;
+    const computedTax = 0;
+    const utilidadNetaAfterTax = UB;
+    const utilidadLiquida = utilidadNeta;
 
     // Valores editables del bloque (suman en totales en vivo)
-    const manualUL = getNumericBlock('UL', 'ER_INGRESO', UL >= 0 ? UL : 0) - getNumericBlock('UL', 'ER_COSTO', UL < 0 ? Math.abs(UL) : 0);
 
-    const editableRows = ['UB', 'IMP', 'NI', 'RL', 'UN', 'UL', 'RA_ROW'];
+    const editableRows = ['UB', 'UN', 'UL', 'RA_ROW'];
     const sumEditable = (col) => bankersRound(editableRows.reduce((s, rk) => bankersRound(s + getNumericBlock(rk, col, 0), 2), 0), 2);
-
-    const auto = calculateAutomaticAdjustments();
-
-    // ER por columna (dinámico con bloque editable + ajustes + lógica automática)
-    const sumERCol = (col, rowKey, autoVal) => {
-        const override = getNumericBlock(rowKey, col, 0);
-        const value = getNumericBlock(rowKey, col, autoVal);
-        return { override, value };
-    };
-
-    // Calculate ER Blocks with automatic fallbacks
-    const ubCosto = sumERCol('ER_COSTO', 'UB', utilidadNeta < 0 ? Math.abs(utilidadNeta) : 0);
-    const ubIngreso = sumERCol('ER_INGRESO', 'UB', utilidadNeta >= 0 ? utilidadNeta : 0);
-
-    // Taxes and Reserves are placed in Ingresos (Credits) by user preference
-    const impCosto = sumERCol('ER_COSTO', 'IMP', 0);
-    const impIngreso = sumERCol('ER_INGRESO', 'IMP', auto.impuesto);
-
-    const rlCosto = sumERCol('ER_COSTO', 'RL', 0);
-    const rlIngreso = sumERCol('ER_INGRESO', 'RL', auto.reservaLegal);
-
-    const unCosto = sumERCol('ER_COSTO', 'UN', auto.utilidadNeta < 0 ? Math.abs(auto.utilidadNeta) : 0);
-    const unIngreso = sumERCol('ER_INGRESO', 'UN', auto.utilidadNeta >= 0 ? auto.utilidadNeta : 0);
-
-    const niCosto = sumERCol('ER_COSTO', 'NI', auto.ingresosNoImponibles);
-    const niIngreso = sumERCol('ER_INGRESO', 'NI', 0);
-
-    const erCostoBlock = bankersRound((sumEditable('ER_COSTO') - ubCosto.override - unCosto.override - niCosto.override - impCosto.override - rlCosto.override)
-        + ubCosto.value + unCosto.value + niCosto.value + impCosto.value + rlCosto.value, 2);
-    const erIngresoBlock = bankersRound((sumEditable('ER_INGRESO') - ubIngreso.override - unIngreso.override - niIngreso.override - impIngreso.override - rlIngreso.override)
-        + ubIngreso.value + unIngreso.value + niIngreso.value + impIngreso.value + rlIngreso.value, 2);
 
     const adjustmentRefs = adjustments.map((_, idx) => `I${idx + 2}`);
     const sumAdjustments = (col) => bankersRound(adjustmentRefs.reduce((s, ref) => bankersRound(s + getNumericBlock(ref, col, 0), 2), 0), 2);
     const adjIngresoExtra = bankersRound(adjustmentRefs.reduce((s, ref) => {
-        const v = getNumericBlock(ref, 'ER_INGRESO', 0);
+        const formulaValue = Number(getEditableCellValue(ref)) || 0;
+        const v = getNumericBlock(ref, 'ER_INGRESO', formulaValue >= 0 ? formulaValue : 0);
         return v >= 0 ? bankersRound(s + v, 2) : s;
     }, 0), 2);
     const adjCostoExtra = bankersRound(adjustmentRefs.reduce((s, ref) => {
-        const v = getNumericBlock(ref, 'ER_COSTO', 0);
+        const formulaValue = Number(getEditableCellValue(ref)) || 0;
+        const v = getNumericBlock(ref, 'ER_COSTO', formulaValue < 0 ? Math.abs(formulaValue) : 0);
         return v < 0 ? bankersRound(s + Math.abs(v), 2) : bankersRound(s + Math.max(v, 0), 2);
     }, 0), 2);
 
-    // Totales dinámicos: ajustamos ER y BG con los valores editables de la sección
-    const erIngresoExtras = bankersRound(erIngresoBlock + adjIngresoExtra, 2);
-    const erCostoExtras = bankersRound(erCostoBlock + adjCostoExtra, 2);
+    const erIncomeBeforeResult = bankersRound(totalIngresos + adjIngresoExtra, 2);
+    const erExpenseBeforeResult = bankersRound(totalEgresos + adjCostoExtra, 2);
+    const erResult = bankersRound(erIncomeBeforeResult - erExpenseBeforeResult, 2);
+    const totalIngresosDyn = bankersRound(erIncomeBeforeResult + Math.max(-erResult, 0), 2);
+    const totalEgresosDyn = bankersRound(erExpenseBeforeResult + Math.max(erResult, 0), 2);
+    const utilidadLiquidaDyn = erResult;
 
     // RA (aggregated) split into cierre debe/haber as sum of magnitudes (no net subtraction)
     const raAggregate = accounts.reduce((s, a) => {
         const cls = classifyAccount(a);
         if (!cls.isResultadosAcumulados) return s;
-        const bal = getAdjustedBalance(a);
+        const bal = getEndingBalance(a);
         if (bal >= 0) s.debe = bankersRound(s.debe + Math.abs(bal), 2);
         else s.haber = bankersRound(s.haber + Math.abs(bal), 2);
         return s;
@@ -844,11 +728,6 @@ export default function Worksheet() {
 
     // net effect of RA on patrimonio: credits (haber) increase P+P, debits decrease
     const raNet = bankersRound(raAggregate.haber - raAggregate.debe, 2);
-
-    const totalResult = bankersRound((auto.utilidadLiquida || 0) + (auto.reservaLegal || 0) + (auto.impuesto || 0), 2);
-    const totalIngresosDyn = bankersRound(totalIngresos + erIngresoExtras, 2);
-    const totalEgresosDyn = bankersRound(totalEgresos + erCostoExtras, 2);
-    const utilidadLiquidaDyn = auto.utilidadLiquida;
 
     // BG por columna (dinámico con bloque editable + ajustes + lógica automática)
     const sumBGCol = (col, rowKey, autoVal) => {
@@ -859,24 +738,25 @@ export default function Worksheet() {
 
     // BG Activos: Usually none of the final rows have assets, but to stay consistent:
     const ubActivo = sumBGCol('BG_ACTIVO', 'UB', 0);
-    const niActivo = sumBGCol('BG_ACTIVO', 'NI', 0);
     const unActivo = sumBGCol('BG_ACTIVO', 'UN', 0);
-    const impActivo = sumBGCol('BG_ACTIVO', 'IMP', 0);
-    const rlActivo = sumBGCol('BG_ACTIVO', 'RL', 0);
+    const impActivo = { override: 0, value: 0 };
+    const rlActivo = { override: 0, value: 0 };
+    const niInactive = { override: 0, value: 0 };
     const ulActivo = sumBGCol('BG_ACTIVO', 'UL', 0);
     const raActivo = sumBGCol('BG_ACTIVO', 'RA_ROW', 0);
 
-    const bgActivoBlock = bankersRound((sumEditable('BG_ACTIVO') - ubActivo.override - niActivo.override - unActivo.override - impActivo.override - rlActivo.override - ulActivo.override - raActivo.override)
-        + ubActivo.value + niActivo.value + unActivo.value + impActivo.value + rlActivo.value + ulActivo.value + raActivo.value, 2);
+    const bgActivoBlock = bankersRound((sumEditable('BG_ACTIVO') - ubActivo.override - niInactive.override - unActivo.override - impActivo.override - rlActivo.override - ulActivo.override - raActivo.override)
+        + ubActivo.value + niInactive.value + unActivo.value + impActivo.value + rlActivo.value + ulActivo.value + raActivo.value, 2);
 
     // BG Pasivo + Patrimonio
     const ubPP = sumBGCol('BG_PP', 'UB', 0);
-    const niPP = sumBGCol('BG_PP', 'NI', 0);
+    const niPP = { override: 0, value: 0 };
     const unPP = sumBGCol('BG_PP', 'UN', 0);
-    const impPP = sumBGCol('BG_PP', 'IMP', auto.impuesto);
-    const rlPP = sumBGCol('BG_PP', 'RL', auto.reservaLegal);
+    const impPP = { override: 0, value: 0 };
+    const rlPP = { override: 0, value: 0 };
     const ulPP = sumBGCol('BG_PP', 'UL', 0);
-    const raPP = sumBGCol('BG_PP', 'RA_ROW', bankersRound(raNet + auto.utilidadLiquida, 2));
+    const unpostedResult = hasResultClosing ? 0 : utilidadLiquidaDyn;
+    const raPP = sumBGCol('BG_PP', 'RA_ROW', bankersRound(raNet + unpostedResult, 2));
 
     const bgPPExtra = bankersRound((sumEditable('BG_PP') - ubPP.override - niPP.override - unPP.override - impPP.override - rlPP.override - ulPP.override - raPP.override)
         + sumAdjustments('BG_PP')
@@ -885,50 +765,30 @@ export default function Worksheet() {
     const totalActivosDyn = bankersRound(totalActivos + bgActivoBlock, 2);
     const totalPasivosPatrimonioDyn = bankersRound(totalPasivos + totalPatrimonio + bgPPExtra, 2);
 
-    // RA: we'll display in the CIERRE columns according to its saldo.
-    // RA_raw contains signed balance; RA_initial is magnitude for display when needed.
-
-    // Totales de Cierre: Suma vertical de los valores mostrados en las columnas de cierre.
-    // Esto asegura que el total refleje exactamente lo que el usuario ve en la tabla.
-
-    // 1. Sumar valores de la sección principal de cuentas (que solo muestra RA en Cierre)
-    const cierreDebeFromAccounts = accounts.reduce((sum, acc) => {
-        const cls = classifyAccount(acc);
-        if (cls.isResultadosAcumulados && Number(acc.balance || 0) >= 0) {
-            return bankersRound(sum + Math.abs(acc.balance), 2);
-        }
-        return sum;
-    }, 0);
-
-    const cierreHaberFromAccounts = accounts.reduce((sum, acc) => {
-        const cls = classifyAccount(acc);
-        if (cls.isResultadosAcumulados && Number(acc.balance || 0) < 0) {
-            return bankersRound(sum + Math.abs(acc.balance), 2);
-        }
-        return sum;
-    }, 0);
-
-    // 2. Sumar valores de la sección editable (UB, IMP, UL, etc.) usando los valores que se renderizarían
-    const editableCierreDebe = getNumericBlock('UL', 'CI_DEBE', auto.utilidadLiquida < 0 ? Math.abs(auto.utilidadLiquida) : 0);
-    const editableCierreHaber = getNumericBlock('UL', 'CI_HABER', auto.utilidadLiquida >= 0 ? auto.utilidadLiquida : 0);
-
-    // 3. Calcular el total final
-    const totalCierreDebe = bankersRound(cierreDebeFromAccounts + editableCierreDebe, 2);
-    const totalCierreHaber = bankersRound(cierreHaberFromAccounts + editableCierreHaber, 2);
+    const totalCierreDebe = bankersRound(accounts.reduce((sum, acc) => sum + (Number(acc.closing_debit) || 0), 0), 2);
+    const totalCierreHaber = bankersRound(accounts.reduce((sum, acc) => sum + (Number(acc.closing_credit) || 0), 0), 2);
+    const totalOrdenDeudoras = bankersRound(accounts.reduce((sum, acc) => {
+        const balance = classifyAccount(acc).isOrden ? getAdjustedBalance(acc) : 0;
+        return sum + Math.max(balance, 0);
+    }, 0), 2);
+    const totalOrdenAcreedoras = bankersRound(accounts.reduce((sum, acc) => {
+        const balance = classifyAccount(acc).isOrden ? getAdjustedBalance(acc) : 0;
+        return sum + Math.max(-balance, 0);
+    }, 0), 2);
 
     // (removed visible debug panel)
 
     // (removed duplicate totalCierre calculations - totals computed above as totalCierreDebe/totalCierreHaber)
     const tolerance = 0.01;
     const diffBalance = Number(Math.abs(totalActivosDyn - totalPasivosPatrimonioDyn).toFixed(2));
-    const isBalanced = diffBalance < (tolerance + 0.001); // Safe check for exactly 0.01 or less
+    const isBalanced = diffBalance <= tolerance;
 
     return (
         <div>
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-file-earmark-spreadsheet me-2"></i>Hoja de Trabajo</h2>
-                    <p className="text-light opacity-75 mb-0">Formato completo - Balance de Comprobación, Ajustes, Balance Ajustado, Estado de Resultados, Balance General, Cierre y Cuentas de Orden</p>
+                    <p className="text-light opacity-75 mb-0">Borrador auxiliar; no interviene en la generación de estados financieros ni del cierre.</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     {mahoragaActive && <MahoragaWheel size="small" />}
@@ -964,41 +824,10 @@ export default function Worksheet() {
                     </div>
                 </div>
                 <div className="col-md-3">
-                    <div className="card glass-panel border-success text-white h-100">
+                    <div className="card glass-panel border-warning text-white h-100">
                         <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <small className="text-success opacity-75"><i className="bi bi-shield-check me-2"></i>RESERVA LEGAL ({reservaLegalPct}%)</small>
-                                <div className="dropdown">
-                                    <button className="btn btn-sm text-white p-0 opacity-75" data-bs-toggle="dropdown" title="Configurar Reserva">
-                                        <i className="bi bi-gear-fill"></i>
-                                    </button>
-                                    <div className="dropdown-menu dropdown-menu-end dropdown-menu-dark p-3 glass-panel border-secondary" style={{ minWidth: '200px' }}>
-                                        <div className="mb-2">
-                                            <label className="form-label small fw-bold text-white">Porcentaje:</label>
-                                            <div className="input-group input-group-sm">
-                                                <input
-                                                    type="number"
-                                                    className="form-control bg-dark text-white border-secondary"
-                                                    value={reservaLegalPct}
-                                                    onChange={e => setReservaLegalPct(Number(e.target.value))}
-                                                    min="0" max="100"
-                                                />
-                                                <span className="input-group-text bg-dark text-white border-secondary">%</span>
-                                            </div>
-                                        </div>
-                                        <div className="form-check form-switch small">
-                                            <input
-                                                className="form-check-input"
-                                                type="checkbox"
-                                                checked={overrideReservaLegal}
-                                                onChange={e => setOverrideReservaLegal(e.target.checked)}
-                                            />
-                                            <label className="form-check-label text-white">Forzar Reserva</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <h4 className="mb-0 fw-bold mt-1">Bs {auto.reservaLegal.toFixed(2)}</h4>
+                            <small className="text-warning opacity-75 d-block mb-1"><i className="bi bi-shield-exclamation me-2"></i>IUE / reserva legal</small>
+                            <h4 className="mb-0 fw-bold">No calculados</h4>
                         </div>
                     </div>
                 </div>
@@ -1007,7 +836,7 @@ export default function Worksheet() {
                         <div className="card-body">
                             <small className={`text-${utilidadLiquidaDyn >= 0 ? 'info' : 'warning'} opacity-75 d-flex align-items-center mb-1`}>
                                 <i className={`bi bi-${utilidadLiquidaDyn >= 0 ? 'graph-up-arrow' : 'graph-down-arrow'} me-2`}></i>
-                                {utilidadLiquidaDyn >= 0 ? 'Utilidad Líquida' : 'Pérdida Líquida'}
+                                {utilidadLiquidaDyn >= 0 ? 'Resultado contable' : 'Pérdida contable'}
                             </small>
                             <h4 className="mb-0 fw-bold">Bs {utilidadLiquidaDyn.toFixed(2)}</h4>
                         </div>
@@ -1018,8 +847,14 @@ export default function Worksheet() {
             {/* Hoja de Trabajo completa */}
             <div className="card glass-panel border-secondary shadow-sm mb-4">
                 <div className="card-header border-secondary border-bottom">
-                    <h5 className="mb-0 text-white"><i className="bi bi-table me-2"></i>Hoja de Trabajo - 16 Columnas</h5>
+                    <h5 className="mb-0 text-white"><i className="bi bi-table me-2"></i>Hoja de Trabajo - 20 columnas</h5>
                 </div>
+                <div className="px-3 pb-2 small text-white-50">
+                    Borrador auxiliar del período fiscal; los estados financieros y el cierre se calculan de forma independiente.
+                </div>
+                {worksheetClosingWarning && (
+                    <div className="mx-3 mb-2 alert alert-secondary py-2 small" role="status">Cierre auxiliar: {worksheetClosingWarning}</div>
+                )}
                 <div className="card-body p-0">
                     <div className="table-responsive">
                         <table className="table table-sm table-dark table-bordered mb-0 border-secondary" style={{ fontSize: '0.7rem', backgroundColor: 'transparent' }}>
@@ -1084,8 +919,9 @@ export default function Worksheet() {
                                             const cls = classifyAccount(acc);
                                             const isReguladora = cls.isReguladora;
                                             // Reguladoras no van al ER
-                                            const deudor = cls.isActivo ? Math.abs(acc.balance || 0) : (cls.isGasto && !isReguladora ? Math.abs(acc.balance || 0) : 0);
-                                            const acreedor = (!cls.isActivo && !cls.isGasto) ? Math.abs(acc.balance || 0) : 0;
+                                            const bcBalance = Number(acc.balance) || 0;
+                                            const deudor = Math.max(bcBalance, 0);
+                                            const acreedor = Math.max(-bcBalance, 0);
                                             const isValid = validarSaldo(acc);
 
                                             return (
@@ -1124,45 +960,36 @@ export default function Worksheet() {
                                                         const adjBal = adjDeudor - adjAcreedor;
                                                         return (
                                                             <>
-                                                                <td className="text-end">{(cls.isGasto && !isReguladora) ? Math.abs(adjBal).toFixed(2) : ''}</td>
-                                                                <td className="text-end">{(cls.isIngreso && !isReguladora) ? Math.abs(adjBal).toFixed(2) : ''}</td>
+                                                                <td className="text-end">{(cls.isGasto && !isReguladora) ? adjBal.toFixed(2) : ''}</td>
+                                                                <td className="text-end">{(cls.isIngreso && !isReguladora) ? (-adjBal).toFixed(2) : ''}</td>
                                                             </>
                                                         );
                                                     })()}
                                                     {/* Balance General - use adjusted balance */}
                                                     {(() => {
-                                                        const adjDeudor = (acc.total_debit || 0) + (acc.adj_debit || 0);
-                                                        const adjAcreedor = (acc.total_credit || 0) + (acc.adj_credit || 0);
-                                                        const adjBal = adjDeudor - adjAcreedor;
                                                         return (
                                                             <>
-                                                                <td className="text-end">{cls.isActivo ? Math.abs(adjBal).toFixed(2) : ''}</td>
-                                                                {/* BG Pasivo/Patrimonio: excluir Resultados Acumulados (se mostrarán en CIERRE); reguladoras sí permanecen en BG */}
-                                                                <td className="text-end">{((cls.isPasivo || cls.isPatrimonio || cls.isReguladora) && !cls.isResultadosAcumulados) ? Math.abs(adjBal).toFixed(2) : ''}</td>
+                                                                {/* Los saldos de BG son acumulados a fecha de cierre, no solo movimientos del período. */}
+                                                                <td className="text-end">{cls.isActivo ? getEndingBalance(acc).toFixed(2) : ''}</td>
+                                                                <td className="text-end">{((cls.isPasivo || cls.isPatrimonio) && !cls.isResultadosAcumulados) ? (-getEndingBalance(acc)).toFixed(2) : ''}</td>
                                                             </>
                                                         );
                                                     })()}
-                                                    {/* Cierre: no mostramos la cuenta RA aquí (se muestra en BG). Para otras cuentas de cierre (si aplica) mostrar según signo */}
-                                                    <td className="text-end">
-                                                        {(cls.isResultadosAcumulados && Number(acc.balance || 0) >= 0) ? Math.abs(acc.balance).toFixed(2) : ''}
-                                                    </td>
-                                                    <td className="text-end">
-                                                        {(cls.isResultadosAcumulados && Number(acc.balance || 0) < 0) ? Math.abs(acc.balance).toFixed(2) : ''}
-                                                    </td>
-                                                    {/* Cuentas de Orden */}
-                                                    <td className="text-end text-muted">-</td>
-                                                    <td className="text-end text-muted">-</td>
+                                                    <td className="text-end">{acc.closing_debit > 0 ? Number(acc.closing_debit).toFixed(2) : ''}</td>
+                                                    <td className="text-end">{acc.closing_credit > 0 ? Number(acc.closing_credit).toFixed(2) : ''}</td>
+                                                    <td className="text-end">{cls.isOrden && getAdjustedBalance(acc) > 0 ? getAdjustedBalance(acc).toFixed(2) : ''}</td>
+                                                    <td className="text-end">{cls.isOrden && getAdjustedBalance(acc) < 0 ? Math.abs(getAdjustedBalance(acc)).toFixed(2) : ''}</td>
                                                 </tr>
                                             );
                                         })}
 
                                         {/* Fila de Utilidad/Pérdida */}
                                         {/* --- UTILIDAD BRUTA y sección editable --- */}
-                                        <tr className={`fw-bold ${utilidadNeta >= 0 ? 'table-success' : 'table-danger'}`}>
+                                        <tr className={`fw-bold ${utilidadLiquidaDyn >= 0 ? 'table-success' : 'table-danger'}`}>
                                             {renderEditableCell('UB', 'N', '')}
                                             {renderEditableCell('UB', 'TIPO', '', { align: 'left', minWidth: '4rem' })}
                                             {renderEditableCell('UB', 'COD', '', { align: 'left', minWidth: '4rem' })}
-                                            {renderAccountCell('UB', `${utilidadNeta >= 0 ? 'UTILIDAD BRUTA DEL EJERCICIO' : 'PÉRDIDA BRUTA DEL EJERCICIO'} (UB)`, 'UB')}
+                                            {renderAccountCell('UB', 'RESULTADO CONTABLE (cuadre del ER)', 'R')}
                                             {renderEditableCell('UB', 'BC_DEBE', '')}
                                             {renderEditableCell('UB', 'BC_HABER', '')}
                                             {renderEditableCell('UB', 'BC_DEUDOR', '')}
@@ -1171,8 +998,8 @@ export default function Worksheet() {
                                             {renderEditableCell('UB', 'AJ_HABER', '')}
                                             {renderEditableCell('UB', 'BA_DEUDOR', '')}
                                             {renderEditableCell('UB', 'BA_ACREEDOR', '')}
-                                            {renderEditableCell('UB', 'ER_COSTO', utilidadNeta < 0 ? Math.abs(utilidadNeta).toFixed(2) : '')}
-                                            {renderEditableCell('UB', 'ER_INGRESO', utilidadNeta >= 0 ? utilidadNeta.toFixed(2) : '')}
+                                            <td className="text-end">{utilidadLiquidaDyn > 0 ? utilidadLiquidaDyn.toFixed(2) : ''}</td>
+                                            <td className="text-end">{utilidadLiquidaDyn < 0 ? Math.abs(utilidadLiquidaDyn).toFixed(2) : ''}</td>
                                             {renderEditableCell('UB', 'BG_ACTIVO', '')}
                                             {renderEditableCell('UB', 'BG_PP', '')}
                                             {renderEditableCell('UB', 'CI_DEBE', '')}
@@ -1186,7 +1013,7 @@ export default function Worksheet() {
                                             {renderEditableCell('IMP', 'N', '')}
                                             {renderEditableCell('IMP', 'TIPO', '', { align: 'left', minWidth: '4rem' })}
                                             {renderEditableCell('IMP', 'COD', '', { align: 'left', minWidth: '4rem' })}
-                                            {renderAccountCell('IMP', 'IMPUESTO SOBRE LAS UTILIDADES (I1)', 'I1')}
+                                            {renderAccountCell('IMP', 'IUE (requiere conciliación tributaria)', 'IUE')}
                                             {renderEditableCell('IMP', 'BC_DEBE', '')}
                                             {renderEditableCell('IMP', 'BC_HABER', '')}
                                             {renderEditableCell('IMP', 'BC_DEUDOR', '')}
@@ -1196,26 +1023,21 @@ export default function Worksheet() {
                                             {renderEditableCell('IMP', 'BA_DEUDOR', '')}
                                             {renderEditableCell('IMP', 'BA_ACREEDOR', '')}
                                             {renderEditableCell('IMP', 'ER_COSTO', '')}
-                                            <td className="text-end">
-                                                <div className="d-flex justify-content-end align-items-center">
-                                                    <span className="fw-bold text-danger">{auto.impuesto >= 0 ? auto.impuesto.toFixed(2) : ''}</span>
-                                                    <small className="ms-2 text-muted">(auto)</small>
-                                                </div>
-                                            </td>
+                                            <td className="text-end text-white-50">No calculado</td>
                                             {renderEditableCell('IMP', 'BG_ACTIVO', '')}
-                                            {renderEditableCell('IMP', 'BG_PP', auto.impuesto > 0 ? auto.impuesto.toFixed(2) : '')}
+                                            {renderEditableCell('IMP', 'BG_PP', '')}
                                             {renderEditableCell('IMP', 'CI_DEBE', '')}
                                             {renderEditableCell('IMP', 'CI_HABER', '')}
                                             {renderEditableCell('IMP', 'OR_DEUDOR', '')}
                                             {renderEditableCell('IMP', 'OR_ACREEDOR', '')}
                                         </tr>
 
-                                        {/* Ingresos No Imponibles (automático) */}
+                                        {/* Conciliación tributaria (referencia, no modifica el ER contable) */}
                                         <tr className="table-success">
                                             {renderEditableCell('NI', 'N', '')}
                                             {renderEditableCell('NI', 'TIPO', '', { align: 'left', minWidth: '4rem' })}
                                             {renderEditableCell('NI', 'COD', '', { align: 'left', minWidth: '4rem' })}
-                                            {renderAccountCell('NI', 'INGRESOS NO IMPONIBLES', 'NI')}
+                                            {renderAccountCell('NI', 'AJUSTES DE CONCILIACIÓN TRIBUTARIA', 'CT')}
                                             {renderEditableCell('NI', 'BC_DEBE', '')}
                                             {renderEditableCell('NI', 'BC_HABER', '')}
                                             {renderEditableCell('NI', 'BC_DEUDOR', '')}
@@ -1225,7 +1047,7 @@ export default function Worksheet() {
                                             {renderEditableCell('NI', 'BA_DEUDOR', '')}
                                             {renderEditableCell('NI', 'BA_ACREEDOR', '')}
                                             {renderEditableCell('NI', 'ER_COSTO', '')}
-                                            {renderEditableCell('NI', 'ER_INGRESO', auto.ingresosNoImponibles > 0 ? auto.ingresosNoImponibles.toFixed(2) : '')}
+                                            <td className="text-end"></td>
                                             {renderEditableCell('NI', 'BG_ACTIVO', '')}
                                             {renderEditableCell('NI', 'BG_PP', '')}
                                             {renderEditableCell('NI', 'CI_DEBE', '')}
@@ -1235,12 +1057,12 @@ export default function Worksheet() {
                                         </tr>
 
 
-                                        {/* Utilidad Neta despues de impuesto (calculada) */}
+                                        {/* Resultado contable (sin estimación de impuesto) */}
                                         <tr className="fw-bold">
                                             {renderEditableCell('UN', 'N', '')}
                                             {renderEditableCell('UN', 'TIPO', '', { align: 'left', minWidth: '4rem' })}
                                             {renderEditableCell('UN', 'COD', '', { align: 'left', minWidth: '4rem' })}
-                                            {renderAccountCell('UN', `${auto.utilidadNeta >= 0 ? 'UTILIDAD NETA DEL EJERCICIO' : 'PÉRDIDA NETA DEL EJERCICIO'}`, null)}
+                                            {renderAccountCell('UN', `${utilidadLiquidaDyn >= 0 ? 'RESULTADO CONTABLE DEL PERÍODO' : 'PÉRDIDA CONTABLE DEL PERÍODO'}`, null)}
                                             {renderEditableCell('UN', 'BC_DEBE', '')}
                                             {renderEditableCell('UN', 'BC_HABER', '')}
                                             {renderEditableCell('UN', 'BC_DEUDOR', '')}
@@ -1249,8 +1071,8 @@ export default function Worksheet() {
                                             {renderEditableCell('UN', 'AJ_HABER', '')}
                                             {renderEditableCell('UN', 'BA_DEUDOR', '')}
                                             {renderEditableCell('UN', 'BA_ACREEDOR', '')}
-                                            {renderEditableCell('UN', 'ER_COSTO', auto.utilidadNeta < 0 ? Math.abs(auto.utilidadNeta).toFixed(2) : '')}
-                                            {renderEditableCell('UN', 'ER_INGRESO', auto.utilidadNeta >= 0 ? auto.utilidadNeta.toFixed(2) : '')}
+                                            <td className="text-end"></td>
+                                            <td className="text-end"></td>
                                             {renderEditableCell('UN', 'BG_ACTIVO', '')}
                                             {renderEditableCell('UN', 'BG_PP', '')}
                                             {renderEditableCell('UN', 'CI_DEBE', '')}
@@ -1259,12 +1081,12 @@ export default function Worksheet() {
                                             {renderEditableCell('UN', 'OR_ACREEDOR', '')}
                                         </tr>
 
-                                        {/* Reserva Legal (automática) */}
+                                        {/* Reserva legal: no se automatiza sin comprobar forma societaria y condiciones legales. */}
                                         <tr className="table-warning">
                                             {renderEditableCell('RL', 'N', '')}
                                             {renderEditableCell('RL', 'TIPO', '', { align: 'left', minWidth: '4rem' })}
                                             {renderEditableCell('RL', 'COD', '', { align: 'left', minWidth: '4rem' })}
-                                            {renderAccountCell('RL', `RESERVA LEGAL (${reservaLegalPct}%)`, 'RL')}
+                                            {renderAccountCell('RL', 'RESERVA LEGAL (asiento manual)', 'RL')}
                                             {renderEditableCell('RL', 'BC_DEBE', '')}
                                             {renderEditableCell('RL', 'BC_HABER', '')}
                                             {renderEditableCell('RL', 'BC_DEUDOR', '')}
@@ -1274,14 +1096,9 @@ export default function Worksheet() {
                                             {renderEditableCell('RL', 'BA_DEUDOR', '')}
                                             {renderEditableCell('RL', 'BA_ACREEDOR', '')}
                                             {renderEditableCell('RL', 'ER_COSTO', '')}
-                                            <td className="text-end">
-                                                <div className="d-flex justify-content-end align-items-center">
-                                                    <span className="fw-bold text-warning">{auto.reservaLegal >= 0 ? auto.reservaLegal.toFixed(2) : ''}</span>
-                                                    <small className="ms-2 text-muted">(auto)</small>
-                                                </div>
-                                            </td>
+                                            <td className="text-end text-white-50">No calculada</td>
                                             {renderEditableCell('RL', 'BG_ACTIVO', '')}
-                                            {renderEditableCell('RL', 'BG_PP', auto.reservaLegal > 0 ? auto.reservaLegal.toFixed(2) : '')}
+                                            {renderEditableCell('RL', 'BG_PP', '')}
                                             {renderEditableCell('RL', 'CI_DEBE', '')}
                                             {renderEditableCell('RL', 'CI_HABER', '')}
                                             {renderEditableCell('RL', 'OR_DEUDOR', '')}
@@ -1354,7 +1171,7 @@ export default function Worksheet() {
                                             {renderEditableCell('UL', 'N', '')}
                                             {renderEditableCell('UL', 'TIPO', '', { align: 'left', minWidth: '4rem' })}
                                             {renderEditableCell('UL', 'COD', '', { align: 'left', minWidth: '4rem' })}
-                                            {renderAccountCell('UL', 'UTILIDAD LÍQUIDA DEL EJERCICIO (UL)', 'UL')}
+                                            {renderAccountCell('UL', 'RESULTADO DESPUÉS DE AJUSTES MANUALES', 'UL')}
                                             {renderEditableCell('UL', 'BC_DEBE', '')}
                                             {renderEditableCell('UL', 'BC_HABER', '')}
                                             {renderEditableCell('UL', 'BC_DEUDOR', '')}
@@ -1363,12 +1180,12 @@ export default function Worksheet() {
                                             {renderEditableCell('UL', 'AJ_HABER', '')}
                                             {renderEditableCell('UL', 'BA_DEUDOR', '')}
                                             {renderEditableCell('UL', 'BA_ACREEDOR', '')}
-                                            {renderEditableCell('UL', 'ER_COSTO', auto.utilidadLiquida >= 0 ? auto.utilidadLiquida.toFixed(2) : '')}
-                                            {renderEditableCell('UL', 'ER_INGRESO', auto.utilidadLiquida < 0 ? Math.abs(auto.utilidadLiquida).toFixed(2) : '')}
+                                            <td className="text-end"></td>
+                                            <td className="text-end"></td>
                                             {renderEditableCell('UL', 'BG_ACTIVO', '')}
                                             {renderEditableCell('UL', 'BG_PP', '')}
-                                            {renderEditableCell('UL', 'CI_DEBE', auto.utilidadLiquida < 0 ? Math.abs(auto.utilidadLiquida).toFixed(2) : '')}
-                                            {renderEditableCell('UL', 'CI_HABER', auto.utilidadLiquida >= 0 ? auto.utilidadLiquida.toFixed(2) : '')}
+                                            {renderEditableCell('UL', 'CI_DEBE', '')}
+                                            {renderEditableCell('UL', 'CI_HABER', '')}
                                             {renderEditableCell('UL', 'OR_DEUDOR', '')}
                                             {renderEditableCell('UL', 'OR_ACREEDOR', '')}
                                         </tr>
@@ -1410,13 +1227,10 @@ export default function Worksheet() {
                                             <td className="text-end">{totalAdjHaber.toFixed(2)}</td>
                                             {/* Balance Ajustado - suma simple de columnas anteriores */}
                                             {(() => {
-                                                // BC_DEUDOR + AJ_DEBE = BA_DEUDOR (total)
-                                                const bcDeudorTotal = accounts.filter(a => a.balance >= 0).reduce((s, a) => s + a.balance, 0);
-                                                const baDeudorTotal = bcDeudorTotal + totalAdjDebe;
-
-                                                // BC_ACREEDOR + AJ_HABER = BA_ACREEDOR (total)
-                                                const bcAcreedorTotal = accounts.filter(a => a.balance < 0).reduce((s, a) => s + Math.abs(a.balance), 0);
-                                                const baAcreedorTotal = bcAcreedorTotal + totalAdjHaber;
+                                                const baDeudorTotal = bankersRound(accounts.reduce((sum, account) =>
+                                                    sum + Math.max(getAdjustedBalance(account), 0), 0), 2);
+                                                const baAcreedorTotal = bankersRound(accounts.reduce((sum, account) =>
+                                                    sum + Math.max(-getAdjustedBalance(account), 0), 0), 2);
 
                                                 return (
                                                     <>
@@ -1435,8 +1249,8 @@ export default function Worksheet() {
                                             <td className="text-end">{totalCierreDebe.toFixed(2)}</td>
                                             <td className="text-end">{totalCierreHaber.toFixed(2)}</td>
                                             {/* Cuentas de Orden */}
-                                            <td className="text-end">0.00</td>
-                                            <td className="text-end">0.00</td>
+                                            <td className="text-end">{totalOrdenDeudoras.toFixed(2)}</td>
+                                            <td className="text-end">{totalOrdenAcreedoras.toFixed(2)}</td>
                                         </tr>
                                     </>
                                 )}
@@ -1482,7 +1296,7 @@ export default function Worksheet() {
                             <small className="text-white-50 d-block">Patrimonio + Resultados</small>
                             <span className="fw-bold text-success">Bs {(totalPasivosPatrimonioDyn - totalPasivos).toFixed(2)}</span>
                             <div className="small mt-1 text-white-50" style={{ fontSize: '0.65rem' }}>
-                                (Patr: Bs {totalPatrimonio.toFixed(2)} + Res: Bs {totalResult.toFixed(2)})
+                                Incluye patrimonio registrado y resultado pendiente de cierre.
                             </div>
                         </div>
                     </div>

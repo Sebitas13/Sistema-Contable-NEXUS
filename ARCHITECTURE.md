@@ -9,9 +9,11 @@ stack, deploy, estructura de archivos, modelo de datos y flujos principales.
 
 ## 1. Vista de 30 segundos
 
-App contable boliviana multi-empresa (normativa ASFI/PUCT) que automatiza
-**ajustes contables y cierre fiscal** con un motor de IA propio. Está en producción
-con usuarios reales.
+App contable boliviana multi-empresa con planes PUCT/ASFI. El motor Python propone
+ajustes contables; el cierre de cuentas de resultado lo propone un flujo separado
+en Node. El MCEF ASFI solo aplica a entidades bajo supervisión de ASFI. Los
+reportes actuales son parciales, no calculan IUE/reserva legal y no equivalen a un
+paquete completo de estados financieros. Está en producción con usuarios reales.
 
 Tres servicios + una base de datos:
 
@@ -103,6 +105,7 @@ Sistema Contable/
 ├── PUCT/                          ← Plan Único de Cuentas (xlsx, manual PDF)
 ├── DataForgeDocs/                 ← Documentación de datos contables
 ├── scripts/                       ← Scripts auxiliares de extracción de "skills"
+├── docs/normativa/                 ← Criterios, aplicabilidad y fuentes normativas
 │
 ├── web-app/
 │   ├── client/                    ← Frontend React (Vite + Bootstrap)
@@ -155,7 +158,7 @@ Sistema Contable/
 | `/app/journal` | `pages/Journal.jsx` | Libro Diario: crear / editar asientos |
 | `/app/ledger` | `pages/Ledger.jsx` | Libro Mayor: saldos y movimientos por cuenta |
 | `/app/trial-balance` | `pages/TrialBalance.jsx` | Balance de Comprobación |
-| `/app/worksheet` | `pages/Worksheet.jsx` | Hoja de Trabajo (BC + Ajustes + Ajustada) |
+| `/app/worksheet` | `pages/Worksheet.jsx` | Hoja de Trabajo auxiliar (BC + Ajustes + saldos de cierre/orden) |
 | `/app/cost-centers` | `pages/CostCenters.jsx` | Centros de costo + modelos de distribución |
 | `/app/fixed-assets` | `pages/FixedAssets.jsx` | Activos fijos |
 | `/app/ufv` | `pages/UFV.jsx` | Tipo UFV |
@@ -214,6 +217,8 @@ que son públicos para el keep-warm). El gate y el montaje viven en `index.js`.
 ### Reportes — `routes/reports.js`
 | Método | Path | Para qué |
 |---|---|---|
+| GET | `/api/reports/financial-statements?companyId=X&gestion=Y` | Balance General acumulado a fecha y Resultado del período fiscal |
+| POST | `/api/reports/closing-entries-proposal` | Propuesta de cierre contable sin IUE/reserva automática ni cierre de cuentas permanentes |
 | GET | `/api/reports/ledger?companyId=X` | Libro Mayor agregado por cuenta |
 | GET | `/api/reports/ledger-details?companyId=X` | Movimientos detalle (para AoT del motor) |
 | GET | `/api/reports/ledger/account/:accountId` | Mayor de una cuenta |
@@ -350,13 +355,30 @@ backoff exponencial. Si después de todo falla, cae al **fallback heurístico**
 (`/api/reports/adjustment-entries-proposal`) con confianza fija 0.7 y bandera
 `fallback_mode: true`. Esto es lo que da los "modos de contingencia".
 
-### C) Cierre de gestión (`ClosingWizard`)
-Backend arma una **propuesta determinista** (ingresos→PyG, egresos→PyG, transferir
-resultado a Patrimonio + reserva legal opcional, asientos de reapertura), el
-usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
-`Cierre`).
+### C) Reportes financieros y Hoja de Trabajo
+`GET /api/reports/financial-statements` es la fuente común de `Dashboard`,
+`FinancialStatements` y `Worksheet`. El Balance General usa los movimientos
+acumulados hasta el fin de gestión; el Estado de Resultados usa solo los
+movimientos de la gestión (incluidos ajustes, excluidos asientos de cierre).
+La clasificación usa el tipo de cuenta, luego prefijos de código conocidos y la
+jerarquía declarada/inferida. Padres ASFI/PUCT faltantes se presentan como grupos
+virtuales sin crear cuentas ni modificar códigos en Turso.
 
-### D) Backup ("Escudo del General")
+`Worksheet.jsx` es un borrador auxiliar: presenta balance de comprobación,
+ajustes, saldos finales acumulados, columnas de cierre/orden y fórmulas locales.
+No alimenta los estados ni el cierre. Las fórmulas guardadas en `localStorage` no
+se contabilizan ni se envían al backend.
+
+### D) Cierre contable (`ClosingWizard`)
+Backend arma una propuesta determinista: cierra las cuentas de ingreso/costo/gasto
+contra Pérdidas y Ganancias, transfiere el resultado contable a Resultados
+Acumulados y revierte cuentas de orden solo si el conjunto cuadra. Valida cada
+asiento al centavo. No lleva activos, pasivos ni patrimonio permanente a cero,
+no estima el IUE/reserva legal y rechaza gestionar un período que ya tenga un
+asiento de cierre. El usuario revisa y confirma con `POST /api/transactions/batch`
+(asientos de tipo `Cierre`).
+
+### E) Backup ("Escudo del General")
 - **Export** (`GET /api/backup/export/:companyId`): consulta las 15 tablas soportadas
   filtrando por `company_id`, normaliza, calcula checksum SHA-256 y arma un ZIP en
   streaming (`archiver`) con `metadata.json` + `data/<tabla>.json`.
@@ -371,7 +393,7 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   `SUPPORTED_TABLES` contiene 15 tablas; los catálogos de skills en archivos no
   forman parte del backup.
 
-### E) Importar plan de cuentas (`SmartImportWizard` → Universal Import Engine)
+### F) Importar plan de cuentas (`SmartImportWizard` → Universal Import Engine)
 1. **Predeterminado en producción**: `SmartImportWizard.jsx` (Accounts.jsx) parsea Excel/PDF
    con heurísticas propias, genera preview editable y hace `POST /api/accounts/bulk`
    (lotes de 500, leyendo `successCount/errorCount` reales) + `PUT /api/companies/:id`
@@ -397,7 +419,7 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
    el diseño de migración; `UNIVERSAL_IMPORT_ENGINE_BASELINE.md` es el baseline
    congelado del motor.
 
-### F) Login (graceful)
+### G) Login (graceful)
 1. Al cargar la app, `AuthContext` consulta `GET /api/auth/config`.
 2. Si `authRequired: true` y no hay token → redirige a `/login`.
 3. `POST /api/auth/login {password}` → si OK, devuelve `token = sha256(APP_PASSWORD)`.
@@ -412,9 +434,11 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
 ## 9. Servicios y utilidades a destacar
 
 ### Frontend (`web-app/client/src`)
-- **`utils/IncomeStatementEngine.js`** y **`utils/FinancialStatementEngine.js`**:
-  motores puros para Estado de Resultados y Balance General. Son los "cálculos
-  contables" en el cliente; no llaman al backend.
+- `utils/IncomeStatementEngine.js` y `utils/FinancialStatementEngine.js` siguen
+  en el repositorio por compatibilidad, pero ya no son la fuente de `Dashboard`,
+  `FinancialStatements` ni el cierre actual.
+- `pages/Worksheet.jsx` solo prepara la hoja auxiliar; no es fuente de los reportes
+  ni del cierre.
 - **`utils/adjustmentProfilesV3.js`**: perfiles de ajustes (estructura y defaults).
 - **`services/aiAdjustmentService.js`**: cliente axios al backend para los flujos
   de ajustes; tiene timeouts altos (120 s) y caches de health.
@@ -423,7 +447,10 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
 ### Backend (`web-app/server`)
 - **`db.js`**: cliente único de libSQL. Todas las queries pasan por una **cola serial**
   (`queryQueue`) sobre una sola conexión. `db.transaction(cb)` ahora usa
-  `client.transaction('write')` correctamente con commit/rollback.
+  `client.transaction('write')` correctamente con commit/rollback. Al cargarse,
+  también ejecuta `schema.sql` y migraciones idempotentes contra el Turso de la
+  variable de entorno, incluida la semilla `INSERT OR IGNORE` de empresa ID 1;
+  no hacer `require()` de rutas como smoke test con credenciales de producción.
 - **`utils/auth.js`**: `getExpectedToken()`, `verifyToken()`, `requireAuth` middleware
   con whitelist.
 - **`utils/backupCore.js`**: `IMPORT_ORDER`, normalización, validación y checksum.
@@ -432,6 +459,8 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
 - **`utils/aiEngineResolver.js`**: arma la lista de URLs candidatas del motor según
   entorno (localhost en dev, Render en prod).
 - **`utils/serverFiscalYearUtils.js`**: lógica de año fiscal usada por el motor.
+- **`utils/financialReportsCore.js`**: núcleo puro de clasificación, jerarquía de
+  presentación, reportes por período y propuesta de cierre, probado sin React/DB.
 
 ### Motor Python (`ai_adjustment_engine.py`)
 - FastAPI con endpoints `/api/ai/health`, `/api/ai/adjustments/generate`,
@@ -453,7 +482,9 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   pero sin un asistente conversacional/herramientas conectados de extremo a extremo. Detalles en
   `MAHORAGA.md`. Para no romper el motor: nunca tocar `ai_adjustment_engine.py`,
   los endpoints `/api/ai/adjustments/*` y `/api/ai/profile/:companyId`, ni
-  `AIAdjustmentPanel`, `AdjustmentWizard`, `ClosingWizard`, `Worksheet`.
+  `AIAdjustmentPanel` y `AdjustmentWizard`. Cambios a `Worksheet.jsx` y
+  `ClosingWizard.jsx` quedan limitados al flujo auxiliar/reportes/cierre descrito
+  arriba; no modificar el motor de ajustes ni su lógica protegida.
 - **Multi-empresa**: prácticamente todas las consultas filtran por `companyId` y
   todas las tablas core tienen `company_id`. El frontend mantiene la empresa
   activa en `localStorage` (`selectedCompanyId`).
@@ -463,8 +494,8 @@ usuario revisa y confirma con `POST /api/transactions/batch` (asientos de tipo
   el horario, recalcular la cuota (750 h/mes compartidas en el plan free).
 - **Hoja de Trabajo en móvil**: CSS oculta algunos campos secundarios y fija la
   columna de cuenta, pero siguen visibles varios bloques numéricos y scroll
-  horizontal. Otros reportes también usan tablas anchas; `Worksheet.jsx` está
-  protegido por `AGENTS.md` y requiere autorización explícita antes de editarse.
+  horizontal. Los arreglos recientes son contables; el rediseño responsive de la
+  tabla sigue pendiente.
 - **Backups son aditivos**, no invisibles: el restore crea una empresa nueva y
   consume espacio, aunque no sobrescribe la empresa existente.
 - **DB vigente**: el backend usa `@libsql/client`; los restos legacy basados en

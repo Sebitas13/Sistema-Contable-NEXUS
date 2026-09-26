@@ -4,8 +4,6 @@ import axios from 'axios';
 import API_URL from '../api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { FinancialStatementEngine } from '../utils/FinancialStatementEngine';
-import { generarEstadoResultadosDesdeWorksheet } from '../utils/IncomeStatementEngine';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sparkline from '../components/Sparkline';
 import CountUp from '../components/CountUp';
@@ -59,79 +57,18 @@ export default function Dashboard() {
     try {
       const companyId = selectedCompany.id;
 
-      // 1. Obtener TODOS los catálogos y movimientos como hace el Balance General
-      const [accountsRes, bcRes, adjRes, statsRes, transRes] = await Promise.all([
-        axios.get(`${API_URL}/api/accounts`, { params: { companyId } }),
-        axios.get(`${API_URL}/api/reports/ledger`, { params: { companyId, excludeAdjustments: true, excludeClosing: true } }),
-        axios.get(`${API_URL}/api/reports/ledger`, { params: { companyId, adjustmentsOnly: true, excludeClosing: true } }),
+      const [statementsRes, statsRes, transRes] = await Promise.all([
+        axios.get(`${API_URL}/api/reports/financial-statements`, {
+          params: { companyId, gestion: selectedCompany.current_year }
+        }),
         axios.get(`${API_URL}/api/companies/${companyId}/stats`),
         axios.get(`${API_URL}/api/transactions`, { params: { companyId } })
       ]);
 
-      const allAccounts = accountsRes.data.data || [];
-      const bcData = bcRes.data.data || [];
-      const adjData = adjRes.data.data || [];
-
-      // Mapear para búsqueda rápida por ID
-      const bcMap = {};
-      bcData.forEach(item => bcMap[item.id] = item);
-      const adjMap = {};
-      adjData.forEach(item => adjMap[item.id] = item);
-
-      // Sincronizar preparación de datos con FinancialStatements.jsx (Línea 168+)
-      const merged = allAccounts.map(acc => {
-        const bcInfo = bcMap[acc.id] || { total_debit: 0, total_credit: 0 };
-        const adjInfo = adjMap[acc.id] || { total_debit: 0, total_credit: 0 };
-
-        return {
-          ...acc,
-          total_debit: bcInfo.total_debit || 0,
-          total_credit: bcInfo.total_credit || 0,
-          adj_debit: adjInfo.total_debit || 0,
-          adj_credit: adjInfo.total_credit || 0
-        };
-      });
-
-      // 2. Recuperar configuración de Worksheet
-      let options = {};
-      try {
-        const key = `worksheet_custom_section_${companyId}`;
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const obj = JSON.parse(raw);
-          options = {
-            porcentajeReservaLegal: obj.reservaLegalPct !== undefined ? obj.reservaLegalPct : 5,
-            overrideReservaLegal: obj.overrideReservaLegal || false
-          };
-        }
-      } catch (e) { }
-
-      // 3. Calcular Resultados dinámicos (ER)
-      const reporteV5 = await generarEstadoResultadosDesdeWorksheet(companyId, options);
-      const { iue, reservaLegal, utilidadLiquida } = reporteV5.totales;
-
-      // 4. Calcular Totales usando la lógica EXACTA de Estados Financieros
-      // IMPORTANTE: El motor usa `total_debit` y `total_credit`. Debemos sumar los ajustes antes de pasarlo.
-      const preparedData = merged.map(acc => ({
-        ...acc,
-        total_debit: (Number(acc.total_debit) || 0) + (Number(acc.adj_debit) || 0),
-        total_credit: (Number(acc.total_credit) || 0) + (Number(acc.adj_credit) || 0)
-      }));
-
-      const engine = new FinancialStatementEngine(preparedData);
-
-      // Inyectar resultados externos como se hace en FinancialStatements.jsx
-      engine.utilidadLiquidaExterna = utilidadLiquida;
-      engine.iuePorPagar = iue;
-      engine.reservaLegalMonto = reservaLegal;
-
-      // Generar el balance completo para obtener los totales finales estructurales
-      const balanceGeneral = await engine.generarBalanceGeneral();
-
-      // Extraer totales directamente de la estructura generada (Motor v4.0)
-      const finalActivo = balanceGeneral.totales.activo;
-      const finalPasivo = balanceGeneral.totales.pasivo;
-      const finalPatrimonio = balanceGeneral.totales.patrimonio;
+      const totals = statementsRes.data.balanceGeneral.totales;
+      const finalActivo = totals.activo;
+      const finalPasivo = totals.pasivo;
+      const finalPatrimonio = totals.patrimonio;
 
       setStats({
         totalAssets: finalActivo,

@@ -134,6 +134,36 @@ export default function ImportReviewStep({
         session.reviewResolutions.filter(r => r.warnKey && r.regionId === region.regionId).map(r => r.warnKey)
     );
     const pendingWarnings = reviewWarnings.filter(({ i }) => !resolvedWarnKeys.has(`${region.regionId}:w${i}`));
+    const implicitGroupsByParent = new Map();
+    const nodesByCode = new Map();
+    region.contract.nodes.forEach((node, index) => {
+        const code = String(node.normalizedCode ?? node.code ?? '');
+        if (!nodesByCode.has(code)) nodesByCode.set(code, []);
+        nodesByCode.get(code).push(`${region.regionId}:${index}`);
+    });
+    for (const warning of pendingWarnings.filter(({ w }) => w.type === 'implicitMissingParent')) {
+        const parent = String(warning.w.parent || 'nivel no declarado');
+        if (!implicitGroupsByParent.has(parent)) implicitGroupsByParent.set(parent, []);
+        implicitGroupsByParent.get(parent).push(warning);
+    }
+    const implicitGroups = [...implicitGroupsByParent.entries()].map(([parent, warnings]) => {
+        const targets = new Set();
+        const codes = new Set();
+        for (const { w, i } of warnings) {
+            targets.add(`${region.regionId}:w${i}`);
+            codes.add(String(w.code || ''));
+            for (const uid of nodesByCode.get(String(w.code || '')) || []) targets.add(uid);
+        }
+        region.contract.nodes.forEach((node, index) => {
+            const nodeParent = String(node.parentInfo?.code ?? node.parent ?? '');
+            if (nodeParent === parent && (node.requiresReview || node.parentInfo?.requiresReview)) {
+                targets.add(`${region.regionId}:${index}`);
+                codes.add(String(node.normalizedCode ?? node.code ?? ''));
+            }
+        });
+        return { parent, warnings, targets: [...targets], codes: [...codes].filter(Boolean) };
+    });
+    const otherPendingWarnings = pendingWarnings.filter(({ w }) => w.type !== 'implicitMissingParent');
     const rejectedRows = region.contract.rejectedRows || [];
 
     function toggleSelect(uid) {
@@ -232,7 +262,18 @@ export default function ImportReviewStep({
                         <small className="fw-bold text-warning"><i className="bi bi-eye me-2"></i>Revisiones del contrato ({pendingWarnings.length})</small>
                     </div>
                     <div className="list-group list-group-flush">
-                        {pendingWarnings.slice(0, 5).map(({ w, i }) => (
+                        {implicitGroups.map(({ parent, warnings, targets, codes }) => (
+                            <div key={parent} className="list-group-item bg-dark text-white border-secondary d-flex gap-2 align-items-start">
+                                <span className="small flex-grow-1">
+                                    <strong>Nivel de agrupación no declarado: <code>{parent}</code></strong>
+                                    <span className="d-block text-white-50">Afecta {codes.length} cuenta(s) ({codes.slice(0, 4).join(', ')}{codes.length > 4 ? ', …' : ''}). Se conservarán los códigos originales; el grupo es solo de presentación.</span>
+                                </span>
+                                <button type="button" data-testid={`u2-resolve-parent-${parent.replace(/[^A-Za-z0-9_-]/g, '_')}`} className="btn btn-sm btn-outline-warning" onClick={() => onResolveReview(targets)}>
+                                    Aceptar grupo ({warnings.length})
+                                </button>
+                            </div>
+                        ))}
+                        {otherPendingWarnings.slice(0, 5).map(({ w, i }) => (
                             <div key={i} className="list-group-item bg-dark text-white border-secondary d-flex gap-2 align-items-start" style={{ borderLeft: '3px solid var(--bs-warning)' }}>
                                 <span className="small flex-grow-1">{w.message || w.type} {w.code ? <code>{w.code}</code> : ''}</span>
                                 <button type="button" data-testid={`u2-resolve-warn-${i}`} className="btn btn-sm btn-outline-warning" onClick={() => onResolveReview(`${region.regionId}:w${i}`)}>

@@ -4,8 +4,8 @@ const db = require('../db');
 console.log('*** ARCHIVO reports.js CARGADO ***');
 // Corrected: Import server-side utilities, not client-side code.
 const { getFiscalYearDetails } = require('../utils/serverFiscalYearUtils.js');
-const { generarEstadoResultados, classifyAccountForER } = require('../utils/serverIncomeStatement.js');
 const AccountPlanIntelligence = require('../utils/AccountPlanIntelligence.js');
+const { buildFinancialReports, closingProposal } = require('../utils/financialReportsCore.js');
 
 
 
@@ -18,6 +18,44 @@ const dbAll = (sql, params = []) => {
         });
     });
 };
+
+async function getPeriodAccountBalances(companyId, startDate, endDate) {
+    return dbAll(`
+        SELECT
+            a.id, a.company_id, a.code, a.name, a.type, a.level, a.parent_code,
+            COALESCE(SUM(CASE WHEN t.id IS NOT NULL
+                AND NOT (UPPER(COALESCE(t.type, '')) = 'CIERRE'
+                    AND LOWER(COALESCE(t.gloss, '')) LIKE '%cuentas de balance%')
+                THEN te.debit ELSE 0 END), 0) AS total_debit,
+            COALESCE(SUM(CASE WHEN t.id IS NOT NULL
+                AND NOT (UPPER(COALESCE(t.type, '')) = 'CIERRE'
+                    AND LOWER(COALESCE(t.gloss, '')) LIKE '%cuentas de balance%')
+                THEN te.credit ELSE 0 END), 0) AS total_credit,
+            COALESCE(SUM(CASE WHEN t.id IS NOT NULL
+                AND t.date >= ? AND t.date <= ?
+                AND UPPER(COALESCE(t.type, '')) <> 'CIERRE'
+                THEN te.debit ELSE 0 END), 0) AS period_debit,
+            COALESCE(SUM(CASE WHEN t.id IS NOT NULL
+                AND t.date >= ? AND t.date <= ?
+                AND UPPER(COALESCE(t.type, '')) <> 'CIERRE'
+                THEN te.credit ELSE 0 END), 0) AS period_credit,
+            COALESCE(SUM(CASE WHEN t.id IS NOT NULL
+                AND t.date >= ? AND t.date <= ?
+                AND UPPER(COALESCE(t.type, '')) = 'CIERRE'
+                THEN te.debit ELSE 0 END), 0) AS closing_debit,
+            COALESCE(SUM(CASE WHEN t.id IS NOT NULL
+                AND t.date >= ? AND t.date <= ?
+                AND UPPER(COALESCE(t.type, '')) = 'CIERRE'
+                THEN te.credit ELSE 0 END), 0) AS closing_credit
+        FROM accounts a
+        LEFT JOIN transaction_entries te ON te.account_id = a.id
+        LEFT JOIN transactions t ON t.id = te.transaction_id
+            AND t.company_id = ? AND t.date <= ?
+        WHERE a.company_id = ?
+        GROUP BY a.id
+        ORDER BY a.code
+    `, [startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate, companyId, endDate, companyId]);
+}
 
 // Get Ledger Summary (Libro Mayor - Resumen por cuenta)
 router.get('/ledger', async (req, res) => {
@@ -378,442 +416,186 @@ router.get('/accounts-list', async (req, res) => {
     }
 });
 
-// Get Balance Sheet (Balance General) - Placeholder
+// Period-based reports are the source for published statements and closing proposals.
 router.get('/financial-statements', async (req, res) => {
     try {
         const { companyId } = req.query;
+        if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-        if (!companyId) {
-            return res.status(400).json({ error: 'companyId is required' });
+        const companies = await dbAll(
+            'SELECT id, activity_type, current_year, operation_start_date FROM companies WHERE id = ?',
+            [companyId]
+        );
+        if (!companies.length) return res.status(404).json({ error: 'Company not found' });
+
+        const company = companies[0];
+        const year = Number(req.query.gestion || company.current_year || new Date().getFullYear());
+        if (!Number.isInteger(year) || year < 1900 || year > 2200) {
+            return res.status(400).json({ error: 'gestion must be a valid fiscal year' });
+        }
+        const fiscal = getFiscalYearDetails(company.activity_type, year, company.operation_start_date);
+        const startDate = req.query.startDate || fiscal.startDate;
+        const endDate = req.query.endDate || fiscal.endDate;
+        const validDate = value => {
+            if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+            const parsed = new Date(`${value}T00:00:00Z`);
+            return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
+        };
+        if (!validDate(startDate) || !validDate(endDate) || startDate > endDate) {
+            return res.status(400).json({ error: 'Invalid report date range' });
         }
 
-        // 1. Robust Query:
-        // - Calculates mathematical balance (Debe-Haber or Haber-Debe)
-        // - Guarantees parent_code using SQL fallback (though Phase 0 should fix it)
-        const sql = `
-            WITH saldos_calculados AS (
-                SELECT 
-                    a.id, a.code, a.name, a.type, a.level, 
-                    
-                    -- GARANTIZAR parent_code (usar existente o dejar NULL para fallback en JS)
-                    -- La lógica de 'instr' con 3 argumentos no es soportada por todas las versiones de SQLite.
-                    -- Simplificamos para evitar error 500: Si es null, lo dejamos null y el JS lo calcula.
-                    a.parent_code as parent_code_garantizado,
+        const [accounts, closingRows, legacyClosingRows] = await Promise.all([
+            getPeriodAccountBalances(companyId, startDate, endDate),
+            dbAll(`
+                SELECT COUNT(DISTINCT t.id) AS closing_count,
+                    COUNT(DISTINCT CASE WHEN LOWER(COALESCE(a.name, '')) LIKE '%resultados acumulados%'
+                        THEN t.id END) AS retained_earnings_closing_count,
+                    COUNT(DISTINCT CASE WHEN LOWER(COALESCE(a.name, '')) LIKE '%perdidas y ganancias%'
+                        OR LOWER(COALESCE(a.name, '')) LIKE '%resultado del ejercicio%'
+                        OR LOWER(COALESCE(a.name, '')) LIKE '%utilidad del ejercicio%'
+                        THEN t.id END) AS profit_clearing_closing_count
+                FROM transactions t
+                LEFT JOIN transaction_entries te ON te.transaction_id = t.id
+                LEFT JOIN accounts a ON a.id = te.account_id AND a.company_id = t.company_id
+                WHERE t.company_id = ? AND t.date BETWEEN ? AND ?
+                    AND UPPER(COALESCE(t.type, '')) = 'CIERRE'
+            `, [companyId, startDate, endDate]),
+            dbAll(`
+                SELECT COUNT(DISTINCT id) AS legacy_balance_closings
+                FROM transactions
+                WHERE company_id = ? AND date <= ?
+                    AND UPPER(COALESCE(type, '')) = 'CIERRE'
+                    AND LOWER(COALESCE(gloss, '')) LIKE '%cuentas de balance%'
+            `, [companyId, endDate])
+        ]);
 
-                    COALESCE(a.parent_code, '') as debug_parent,
-
-                    -- Saldo matemático CON SIGNO CORRECTO
-                    COALESCE(
-                        SUM(CASE 
-                            WHEN a.type IN ('Activo', 'Gasto', 'Costo') THEN te.debit - te.credit
-                            WHEN a.type IN ('Pasivo', 'Patrimonio', 'Ingreso') THEN te.credit - te.debit
-                            ELSE 0
-                        END),
-                        0
-                    ) as saldo_matematico,
-
-                    -- Flag para identificar Reguladora (por nombre)
-                    CASE 
-                         WHEN a.name LIKE '%depreciac%' OR a.name LIKE '%amortizac%' OR a.name LIKE '%provisi%' 
-                         THEN 1 ELSE 0 
-                    END as is_reguladora
-
-                FROM accounts a
-                LEFT JOIN transaction_entries te ON a.id = te.account_id
-                LEFT JOIN transactions t ON te.transaction_id = t.id
-                WHERE a.company_id = ? AND (t.id IS NULL OR t.company_id = ?)
-                GROUP BY a.id, a.code, a.name, a.type, a.level
-            )
-            SELECT * FROM saldos_calculados
-            ORDER BY code;
-        `;
-
-        const rows = await dbAll(sql, [companyId, companyId]);
-
-        // Post-processing for safety: Ensure parent_code_garantizado logic if SQL was limited
-        // Although the user asked for Backend Absolute, JS fallback here IS backend logic (server-side).
-        // It's safer/easier to do regex/string manipulation in Node than complex SQLite string functions.
-
-        const refinedRows = rows.map(row => {
-            let parentCode = row.parent_code || row.parent_code_garantizado;
-
-            // Backend safeguard for parent_code if still null
-            if (!parentCode && row.level > 1 && row.code.length > 1) {
-                // Simple heuristic fallback running ON SERVER
-                if (row.code.includes('.')) {
-                    const parts = row.code.split('.');
-                    parts.pop();
-                    parentCode = parts.join('.');
-                } else if (row.code.includes('-')) {
-                    const parts = row.code.split('-');
-                    parts.pop();
-                    parentCode = parts.join('-');
-                } else {
-                    // Variable length fallback (e.g. PUCT)
-                    // 1105 -> 11 (len 4 -> 2)
-                    // 110502 -> 1105 (len 6 -> 4)
-                    if (row.code.length === 4) parentCode = row.code.substring(0, 2);
-                    else if (row.code.length === 6) parentCode = row.code.substring(0, 4);
-                    else if (row.code.length === 8) parentCode = row.code.substring(0, 6);
+        const hasClosingEntries = Number(closingRows[0]?.closing_count || 0) > 0;
+        const hasResultClosing = Number(closingRows[0]?.retained_earnings_closing_count || 0) > 0 &&
+            Number(closingRows[0]?.profit_clearing_closing_count || 0) > 0;
+        const report = buildFinancialReports(accounts, {
+            startDate,
+            endDate,
+            hasResultClosing
+        });
+        if (hasClosingEntries && !hasResultClosing) {
+            const warning = 'Hay asientos de cierre en la gestión, pero no se identifica el traspaso completo de Pérdidas y Ganancias a Resultados Acumulados; se conserva el resultado del período y el mayor requiere revisión.';
+            report.metadata.warnings.push({ type: 'incompleteResultClosing', message: warning });
+        }
+        const legacyBalanceClosings = Number(legacyClosingRows[0]?.legacy_balance_closings || 0);
+        if (legacyBalanceClosings > 0) {
+            report.metadata.warnings.push({
+                type: 'legacyBalanceClosingsIgnored',
+                message: `Se excluyeron ${legacyBalanceClosings} antiguo(s) asiento(s) de cierre de cuentas permanentes para reconstruir sus saldos; revisa la contabilidad histórica.`
+            });
+        }
+        let worksheetClosing = { available: false, byAccount: {}, warning: null };
+        if (hasClosingEntries) {
+            for (const account of accounts) {
+                const debit = Number(account.closing_debit) || 0;
+                const credit = Number(account.closing_credit) || 0;
+                if (debit || credit) worksheetClosing.byAccount[String(account.id)] = { debit, credit };
+            }
+            worksheetClosing.available = Object.keys(worksheetClosing.byAccount).length > 0;
+            worksheetClosing.warning = 'Se muestran los asientos de cierre ya registrados para este período.';
+            if (!hasResultClosing) {
+                worksheetClosing.warning += ' No se detecta el traspaso completo del resultado a Resultados Acumulados.';
+            }
+        } else {
+            try {
+                const preview = closingProposal(accounts, { closingDate: endDate });
+                for (const transaction of preview.proposedTransactions) {
+                    for (const entry of transaction.entries) {
+                        const key = String(entry.accountId);
+                        if (!worksheetClosing.byAccount[key]) worksheetClosing.byAccount[key] = { debit: 0, credit: 0 };
+                        worksheetClosing.byAccount[key].debit += Number(entry.debit) || 0;
+                        worksheetClosing.byAccount[key].credit += Number(entry.credit) || 0;
+                    }
                 }
+                worksheetClosing.available = true;
+            } catch (error) {
+                worksheetClosing.warning = error.message;
             }
-
-            return {
-                ...row,
-                parent_code_garantizado: parentCode
-            };
-        });
-
-        const cuentasHuerfanas = refinedRows.filter(a =>
-            a.parent_code_garantizado &&
-            !refinedRows.some(p => p.code === a.parent_code_garantizado)
-        );
-
-        res.json({
+        }
+        if (legacyBalanceClosings > 0) {
+            const historyWarning = report.metadata.warnings.find(warning => warning.type === 'legacyBalanceClosingsIgnored');
+            worksheetClosing.warning = [worksheetClosing.warning, historyWarning?.message].filter(Boolean).join(' ');
+        }
+        return res.json({
             success: true,
-            data: refinedRows,
+            data: accounts,
+            worksheetClosing,
+            ...report,
             metadata: {
-                totalCuentas: refinedRows.length,
-                cuentasHuerfanas: cuentasHuerfanas.length,
-                requiereCorreccion: cuentasHuerfanas.length > 0
+                ...report.metadata,
+                companyId,
+                gestion: year,
+                hasClosingEntries,
+                hasResultClosing,
+                legacyBalanceClosingsIgnored: legacyBalanceClosings
             }
         });
-
     } catch (error) {
         console.error('Error in /financial-statements:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
 router.post('/closing-entries-proposal', async (req, res) => {
-    const { companyId, gestion, reservaLegalPct, overrideReservaLegal } = req.body;
-
+    const { companyId, gestion } = req.body;
     if (!companyId || !gestion) {
         return res.status(400).json({ error: 'companyId and gestion are required' });
     }
 
     try {
-        // 1. Get company info to determine fiscal year
-        const company = await dbAll('SELECT * FROM companies WHERE id = ?', [companyId]);
-        if (company.length === 0) return res.status(404).json({ error: 'Company not found' });
-
-        const { startDate, endDate } = getFiscalYearDetails(company[0].activity_type, gestion, company[0].operation_start_date);
-
-        // 2. Get all accounts with their final balances for the period
-        const accountsWithBalances = await dbAll(`
-            SELECT a.*, COALESCE(SUM(te.debit), 0) as total_debit, COALESCE(SUM(te.credit), 0) as total_credit
-            FROM accounts a
-            LEFT JOIN transaction_entries te ON a.id = te.account_id
-            LEFT JOIN transactions t ON te.transaction_id = t.id AND t.date BETWEEN ? AND ? AND t.type != 'Cierre'
-            WHERE a.company_id = ?
-            GROUP BY a.id
-            ORDER BY a.code
-        `, [startDate, endDate, companyId]);
-
-        // 3. Separate accounts by type
-        const resultadoDeudor = [];
-        const resultadoAcreedor = [];
-        const activos = [];
-        const pasivos = [];
-        const patrimonio = [];
-        const reguladoras = [];
-        const ordenDeudor = [];
-        const ordenAcreedor = [];
-
-        // Patterns for variable-nature accounts, from Worksheet.jsx
-        const variablePatterns = [
-            'diferencia de cambio', 'diferencias de cambio', 'tipo de cambio',
-            'exposicion a la inflacion', 'exposición a la inflación',
-            'ajuste por inflacion', 'ajuste por inflación', 'ajuste por inflacion y tenencia de bienes',
-            'tenencia de bienes', 'reme', 'resultado monetario', 'resultados por exposicion a la inflacion',
-            'mantenimiento de valor', 'mantenimiento del valor',
-            'perdidas y ganancias', 'pérdidas y ganancias',
-            'resultados de la gestion', 'resultados de la gestión',
-            'resultado del ejercicio', 'resultado neto',
-            'utilidad o perdida', 'utilidad o pérdida',
-            'ganancia o perdida', 'ganancia o pérdida',
-            'resultado extraordinario', 'resultados extraordinarios',
-            'otros resultados', 'resultado integral'
-        ];
-
-        accountsWithBalances.forEach(acc => {
-            const balance = (acc.total_debit || 0) - (acc.total_credit || 0);
-            // DO NOT skip zero balance accounts here. They might be needed for closing entries (e.g. IUE por Pagar starts at 0).
-            // The final check is done when building the closing entry itself.
-
-            const type = (acc.type || '').toLowerCase();
-            const name = (acc.name || '').toLowerCase();
-
-            const isVariable = variablePatterns.some(p => name.includes(p));
-
-            if (isVariable) {
-                if (balance > 0) { // Debit balance -> Expense
-                    resultadoDeudor.push({ ...acc, balance });
-                } else { // Credit balance -> Income
-                    resultadoAcreedor.push({ ...acc, balance });
-                }
-            } else if (['gasto', 'costo'].includes(type)) {
-                resultadoDeudor.push({ ...acc, balance });
-            } else if (type === 'ingreso') {
-                resultadoAcreedor.push({ ...acc, balance });
-            } else if (type === 'activo') {
-                activos.push({ ...acc, balance });
-            } else if (type === 'pasivo') {
-                pasivos.push({ ...acc, balance });
-            } else if (type === 'patrimonio') {
-                patrimonio.push({ ...acc, balance });
-            } else if (type === 'reguladora') {
-                reguladoras.push({ ...acc, balance });
-            } else if (type === 'orden') {
-                if (balance > 0) {
-                    ordenDeudor.push({ ...acc, balance });
-                } else {
-                    ordenAcreedor.push({ ...acc, balance });
-                }
-            }
-        });
-
-        // 4. Find key accounts.
-        // First, identify all parent accounts to ensure we only select leaf accounts for transactions.
-        const parentCodes = new Set(accountsWithBalances.map(a => a.parent_code).filter(Boolean));
-
-        const findAccount = (namePattern, { onlyLeaf = false } = {}) => {
-            const matches = accountsWithBalances.filter(a => {
-                const isLeaf = !parentCodes.has(a.code);
-                const nameMatch = namePattern.test(a.name.toLowerCase());
-
-                if (onlyLeaf) {
-                    return nameMatch && isLeaf;
-                }
-                return nameMatch;
-            });
-
-            // Si hay múltiples coincidencias, priorizar la de nivel más alto (último nivel)
-            if (matches.length > 1) {
-                console.log(`⚠️ Múltiples cuentas encontradas para "${namePattern}":`, matches.map(m => `${m.name} (nivel ${m.level})`));
-                return matches.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
-            }
-
-            return matches[0];
-        };
-
-        const pygAccount = findAccount(/p[eé]rdidas y ganancias|resultado del ejercicio/i, { onlyLeaf: true });
-        const raAccount = findAccount(/resultado(s)? acumulado(s)?/i, { onlyLeaf: true });
-        // Priorizar nombre específico para IUE
-        let iueAccount = accountsWithBalances.filter(a => {
-            const isLeaf = !parentCodes.has(a.code);
-            const nameMatch = a.name.toLowerCase().includes('impuesto a las utilidades de las empresas por pagar');
-            return isLeaf && nameMatch;
-        });
-
-        if (iueAccount.length > 1) {
-            console.log(`⚠️ Múltiples cuentas IUE encontradas:`, iueAccount.map(m => `${m.name} (nivel ${m.level})`));
-            iueAccount = iueAccount.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
-        } else if (iueAccount.length === 1) {
-            iueAccount = iueAccount[0];
-        } else {
-            iueAccount = null;
+        const companies = await dbAll(
+            'SELECT id, activity_type, operation_start_date FROM companies WHERE id = ?',
+            [companyId]
+        );
+        if (!companies.length) return res.status(404).json({ error: 'Company not found' });
+        const year = Number(gestion);
+        if (!Number.isInteger(year) || year < 1900 || year > 2200) {
+            return res.status(400).json({ error: 'gestion must be a valid fiscal year' });
         }
 
-        if (!iueAccount) {
-            const iueMatches = accountsWithBalances.filter(a => {
-                const isLeaf = !parentCodes.has(a.code);
-                const nameMatch = /iue por pagar|impuesto a las utilidades por pagar/i.test(a.name.toLowerCase());
-                return isLeaf && nameMatch;
-            });
+        const { startDate, endDate } = getFiscalYearDetails(
+            companies[0].activity_type,
+            year,
+            companies[0].operation_start_date
+        );
+        const [accounts, closingRows] = await Promise.all([
+            getPeriodAccountBalances(companyId, startDate, endDate),
+            dbAll(`
+                SELECT COUNT(*) AS closing_count
+                FROM transactions
+                WHERE company_id = ? AND date BETWEEN ? AND ?
+                    AND UPPER(COALESCE(type, '')) = 'CIERRE'
+            `, [companyId, startDate, endDate])
+        ]);
 
-            if (iueMatches.length > 1) {
-                console.log(`⚠️ Múltiples cuentas IUE alternativas encontradas:`, iueMatches.map(m => `${m.name} (nivel ${m.level})`));
-                iueAccount = iueMatches.reduce((prev, curr) => (curr.level > prev.level ? curr : prev));
-            } else if (iueMatches.length === 1) {
-                iueAccount = iueMatches[0];
-            }
-        }
-
-        const rlAccount = findAccount(/reserva legal/i, { onlyLeaf: true });
-
-        if (!pygAccount || !raAccount || !iueAccount || !rlAccount) {
-            const missing = [
-                !pygAccount ? '"Pérdidas y Ganancias" o "Resultado del Ejercicio"' : null,
-                !raAccount ? '"Resultados Acumulados"' : null,
-                !iueAccount ? '"IUE por Pagar"' : null,
-                !rlAccount ? '"Reserva Legal"' : null
-            ].filter(Boolean).join(', ');
-
-            console.error('❌ Cuentas clave no encontradas:', missing);
-            console.error('📋 Cuentas disponibles:', accountsWithBalances.map(a => `${a.name} (${a.code}) - Nivel ${a.level} - ${a.type}`));
-
-            return res.status(400).json({
-                error: `Cuentas clave no encontradas: ${missing}. Por favor, créelas para continuar con el cierre.`,
-                debug: {
-                    missing,
-                    availableAccounts: accountsWithBalances.map(a => ({ name: a.name, code: a.code, level: a.level, type: a.type }))
-                }
-            });
-        }
-
-        // 5. Generate Closing Entries
-        const proposedTransactions = [];
-        const closingDate = endDate;
-
-        // A. Cierre de Gastos
-        const activeResultadoDeudor = resultadoDeudor.filter(acc => Math.abs(acc.balance) > 0.001);
-        const totalGastos = activeResultadoDeudor.reduce((sum, acc) => sum + acc.balance, 0);
-        if (totalGastos > 0) {
-            const asientoGastos = {
-                gloss: 'Asiento de Cierre: Cuentas de Resultado (Deudoras)',
-                entries: [
-                    { accountId: pygAccount.id, accountName: pygAccount.name, debit: totalGastos, credit: 0 },
-                    ...activeResultadoDeudor.map(acc => ({ accountId: acc.id, accountName: acc.name, debit: 0, credit: acc.balance }))
-                ]
-            };
-            proposedTransactions.push(asientoGastos);
-        }
-
-        // B. Cierre de Ingresos
-        const activeResultadoAcreedor = resultadoAcreedor.filter(acc => Math.abs(acc.balance) > 0.001);
-        const totalIngresos = activeResultadoAcreedor.reduce((sum, acc) => sum + acc.balance, 0);
-        if (totalIngresos < 0) {
-            const asientoIngresos = {
-                gloss: 'Asiento de Cierre: Cuentas de Resultado (Acreedoras)',
-                entries: [
-                    { accountId: pygAccount.id, accountName: pygAccount.name, debit: 0, credit: Math.abs(totalIngresos) },
-                    ...activeResultadoAcreedor.map(acc => ({ accountId: acc.id, accountName: acc.name, debit: Math.abs(acc.balance), credit: 0 }))
-                ]
-            };
-            proposedTransactions.push(asientoIngresos);
-        }
-
-        // C. Determinación del Resultado
-        // Usar la misma lógica que Worksheet.jsx para obtener los valores correctos
-        const { generarEstadoResultadosDesdeWorksheet } = require('../utils/serverIncomeStatement.js');
-
-        let erData = null;
-        let utilidadBruta = 0;
-
+        let proposal;
         try {
-            const options = {
-                porcentajeReservaLegal: reservaLegalPct !== undefined ? parseFloat(reservaLegalPct) : 5,
-                overrideReservaLegal: overrideReservaLegal === true || overrideReservaLegal === 'true'
-            };
-            erData = await generarEstadoResultadosDesdeWorksheet(companyId, options);
-
-            utilidadBruta = erData.totales.utilidadBrutaEjercicio;
-            const ingresosNoImponibles = erData.totales.valNoImponibles || 0;
-
-            const asientoResultado = { gloss: 'Asiento de Cierre: Determinación del Resultado', entries: [] };
-
-            // 1. Cerrar P&G (Debe si hay utilidad, Haber si hay pérdida)
-            // El monto para cerrar P&G es la utilidad bruta (antes de impuestos) + ingresos no imponibles
-            const totalParaCerrarPYG = Math.abs(utilidadBruta + ingresosNoImponibles);
-
-            if (utilidadBruta + ingresosNoImponibles > 0) {
-                // UTILIDAD
-                asientoResultado.entries.push({ accountId: pygAccount.id, accountName: pygAccount.name, debit: totalParaCerrarPYG, credit: 0 });
-
-                if (erData.totales.iue > 0) {
-                    asientoResultado.entries.push({ accountId: iueAccount.id, accountName: iueAccount.name, debit: 0, credit: erData.totales.iue });
-                    const iueAccInMemory = pasivos.find(a => a.id === iueAccount.id);
-                    if (iueAccInMemory) iueAccInMemory.balance -= erData.totales.iue;
-                }
-
-                if (erData.totales.reservaLegal > 0) {
-                    asientoResultado.entries.push({ accountId: rlAccount.id, accountName: rlAccount.name, debit: 0, credit: erData.totales.reservaLegal });
-                    const rlAccInMemory = patrimonio.find(a => a.id === rlAccount.id);
-                    if (rlAccInMemory) rlAccInMemory.balance -= erData.totales.reservaLegal;
-                }
-
-                // La Utilidad Líquida va a Resultados Acumulados
-                // ATENCIÓN: erData.totales.utilidadLiquida YA incluye el ajuste de reserva legal
-                const uLiquida = erData.totales.utilidadLiquida;
-                if (Math.abs(uLiquida) > 0.001) {
-                    asientoResultado.entries.push({ accountId: raAccount.id, accountName: raAccount.name, debit: 0, credit: uLiquida });
-                    const mainRaAccountForAdjustment = patrimonio.find(a => a.id === raAccount.id);
-                    if (mainRaAccountForAdjustment) mainRaAccountForAdjustment.balance -= uLiquida;
-                }
-            } else {
-                // PÉRDIDA
-                // En pérdida totalParaCerrarPYG es el crédito a P&G
-                asientoResultado.entries.push({ accountId: raAccount.id, accountName: raAccount.name, debit: totalParaCerrarPYG, credit: 0 });
-                asientoResultado.entries.push({ accountId: pygAccount.id, accountName: pygAccount.name, debit: 0, credit: totalParaCerrarPYG });
-
-                const mainRaAccountForAdjustment = patrimonio.find(a => a.id === raAccount.id);
-                if (mainRaAccountForAdjustment) mainRaAccountForAdjustment.balance += totalParaCerrarPYG;
-            }
-            proposedTransactions.push(asientoResultado);
-        } catch (error) {
-            console.error('Error al generar datos de Estado de Resultados:', error);
-            // Si falla, generar asiento con valores por defecto
-            const asientoResultado = { gloss: 'Asiento de Cierre: Determinación del Resultado (con errores)', entries: [] };
-            proposedTransactions.push(asientoResultado);
-        }
-
-        // --- CONSOLIDACIÓN DE OTRAS CUENTAS DE RESULTADO EN PATRIMONIO ---
-        // Esta sección ahora solo consolida cuentas como "Utilidad de la Gestión" dentro de "Resultados Acumulados".
-        const mainRaAccount = patrimonio.find(a => a.id === raAccount.id);
-
-        if (mainRaAccount) {
-            const otherResultAccounts = patrimonio.filter(a =>
-                a.id !== raAccount.id && /resultado|utilidad|pérdida/i.test(a.name.toLowerCase())
-            );
-            // Sumar el saldo de las otras cuentas de resultado a la principal.
-            otherResultAccounts.forEach(acc => {
-                mainRaAccount.balance += acc.balance;
-                // Poner a cero las otras cuentas para evitar duplicidad en el asiento de cierre.
-                acc.balance = 0;
+            proposal = closingProposal(accounts, {
+                closingDate: endDate,
+                hasClosingEntries: Number(closingRows[0]?.closing_count || 0) > 0
             });
-        } else {
-            // Fallback por si no se encuentra la cuenta principal, aunque el chequeo inicial debería prevenirlo.
-            console.warn("No se encontró la cuenta principal 'Resultados Acumulados' para consolidar otras cuentas de resultado del patrimonio.");
+        } catch (error) {
+            return res.status(409).json({ error: error.message });
         }
-
-        // D. Cierre de Cuentas de Balance
-        const asientoBalance = { gloss: 'Asiento de Cierre: Cuentas de Balance', entries: [] };
-
-        // Usar lógica basada en signo para manejar correctamente Reguladoras de Activo (que tienen saldo acreedor)
-        const balanceSheetAccounts = [...activos, ...pasivos, ...patrimonio, ...reguladoras];
-
-        balanceSheetAccounts.forEach(acc => {
-            const bal = acc.balance;
-            if (Math.abs(bal) < 0.001) return;
-
-            if (bal > 0) {
-                // Saldo Deudor (Activos) -> Se cierra Acreditando
-                asientoBalance.entries.push({ accountId: acc.id, accountName: acc.name, debit: 0, credit: bal });
-            } else {
-                // Saldo Acreedor (Pasivos, Patrimonio, Reguladoras) -> Se cierra Debitando
-                asientoBalance.entries.push({ accountId: acc.id, accountName: acc.name, debit: Math.abs(bal), credit: 0 });
+        return res.json({
+            data: {
+                ...proposal,
+                period: { startDate, endDate },
+                notices: [
+                    'La propuesta cierra cuentas de resultado y de orden; no lleva cuentas permanentes a cero.',
+                    'El resultado es contable. El IUE requiere conciliación tributaria y no se estima aquí.',
+                    'La reserva legal depende de la forma societaria, estatutos, pérdidas acumuladas y límites legales; no se estima aquí.'
+                ]
             }
         });
-        proposedTransactions.push(asientoBalance);
-
-        // E. Cierre de Cuentas de Orden
-        const activeOrdenAcreedor = ordenAcreedor.filter(acc => Math.abs(acc.balance) > 0.001);
-        const activeOrdenDeudor = ordenDeudor.filter(acc => Math.abs(acc.balance) > 0.001);
-
-        if (activeOrdenAcreedor.length > 0 || activeOrdenDeudor.length > 0) {
-            const asientoOrden = { gloss: 'Asiento de Cierre: Cuentas de Orden', entries: [] };
-            activeOrdenAcreedor.forEach(acc => asientoOrden.entries.push({ accountId: acc.id, accountName: acc.name, debit: Math.abs(acc.balance), credit: 0 }));
-            activeOrdenDeudor.forEach(acc => asientoOrden.entries.push({ accountId: acc.id, accountName: acc.name, debit: 0, credit: acc.balance }));
-            proposedTransactions.push(asientoOrden);
-        }
-
-        // FILTRAR asientos vacíos o con entries vacíos antes de retornar
-        const validTransactions = proposedTransactions.filter(t => t.entries && t.entries.length > 0);
-
-        // Verificar balance de cada asiento
-        validTransactions.forEach((trans, idx) => {
-            const totalDebit = trans.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
-            const totalCredit = trans.entries.reduce((sum, e) => sum + (e.credit || 0), 0);
-            if (Math.abs(totalDebit - totalCredit) > 0.01) {
-                console.warn(`⚠️ Asiento ${idx + 1} (${trans.gloss}) está descuadrado: D=${totalDebit.toFixed(2)} H=${totalCredit.toFixed(2)}`);
-            }
-        });
-
-        res.json({ data: { proposedTransactions: validTransactions, closingDate } });
     } catch (error) {
         console.error('Error generating closing entries proposal:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 

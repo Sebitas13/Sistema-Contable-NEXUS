@@ -10,6 +10,11 @@ código vivo: verificar build/smoke antes de terminar.
 > - `DIAGNOSTICO.md` — auditoría histórica; muchos ítems ya resueltos.
 > - `UNIVERSAL_IMPORT_ENGINE_BASELINE.md` — baseline congelada del motor de import (tests, invariantes, limitaciones).
 > - `IMPORT_WIZARD_MIGRATION_DESIGN.md` — diseño definitivo (Fase 6) de la migración del SmartImportWizard al engine: auditoría completa con línea exacta, ImportSession (decisión: SÍ), matriz legacy→universal, plan de 10 commits. **Solo diseño; no implementar sin aprobación.** Primer commit propuesto: `importSession/` puro sin React.
+> - `docs/normativa/NORMATIVA_Y_APLICABILIDAD.md` — fuentes, alcance y límites del uso de normativa contable/tributaria en la app.
+
+Documentación nueva de detalle va bajo `docs/` (por área); mantener la raíz solo
+con `README.md`, `ARCHITECTURE.md`, `DIAGNOSTICO.md`, `AGENTS.md`, `MAHORAGA.md`
+y documentos críticos ya existentes. No crear nuevos `.md` en la raíz.
 
 ---
 
@@ -51,15 +56,19 @@ cd web-app/client && npm run build   # build de producción (verificación oblig
 # Motor IA Python (desde la raíz)
 uvicorn ai_adjustment_engine:app --reload --port 8000
 
-# Tests manuales (no hay framework formal)
+# Tests y verificaciones
 node web-app/server/test_backup_core.js
 node web-app/server/test_ai_engine_resolver.js
-npm test          # runner formal del motor de import (4 suites + Browser E2E real)
+npm test          # runner de import, readiness, E2E browser y estados/cierre contable
 ```
 
 **Verificación mínima antes de dar por terminada una tarea:**
 1. `npm run build` dentro de `web-app/client` (si se tocó el frontend).
-2. `node -e "require('./web-app/server/routes/<router>.js')"` (si se tocó el backend).
+2. `node --check web-app/server/routes/<router>.js` para sintaxis. No cargar
+   routers con `require()` como smoke test usando el `.env` local: importar una
+   ruta carga `db.js`, que inicializa schema y migraciones en el Turso configurado.
+   Cualquier smoke/integración que importe `db.js` requiere credenciales de una
+   base desechable o de staging, nunca las de producción.
 
 ---
 
@@ -96,6 +105,7 @@ Sistema Contable/
 │       ├── utils/             ← auth, backupCore, keepAlive, aiEngineResolver,
 │       │                         serverFiscalYearUtils, serverIncomeStatement, corsConfig
 │       └── .env               ← TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, AI_ENGINE_URL
+├── docs/normativa/              ← alcance y fuentes contables/tributarias revisadas
 ```
 
 Nota: la ruta `/app/cost-centers` ("Costos y Almacén") aloja el **Kardex Físico
@@ -109,10 +119,32 @@ de distribución. No es una página independiente.
 - `ai_adjustment_engine.py` (motor Python completo).
 - En `routes/ai.js`: endpoints `/adjustments/*` y `/profile/:companyId`.
 - `utils/aiEngineResolver.js`, `utils/serverFiscalYearUtils.js`, `services/valuationService.js`.
-- Frontend: `Worksheet.jsx`, `AIAdjustmentPanel.jsx`, `AdjustmentWizard.jsx`,
-  `ClosingWizard.jsx`.
+- Frontend: `AIAdjustmentPanel.jsx`, `AdjustmentWizard.jsx`.
+- `Worksheet.jsx` y `ClosingWizard.jsx` solo se modifican en el alcance ya autorizado
+  de reportes/cierre contable: la hoja queda auxiliar y los reportes/cierres se
+  calculan fuera de ella. No alterar la generación/confirmación de ajustes IA.
 - La pestaña Depreciación de `Settings.jsx` y la tabla `company_adjustment_profiles`
   **alimentan el motor real**, aunque el endpoint diga `/api/ai/`.
+
+## Reportes y cierre contable
+
+- `GET /api/reports/financial-statements` es la fuente de Dashboard, Estados
+  Financieros y datos oficiales del borrador Worksheet. Balance acumulado y
+  resultado del ejercicio tienen ventanas de fecha distintas; conservarlas.
+- Los grupos de cuentas inferidos por código/jerarquía pueden ser virtuales para
+  presentación. Nunca persistir esas agrupaciones ni reescribir cuentas durante
+  el cálculo del reporte.
+- `POST /api/reports/closing-entries-proposal` no debe cerrar activos, pasivos ni
+  patrimonio permanente, calcular IUE desde utilidad contable ni estimar reserva
+  legal sin datos y fundamento aplicables. Todo asiento propuesto debe cuadrar al
+  centavo y las cuentas de orden deben cuadrar como conjunto.
+- La Hoja de Trabajo es auxiliar: sus fórmulas y overrides locales no pueden
+  alimentar estados, dashboard ni asientos de cierre.
+- Antes de cambios contables/tributarios, revisar primero los documentos de
+  `C:\Users\user\Desktop\UMSA-CONTA\CONTA\MARCO - INTERNACIONAL_Y_NACIONAL` y
+  comprobar la versión vigente en fuentes oficiales. Documentar alcance, artículo,
+  aplicabilidad y limitaciones en `docs/normativa/NORMATIVA_Y_APLICABILIDAD.md`;
+  el MCEF solo se aplica a entidades supervisadas por ASFI.
 
 ## 🔮 Mahoraga (asistente IA — experimental, no integral)
 
@@ -195,10 +227,10 @@ Resuelto (ver git log para detalle):
 - Mojibake reparado en Settings.jsx y ai.js (reparador con validación UTF-8).
 
 Pendiente conocido:
-- **A3**: tablas anchas en mobile (Worksheet tiene 16 columnas numéricas más
-  identificadores; CSS oculta algunos campos y fija la cuenta, pero sigue el
-  scroll horizontal). `Worksheet.jsx` es zona protegida: autorización explícita
-  requerida antes de editarla. Los modales NexusModal ya son scrollables.
+- **A3**: tablas anchas en mobile (Worksheet conserva scroll horizontal). La
+  lógica contable se actualizó, pero su rediseño responsive sigue pendiente. El
+  alcance auxiliar/reportes sí está autorizado; proteger únicamente el flujo de
+  ajustes IA descrito arriba. Los modales NexusModal ya son scrollables.
 - **Fase 6 (decisión pendiente)**: migración del SmartImportWizard al Universal
   Import Engine. Diseño DEFINITIVO listo en `IMPORT_WIZARD_MIGRATION_DESIGN.md`
   (PHASE 6 VERDICT: ARCHITECTURE READY · MIGRATION PLAN READY · IMPLEMENTATION
@@ -227,3 +259,6 @@ Pendiente conocido:
 - Decisión pendiente: implementar el Mahoraga read-only descrito en `MAHORAGA.md`
   o mantener/podar los paneles experimentales. La rueda se conserva y el motor
   contable no se toca.
+- Reportes/cierre contable: núcleo de servidor en `utils/financialReportsCore.js`;
+  pruebas puras en `test_financial_reports_core.js`. Los reportes son parciales y
+  no sustituyen el paquete completo de estados, notas ni revisión profesional.

@@ -14,23 +14,16 @@ export default function ClosingWizard({ onClose, onSuccess }) {
 
     const fiscalYearDetails = useMemo(() => {
         if (!selectedCompany) return null;
-        return getFiscalYearDetails(selectedCompany.activity_type, gestion);
+        return getFiscalYearDetails(selectedCompany.activity_type, gestion, selectedCompany.operation_start_date);
     }, [selectedCompany, gestion]);
 
     const handleGenerateProposal = async () => {
         setLoading(true);
         setError('');
         try {
-            // Recuperar configuración de reserva legal guardada por Worksheet
-            const key = `worksheet_custom_section_${selectedCompany.id}`;
-            const savedState = JSON.parse(localStorage.getItem(key) || '{}');
-            const { reservaLegalPct = 5, overrideReservaLegal = false } = savedState;
-
             const response = await axios.post(`${API_URL}/api/reports/closing-entries-proposal`, {
                 companyId: selectedCompany.id,
-                gestion: gestion,
-                reservaLegalPct,
-                overrideReservaLegal
+                gestion
             });
             setProposal(response.data.data);
             setStep(2);
@@ -142,6 +135,14 @@ export default function ClosingWizard({ onClose, onSuccess }) {
                                         </button>
                                     </div>
                                 </div>
+
+                                {proposal.notices?.length > 0 && (
+                                    <div className="alert alert-warning bg-warning bg-opacity-10 border-warning text-white small">
+                                        <ul className="mb-0 ps-3">
+                                            {proposal.notices.map((notice, index) => <li key={index}>{notice}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
 
                                 <div className="d-flex flex-column gap-3" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                                     {proposal.proposedTransactions.map((trans, transIdx) => (

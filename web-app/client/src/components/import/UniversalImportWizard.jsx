@@ -407,8 +407,12 @@ export default function UniversalImportWizard({
         pushTrail('confirm', { uid, nature });
     }
     function handleResolveReview(target) {
-        setSession(prev => (prev ? resolveReview(prev, target) : prev));
-        pushTrail('resolve', { target });
+        const targets = Array.isArray(target) ? [...new Set(target)] : [target];
+        setSession(prev => {
+            if (!prev) return prev;
+            return targets.reduce((next, item) => resolveReview(next, item), prev);
+        });
+        for (const item of targets) pushTrail('resolve', { target: item });
     }
     function handleBulkType(uids, type) {
         setSession(prev => {

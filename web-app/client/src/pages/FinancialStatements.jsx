@@ -3,8 +3,6 @@ import axios from 'axios';
 import API_URL from '../api';
 import { useCompany } from '../context/CompanyContext';
 import { format } from 'date-fns';
-import FinancialStatementEngine from '../utils/FinancialStatementEngine'; // For Balance Sheet
-import { generarEstadoResultadosDesdeWorksheet } from '../utils/IncomeStatementEngine'; // For Income Statement V5
 import { exportToPDF, exportToExcel, generatePDFDoc } from '../utils/exportUtils';
 import MahoragaWheel from '../components/MahoragaWheel';
 import { getFiscalYearDetails } from '../utils/fiscalYearUtils';
@@ -85,6 +83,7 @@ export default function FinancialStatements() {
     const [data, setData] = useState(null);
     const [balanceGeneral, setBalanceGeneral] = useState(null);
     const [estadoResultados, setEstadoResultados] = useState(null);
+    const [reportMetadata, setReportMetadata] = useState(null);
     const [activeTab, setActiveTab] = useState('balance');
     const [error, setError] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -116,96 +115,23 @@ export default function FinancialStatements() {
         } catch (error) { console.error("Error checking Mahoraga status:", error); }
     };
 
-    useEffect(() => {
-        const processData = async () => {
-            if (data) {
-                try {
-                    // Cargar opciones desde localStorage
-                    let options = {};
-                    try {
-                        const key = `worksheet_custom_section_${selectedCompany.id}`;
-                        const raw = localStorage.getItem(key);
-                        if (raw) {
-                            const obj = JSON.parse(raw);
-                            options = {
-                                porcentajeReservaLegal: obj.reservaLegalPct !== undefined ? obj.reservaLegalPct : 5,
-                                overrideReservaLegal: obj.overrideReservaLegal || false
-                            };
-                        }
-                    } catch (e) {
-                        console.warn("No se pudo cargar config de Worksheet para Estados Financieros", e);
-                    }
-
-                    // 1. Estado de Resultados PRIMERO (DESDE WORKSHEET - COLUMNAS ER)
-                    const reporteV5 = await generarEstadoResultadosDesdeWorksheet(selectedCompany.id, options);
-                    setEstadoResultados(reporteV5);
-                    // 2. Balance General DESPUÉS (usa la utilidad líquida del ER)
-                    const engineBG = new FinancialStatementEngine(data);
-                    engineBG.utilidadLiquidaExterna = reporteV5.totales.utilidadLiquida;
-                    engineBG.iuePorPagar = reporteV5.totales.iue;
-                    engineBG.reservaLegalMonto = reporteV5.totales.reservaLegal;
-                    setBalanceGeneral(await engineBG.generarBalanceGeneral());
-                } catch (err) {
-                    console.error("Error procesando datos en motor:", err);
-                    setError("Ocurrió un error al procesar la jerarquía de cuentas.");
-                }
-            }
-        };
-
-        processData();
-    }, [data, selectedCompany.id]);
-
     const fetchData = async () => {
         setLoading(true);
         setError(null);
+        setReportMetadata(null);
         try {
             const response = await axios.get(`${API_URL}/api/reports/financial-statements`, {
-                params: { companyId: selectedCompany.id }
+                params: { companyId: selectedCompany.id, gestion: selectedCompany.current_year }
             });
 
             if (!response.data.success) {
                 throw new Error('Error en respuesta del backend');
             }
 
-            const backendData = response.data.data || [];
-
-            // CORRECCIÓN MAHORAGA: Mapeo inteligente de Signos
-            const accounts = backendData.map(acc => {
-                const type = (acc.type || '').trim();
-                // El backend devuelve 'saldo_matematico' normalizado (Positivo para Pasivos).
-                // Pero el Engine necesita saber si es Debit o Credit puro.
-                const saldo = Number(acc.saldo_matematico);
-
-                // Determinamos la naturaleza natural de la cuenta
-                const esNaturalezaAcreedora = ['Pasivo', 'Patrimonio', 'Ingreso'].includes(type) ||
-                    ['Pasivo', 'Patrimonio', 'Ingreso'].includes(acc.group_name);
-
-                let debit = 0;
-                let credit = 0;
-
-                if (esNaturalezaAcreedora) {
-                    // Si el backend dice 100 (positivo) en Pasivo, es un CRÉDITO para el motor.
-                    // Si dice -100, es un DÉBITO (raro, pero posible).
-                    if (saldo >= 0) credit = Math.abs(saldo);
-                    else debit = Math.abs(saldo);
-                } else {
-                    // Activos, Gastos: Comportamiento normal
-                    if (saldo >= 0) debit = Math.abs(saldo);
-                    else credit = Math.abs(saldo);
-                }
-
-                return {
-                    ...acc,
-                    // Aseguramos que el Engine reciba Debe y Haber separados correctamente
-                    total_debit: debit,
-                    total_credit: credit,
-                    // Forzamos el parent_code garantizado. Si es null, el Engine intentará deducirlo.
-                    parent_code: acc.parent_code_garantizado || acc.parent_code,
-                    type: type
-                };
-            });
-
-            setData(accounts);
+            setData(response.data.data || []);
+            setBalanceGeneral(response.data.balanceGeneral || null);
+            setEstadoResultados(response.data.estadoResultados || null);
+            setReportMetadata(response.data.metadata || null);
         } catch (err) {
             console.error(err);
             setError("Error cargando datos del Balance General.");
@@ -293,47 +219,24 @@ export default function FinancialStatements() {
 
             const pushRow = (label, value, isExcel = false) => ({
                 'Descripción': label,
-                'Monto': isExcel ? value : formatearMonto(value)
+                'Monto': value == null ? '' : (isExcel ? value : formatearMonto(value))
             });
 
             const buildRows = (isExcel = false) => {
                 const { secciones, totales } = estadoResultados;
                 let rows = [];
 
-                rows.push(pushRow('INGRESOS OPERATIVOS', null, isExcel));
+                rows.push(pushRow('INGRESOS SEGÚN CLASIFICACIÓN DE CUENTAS', null, isExcel));
                 secciones.ingresos.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                rows.push(pushRow('MENOS: DESCUENTOS Y BONIFICACIONES', null, isExcel));
-                secciones.descuentos.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                rows.push(pushRow('VENTAS NETAS', totales.ventasNetas, isExcel));
+                rows.push(pushRow('TOTAL INGRESOS', totales.ventasNetas, isExcel));
                 rows.push(pushRow('', null, isExcel));
-                rows.push(pushRow('MENOS: COSTO DE VENTAS', null, isExcel));
+                rows.push(pushRow('COSTOS SEGÚN CLASIFICACIÓN DE CUENTAS', null, isExcel));
                 secciones.costos.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                rows.push(pushRow('UTILIDAD BRUTA EN VENTAS', totales.utilidadBruta, isExcel));
+                rows.push(pushRow('RESULTADO BRUTO (INGRESOS MENOS COSTOS)', totales.utilidadBruta, isExcel));
                 rows.push(pushRow('', null, isExcel));
-                rows.push(pushRow('MENOS: GASTOS OPERATIVOS', null, isExcel));
+                rows.push(pushRow('GASTOS SEGÚN CLASIFICACIÓN DE CUENTAS', null, isExcel));
                 secciones.gastosAdmin.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                secciones.gastosVenta.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                secciones.gastosFinancieros.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                rows.push(pushRow('Utilidad Neta en Ventas', totales.utilidadEnVentas, isExcel));
-                rows.push(pushRow('', null, isExcel));
-                rows.push(pushRow('MÁS: OTROS INGRESOS', null, isExcel));
-                secciones.otrosIngresos.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                rows.push(pushRow('UTILIDAD OPERATIVA', totales.utilidadOperativa, isExcel));
-                rows.push(pushRow('MENOS: OTROS GASTOS', null, isExcel));
-                secciones.otrosEgresos.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                rows.push(pushRow('UTILIDAD BRUTA DEL EJERCICIO', totales.utilidadBrutaEjercicio, isExcel));
-                if (totales.compensacion > 0) rows.push(pushRow('(-) Compensación Pérdidas Acum.', totales.compensacion, isExcel));
-                if (totales.iue > 0) rows.push(pushRow('(-) IUE (25%)', totales.iue, isExcel));
-                if (secciones.noImponibles.length > 0) {
-                    rows.push(pushRow('MÁS: INGRESOS NO IMPONIBLES', null, isExcel));
-                    secciones.noImponibles.forEach(item => rows.push(pushRow('  ' + item.name, item.displayValue, isExcel)));
-                }
-                rows.push(pushRow('UTILIDAD NETA DEL EJERCICIO', totales.utilidadNeta, isExcel));
-                if (totales.reservaLegal > 0) {
-                    const labelReserva = `(-) Reserva Legal (${estadoResultados.porcentajeReservaLegal || 5}%)`;
-                    rows.push(pushRow(labelReserva, totales.reservaLegal, isExcel));
-                }
-                rows.push(pushRow(totales.utilidadLiquida >= 0 ? "UTILIDAD LÍQUIDA DEL EJERCICIO" : "PÉRDIDA DEL EJERCICIO", totales.utilidadLiquida, isExcel));
+                rows.push(pushRow(totales.utilidadNeta >= 0 ? 'RESULTADO CONTABLE DEL PERÍODO' : 'PÉRDIDA CONTABLE DEL PERÍODO', totales.utilidadNeta, isExcel));
                 return rows;
             };
 
@@ -395,7 +298,8 @@ export default function FinancialStatements() {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1"><i className="bi bi-bank me-2"></i>Estados Financieros</h2>
-                    <p className="text-muted mb-0">{selectedCompany?.name} (Consolidado V5)</p>
+                    <p className="text-muted mb-0">{selectedCompany?.name} · Gestión {reportMetadata?.gestion ?? selectedCompany?.current_year}</p>
+                    <small className="text-white-50">Reportes parciales de la app. No sustituyen el conjunto de estados básicos, notas y validaciones del marco aplicable.</small>
                 </div>
                 <div className="d-flex flex-wrap align-items-center gap-2">
                     <button className="btn btn-outline-primary btn-sm" onClick={() => setRefreshTrigger(t => t + 1)}>
@@ -414,6 +318,17 @@ export default function FinancialStatements() {
             </div>
 
             {error && <div className="alert alert-danger mb-4 shadow-sm">{error}</div>}
+            {((reportMetadata?.warnings?.length || 0) > 0 || (reportMetadata?.accountsNotClassified || 0) > 0) && (
+                <div className="alert alert-warning mb-4 shadow-sm">
+                    <strong>Revisión del reporte</strong>
+                    <ul className="mb-0 mt-1 ps-3">
+                        {(reportMetadata?.warnings || []).map((warning, index) => <li key={`${warning.type}-${index}`}>{warning.message}</li>)}
+                        {(reportMetadata?.accountsNotClassified || 0) > 0 && (
+                            <li>{reportMetadata.accountsNotClassified} cuenta(s) no pudieron clasificarse con el tipo, código o jerarquía disponibles.</li>
+                        )}
+                    </ul>
+                </div>
+            )}
 
             <ul className="nav nav-tabs mb-4 border-secondary">
                 <li className="nav-item">
@@ -499,73 +414,28 @@ export default function FinancialStatements() {
                             <div className="card glass-panel border-info">
                                 <div className="card-header border-secondary py-3">
                                     <h5 className="text-info mb-0 fw-bold">Estado de Resultados</h5>
-                                    <small className="text-white-50">Generado por Motor V5 (Armonizado)</small>
+                                    <small className="text-white-50">Resumen contable por tipo de cuenta; valida la clasificación y exposición antes de emitir.</small>
                                 </div>
                                 <div className="card-body p-0">
                                     <div className="table-responsive">
                                         <table className="table table-dark table-hover align-middle mb-0 border-secondary" style={{ fontSize: '0.9rem', backgroundColor: 'transparent' }}>
                                             <tbody>
-                                                {/* 1. INGRESOS */}
-                                                <RenderList list={estadoResultados.secciones.ingresos} title="INGRESOS OPERATIVOS" />
-                                                <RenderList list={estadoResultados.secciones.descuentos} title="MENOS: DESCUENTOS Y BONIFICACIONES" />
-                                                <ERRow label="VENTAS NETAS" value={estadoResultados.totales.ventasNetas} bold isTotal />
+                                                <RenderList list={estadoResultados.secciones.ingresos} title="INGRESOS SEGÚN CLASIFICACIÓN DE CUENTAS" />
+                                                <ERRow label="TOTAL INGRESOS" value={estadoResultados.totales.ventasNetas} bold isTotal />
 
-                                                {/* 2. COSTOS */}
-                                                <RenderList list={estadoResultados.secciones.costos} title="MENOS: COSTO DE VENTAS" />
-                                                <ERRow label="UTILIDAD BRUTA EN VENTAS" value={estadoResultados.totales.utilidadBruta} bold color="text-info" />
+                                                <RenderList list={estadoResultados.secciones.costos} title="COSTOS SEGÚN CLASIFICACIÓN DE CUENTAS" />
+                                                <ERRow label="RESULTADO BRUTO (INGRESOS MENOS COSTOS)" value={estadoResultados.totales.utilidadBruta} bold color="text-info" />
 
-                                                {/* 3. GASTOS OPS */}
-                                                <tr className="fw-bold text-white-50"><td colSpan="2" className="pt-3 ps-4 text-uppercase" style={{ fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.03)' }}>MENOS: GASTOS OPERATIVOS</td></tr>
-                                                <RenderList list={estadoResultados.secciones.gastosAdmin} title="Administración" />
-                                                <RenderList list={estadoResultados.secciones.gastosVenta} title="Venta y Comercialización" />
-                                                <RenderList list={estadoResultados.secciones.gastosFinancieros} title="Financieros" />
-                                                <ERRow label="Utilidad Neta en Ventas" value={estadoResultados.totales.utilidadEnVentas} bold color="text-white ps-4" />
+                                                <RenderList list={estadoResultados.secciones.gastosAdmin} title="GASTOS SEGÚN CLASIFICACIÓN DE CUENTAS" />
 
-                                                {/* 4. OTROS */}
-                                                <RenderList list={estadoResultados.secciones.otrosIngresos} title="MÁS: OTROS INGRESOS" />
-                                                <ERRow label="UTILIDAD OPERATIVA" value={estadoResultados.totales.utilidadOperativa} bold />
-                                                <RenderList list={estadoResultados.secciones.otrosEgresos} title="MENOS: OTROS GASTOS" />
-                                                <ERRow label="UTILIDAD BRUTA DEL EJERCICIO" value={estadoResultados.totales.utilidadBrutaEjercicio} bold color="text-info" />
-
-                                                {/* TRIBUTARIO */}
-                                                {estadoResultados.totales.compensacion > 0 && (
-                                                    <tr className="text-danger fw-bold">
-                                                        <td className="ps-4">(-) Compensación Pérdidas Acum.</td>
-                                                        <td className="text-end pe-3">{formatearMonto(estadoResultados.totales.compensacion)}</td>
-                                                    </tr>
-                                                )}
-                                                {estadoResultados.totales.iue > 0 && (
-                                                    <tr className="text-danger">
-                                                        <td className="ps-4">(-) IUE (25%)</td>
-                                                        <td className="text-end pe-3">{formatearMonto(estadoResultados.totales.iue)}</td>
-                                                    </tr>
-                                                )}
-
-                                                {/* NO IMPONIBLES (POST-TAX) */}
-                                                {estadoResultados.secciones.noImponibles.length > 0 && (
-                                                    <>
-                                                        <RenderList list={estadoResultados.secciones.noImponibles} title="MÁS: INGRESOS NO IMPONIBLES" />
-                                                    </>
-                                                )}
-
-                                                <ERRow label="UTILIDAD NETA DEL EJERCICIO" value={estadoResultados.totales.utilidadNeta} bold color="text-primary" isTotal />
-
-                                                {estadoResultados.totales.reservaLegal > 0 && (
-                                                    <tr className="text-warning">
-                                                        <td className="ps-4">(-) Reserva Legal ({estadoResultados.porcentajeReservaLegal || 5}%)</td>
-                                                        <td className="text-end pe-3">{formatearMonto(estadoResultados.totales.reservaLegal)}</td>
-                                                    </tr>
-                                                )}
-
-                                                <ERRow label={estadoResultados.totales.utilidadLiquida >= 0 ? "UTILIDAD LÍQUIDA DEL EJERCICIO" : "PÉRDIDA DEL EJERCICIO"}
-                                                    value={estadoResultados.totales.utilidadLiquida} bold color="bg-success text-white" />
+                                                <ERRow label={estadoResultados.totales.utilidadNeta >= 0 ? 'RESULTADO CONTABLE DEL PERÍODO' : 'PÉRDIDA CONTABLE DEL PERÍODO'} value={estadoResultados.totales.utilidadNeta} bold color="bg-success text-white" isTotal />
 
                                             </tbody>
                                         </table>
 
                                         {estadoResultados.audit.length > 0 && (
                                             <div className="bg-dark p-3 small border-top border-secondary text-white-50">
-                                                <strong><i className="bi bi-info-circle me-1"></i> Log del Motor:</strong>
+                                                    <strong><i className="bi bi-info-circle me-1"></i> Criterios:</strong>
                                                 <ul className="mb-0 ps-3">
                                                     {estadoResultados.audit.map((log, i) => <li key={i}>{log}</li>)}
                                                 </ul>
