@@ -79,6 +79,81 @@ assert.strictEqual(sparseNumericPlan.balanceGeneral.totales.activo, 125,
 assert.strictEqual(sparseNumericPlan.estadoResultados.totales.utilidadNeta, 25, 'Los tipos genéricos conservan clasificación por clase de código.');
 assert.strictEqual(sparseNumericPlan.balanceGeneral.totales.patrimonio, 125);
 assert.strictEqual(sparseNumericPlan.balanceGeneral.ecuacionCuadra, true);
+const exactEquitySubtotal = buildFinancialReports([
+    { id: 48, code: 'EQUITY', name: 'Patrimonio', type: 'Patrimonio', level: 1, total_credit: 0.3 },
+    { id: 49, code: 'REVENUE', name: 'Ingreso', type: 'Ingreso', level: 1, period_credit: 0.1 },
+    { id: 50, code: 'EXPENSE', name: 'Gasto', type: 'Gasto', level: 1, period_debit: 0.2 }
+]);
+assert.strictEqual(exactEquitySubtotal.balanceGeneral.patrimonio[0].total, 0.2,
+    'Los subtotales de patrimonio se recalculan al centavo después de inyectar el resultado.');
+
+const hierarchySubtotalReport = buildFinancialReports([
+    { id: 40, code: 'ACT', name: 'Activo', type: 'Activo', level: 1 },
+    { id: 41, code: 'COR', name: 'Activo corriente', type: 'Activo', level: 2, parent_code: 'ACT' },
+    { id: 42, code: 'DISP', name: 'Disponibilidades', type: 'Activo', level: 3, parent_code: 'COR' },
+    { id: 43, code: 'CAJA-001', name: 'Caja', type: 'Activo', level: 4, parent_code: 'DISP-IMPLICITO', total_debit: 125 },
+    { id: 44, code: 'CAJA-002', name: 'Banco sin saldo', type: 'Activo', level: 4, parent_code: 'DISP' }
+]);
+const hierarchySubtotal = hierarchySubtotalReport.balanceGeneral.activos[0];
+assert.deepStrictEqual(
+    [hierarchySubtotal.code, hierarchySubtotal.hijos[0].code, hierarchySubtotal.hijos[0].hijos[0].code,
+        hierarchySubtotal.hijos[0].hijos[0].hijos[0].code],
+    ['ACT', 'COR', 'DISP', 'CAJA-001'],
+    'Se consume la jerarquía importada por parent_code/nivel sin inferirla desde los códigos.'
+);
+assert.deepStrictEqual(
+    [hierarchySubtotal.total, hierarchySubtotal.hijos[0].total, hierarchySubtotal.hijos[0].hijos[0].total],
+    [125, 125, 125],
+    'Cada cuenta superior presenta el subtotal de sus cuentas inferiores.'
+);
+assert.strictEqual(findNode(hierarchySubtotalReport.balanceGeneral.activos, 'CAJA-002'), null,
+    'Reconstruir la jerarquía no vuelve a mostrar cuentas sin saldo.');
+
+const zeroSubtotalReport = buildFinancialReports([
+    { id: 45, code: 'ACT', name: 'Activo', type: 'Activo', level: 1 },
+    { id: 46, code: 'DEBITO', name: 'Saldo deudor', type: 'Activo', level: 2, parent_code: 'ACT', total_debit: 25 },
+    { id: 47, code: 'CREDITO', name: 'Saldo acreedor', type: 'Activo', level: 2, parent_code: 'ACT', total_credit: 25 }
+]);
+assert.deepStrictEqual(zeroSubtotalReport.balanceGeneral.activos.map(node => node.code), ['CREDITO', 'DEBITO'],
+    'Un nivel cuyo subtotal neto es cero se omite, pero conserva visibles sus cuentas con saldo.');
+assert.strictEqual(zeroSubtotalReport.balanceGeneral.activos.some(node => node.total === 0), false);
+assert.strictEqual(zeroSubtotalReport.balanceGeneral.totales.activo, 0);
+
+const interleavedHierarchyReport = buildFinancialReports([
+    { id: 60, code: 'ROOT-A', name: 'Activo A', type: 'Activo', level: 1 },
+    { id: 61, code: 'ROOT-B', name: 'Activo B', type: 'Activo', level: 1 },
+    { id: 62, code: 'GROUP-A', name: 'Grupo A', type: 'Activo', level: 2, parent_code: 'ROOT-A' },
+    { id: 63, code: 'LEAF-B', name: 'Cuenta B', type: 'Activo', level: 3, parent_code: 'MISSING-B', total_debit: 20 },
+    { id: 64, code: 'GROUP-B', name: 'Grupo B', type: 'Activo', level: 2, parent_code: 'ROOT-B' }
+]);
+assert.deepStrictEqual(interleavedHierarchyReport.balanceGeneral.activos.map(node => [node.code, node.total]), [
+    ['ROOT-B', 20]
+], 'Un padre implícito no hereda la rama de otro nivel explícito.');
+assert.strictEqual(interleavedHierarchyReport.metadata.warnings.some(warning =>
+    warning.type === 'parentNotResolved' && warning.code === 'LEAF-B' && warning.resolvedParent === 'ROOT-B'), true,
+'El reporte deja visible cuándo debió resolver el padre ausente a partir del nivel importado.');
+
+const contraAccountReport = buildFinancialReports([
+    { id: 65, code: 'ACT', name: 'Activo', type: 'Activo', level: 1 },
+    { id: 66, code: 'FIXED', name: 'Activo fijo', type: 'Activo', level: 2, parent_code: 'ACT', total_debit: 100 },
+    { id: 67, code: 'DEP-ACC', name: 'Depreciación acumulada', type: 'Reguladora', level: 3, parent_code: 'FIXED', total_credit: 40 }
+]);
+assert.strictEqual(findNode(contraAccountReport.balanceGeneral.activos, 'DEP-ACC')?.esReguladora, true,
+    'Las cuentas reguladoras se presentan dentro del rubro de su cuenta madre.');
+assert.strictEqual(contraAccountReport.balanceGeneral.totales.activo, 60);
+
+const separateHierarchyReport = buildFinancialReports([
+    { id: 55, code: 'ROOT-B', name: 'Activo B', type: 'Activo', level: 1 },
+    { id: 50, code: 'ROOT-A', name: 'Activo A', type: 'Activo', level: 1 },
+    { id: 56, code: 'GROUP-B', name: 'Grupo B', type: 'Activo', level: 2, parent_code: 'ROOT-B' },
+    { id: 51, code: 'GROUP-A', name: 'Grupo A', type: 'Activo', level: 2, parent_code: 'ROOT-A' },
+    { id: 57, code: 'LEAF-B', name: 'Cuenta B', type: 'Activo', level: 3, parent_code: 'MISSING-B', total_debit: 20 },
+    { id: 52, code: 'LEAF-A', name: 'Cuenta A', type: 'Activo', level: 3, parent_code: 'MISSING-A', total_debit: 10 }
+]);
+assert.deepStrictEqual(separateHierarchyReport.balanceGeneral.activos.map(node => [node.code, node.total]), [
+    ['ROOT-A', 10],
+    ['ROOT-B', 20]
+], 'Las ramas independientes conservan sus propios subtotales por el orden/nivel importado.');
 
 const parentOwnBalanceReport = buildFinancialReports([
     { id: 26, code: '1', name: 'Activo corriente', type: 'Activo', total_debit: 10, total_credit: 0 },
@@ -89,6 +164,14 @@ assert.strictEqual(parentOwnBalanceReport.balanceGeneral.activos[0].hijos[0].tot
 assert.strictEqual(parentOwnBalanceReport.balanceGeneral.activos[0].total, 35);
 assert.strictEqual(parentOwnBalanceReport.balanceGeneral.totales.activo, 35,
     'El saldo propio de una cuenta madre y los saldos de sus hijas se suman una sola vez.');
+const zeroTotalWithOwnMovement = buildFinancialReports([
+    { id: 28, code: 'ACT', name: 'Activo', type: 'Activo', level: 1, total_debit: 100 },
+    { id: 29, code: 'CHILD', name: 'Cuenta acreedora', type: 'Activo', level: 2, parent_code: 'ACT', total_credit: 100 }
+]);
+assert.strictEqual(zeroTotalWithOwnMovement.balanceGeneral.activos[0].code, 'ACT');
+assert.strictEqual(zeroTotalWithOwnMovement.balanceGeneral.activos[0].total, 0,
+    'Un padre con movimiento propio se conserva para que ocultar su subtotal neto no pierda saldo.');
+assert.strictEqual(zeroTotalWithOwnMovement.balanceGeneral.totales.activo, 0);
 
 const closeAccounts = [
     { id: 10, code: '4.01', name: 'Ventas', type: 'Numérico', period_debit: 0, period_credit: 100.01 },
@@ -105,6 +188,13 @@ const closeAccounts = [
 
 const proposal = closingProposal(closeAccounts, { closingDate: '2026-12-31' });
 assert.strictEqual(proposal.proposedTransactions.length, 3);
+const paddedCodeProposal = closingProposal(closeAccounts.map(account => ({
+    ...account,
+    code: ` ${account.code} `,
+    parent_code: account.parent_code ? ` ${account.parent_code} ` : null
+})), { closingDate: '2026-12-31' });
+assert.strictEqual(paddedCodeProposal.proposedTransactions.length, 3,
+    'Las búsquedas del grafo normalizan espacios igual que la clave de cuenta.');
 for (const transaction of proposal.proposedTransactions) {
     const debit = transaction.entries.reduce((sum, entry) => sum + Math.round((entry.debit || 0) * 100), 0);
     const credit = transaction.entries.reduce((sum, entry) => sum + Math.round((entry.credit || 0) * 100), 0);

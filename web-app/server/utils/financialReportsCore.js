@@ -92,7 +92,13 @@ function naturalBucket(account, balance) {
 function makeAccountGraph(accounts) {
     const nodes = new Map();
     const warnings = [];
-    for (const account of accounts) {
+    // Bulk inserts preserve the imported row order in the auto-incremented id.
+    const importedOrder = [...accounts].sort((left, right) => {
+        const leftId = Number(left.id);
+        const rightId = Number(right.id);
+        return Number.isFinite(leftId) && Number.isFinite(rightId) ? leftId - rightId : 0;
+    });
+    for (const account of importedOrder) {
         const code = String(account.code || '').trim();
         if (!code || nodes.has(code)) continue;
         nodes.set(code, {
@@ -100,92 +106,66 @@ function makeAccountGraph(accounts) {
             code,
             children: [],
             parent: null,
-            virtual: false,
             ownBalance: 0,
             bucket: 'UNKNOWN'
         });
     }
 
-    const ensureVirtual = (code, level = null) => {
-        if (!code) return null;
-        if (nodes.has(code)) {
-            const existing = nodes.get(code);
-            if (existing.virtual && existing.level == null && level != null) existing.level = level;
-            return existing;
+    // parent_code is the imported relationship. For an implicit, non-persisted
+    // parent, use the imported level and row sequence; never infer from codes.
+    const latestNodeByLevel = new Map();
+    const ancestorAtLevel = (node, targetLevel) => {
+        const visited = new Set();
+        let current = node;
+        while (current && !visited.has(current)) {
+            if (Number(current.level) === targetLevel) return current;
+            visited.add(current);
+            current = current.parent;
         }
-        const node = {
-            id: `virtual-${code}`,
-            code,
-            name: `Grupo ${code}`,
-            type: '',
-            parent_code: null,
-            level,
-            children: [],
-            parent: null,
-            virtual: true,
-            ownBalance: 0,
-            bucket: 'UNKNOWN'
-        };
-        nodes.set(code, node);
-        return node;
+        return null;
     };
-
-    const inferParentCode = (node) => {
-        const declared = String(node.parent_code || '').trim();
-        if (declared) return declared;
-
-        if (/[.-]/.test(node.code)) {
-            const parts = node.code.split(/[.-]/);
-            parts.pop();
-            return parts.join(node.code.includes('.') ? '.' : '-');
+    const followsOpenHierarchy = (node, level) => {
+        for (let ancestorLevel = 1; ancestorLevel < level; ancestorLevel++) {
+            if (ancestorAtLevel(node, ancestorLevel) !== latestNodeByLevel.get(ancestorLevel)) return false;
         }
-
-        const level = Number(node.level);
-        if (Number.isFinite(level) && level > 1 && /^\d+$/.test(node.code)) {
-            const parentLengthByCodeLength = { 4: 2, 6: 4, 8: 6 };
-            const parentLength = parentLengthByCodeLength[node.code.length];
-            if (parentLength) return node.code.slice(0, parentLength);
-        }
-
-        const prefixes = [...nodes.values()].filter(candidate => {
-            if (candidate === node || !node.code.startsWith(candidate.code) || candidate.code.length >= node.code.length) return false;
-            const candidateLevel = Number(candidate.level);
-            return !Number.isFinite(level) || !Number.isFinite(candidateLevel) || candidateLevel < level;
-        }).sort((a, b) => b.code.length - a.code.length);
-        if (prefixes.length) return prefixes[0].code;
-
-        return '';
+        return true;
     };
-
     for (const node of nodes.values()) {
         const declaredParent = String(node.parent_code || '').trim();
-        const parentCode = inferParentCode(node);
-        if (!parentCode || parentCode === node.code) continue;
+        const selfParent = declaredParent === node.code;
+        let parent = declaredParent && !selfParent
+            ? nodes.get(declaredParent)
+            : null;
+        const level = Number(node.level);
+        if (!parent && !selfParent && Number.isInteger(level) && level > 1) {
+            for (let parentLevel = level - 1; parentLevel > 0; parentLevel--) {
+                const candidate = latestNodeByLevel.get(parentLevel);
+                if (candidate && followsOpenHierarchy(candidate, parentLevel)) parent = candidate;
+                if (parent) break;
+            }
+        }
+        node.parent = parent && parent !== node ? parent : null;
 
-        if (declaredParent && !nodes.has(parentCode) &&
-            !node.code.startsWith(parentCode)) {
+        if (selfParent) {
+            warnings.push({ code: node.code, type: 'hierarchyCycle', message: 'La cuenta se declara como su propio padre y se presenta como raíz.' });
+        } else if (declaredParent && !nodes.has(declaredParent)) {
             warnings.push({
                 code: node.code,
-                parent: parentCode,
-                type: 'parentMismatch',
-                message: `El padre ${parentCode} no es prefijo de ${node.code}; se muestra como raíz.`
+                parent: declaredParent,
+                resolvedParent: node.parent?.code || null,
+                type: 'parentNotResolved',
+                message: node.parent
+                    ? `El padre importado ${declaredParent} no está materializado; se usaron nivel y orden del plan para presentarlo bajo ${node.parent.code}.`
+                    : `El padre importado ${declaredParent} no está materializado y no se encontró un ancestro inequívoco por nivel y orden.`
             });
-            continue;
         }
 
-        const inferredLevel = Number.isFinite(Number(node.level)) && Number(node.level) > 1
-            ? Number(node.level) - 1
-            : null;
-        const parent = ensureVirtual(parentCode, inferredLevel);
-        node.parent = parent;
-    }
-
-    // Add any missing intermediate presentation groups without creating ledger accounts.
-    for (const node of nodes.values()) {
-        if (!node.virtual || node.parent || !/[.-]/.test(node.code)) continue;
-        const parts = node.code.split(/[.-]/);
-        parts.pop();
-        if (parts.length) node.parent = ensureVirtual(parts.join(node.code.includes('.') ? '.' : '-'));
+        if (Number.isInteger(level) && level > 0) {
+            for (const storedLevel of latestNodeByLevel.keys()) {
+                if (storedLevel >= level) latestNodeByLevel.delete(storedLevel);
+            }
+            latestNodeByLevel.set(level, node);
+        }
     }
 
     for (const node of nodes.values()) {
@@ -216,7 +196,7 @@ function makeAccountGraph(accounts) {
     }
 
     const categoryOf = (node, ancestors = new Set()) => {
-        if (node.bucket !== 'UNKNOWN') return node.bucket;
+        if (node.bucket !== 'UNKNOWN' && node.bucket !== 'REGULATORY') return node.bucket;
         if (ancestors.has(node)) return 'UNKNOWN';
         ancestors.add(node);
         const explicit = typeOf(node);
@@ -249,43 +229,26 @@ function makeAccountGraph(accounts) {
         node.bucket = naturalBucket(node, movement.signed);
         if (node.bucket === 'REGULATORY') node.bucket = categoryOf(node);
     }
-    // Resolve virtual/group account nature from the accounts below it.
+    // Generic imported types inherit their nature from the persisted hierarchy.
     for (const node of nodes.values()) {
-        if (node.bucket === 'UNKNOWN' || node.virtual) node.bucket = categoryOf(node);
+        if (node.bucket === 'UNKNOWN') node.bucket = categoryOf(node);
     }
 
     return { nodes, warnings };
 }
 
+function graphNodeForAccount(graph, account) {
+    return graph.nodes.get(String(account?.code || '').trim()) || null;
+}
+
 function treeForBucket(graph, bucket) {
-    const accountNodes = [...graph.nodes.values()].filter(node => !node.virtual && node.bucket === bucket);
-    const accountsByCode = new Map(accountNodes.map(node => [node.code, node]));
+    const accountNodes = [...graph.nodes.values()].filter(node => node.bucket === bucket);
     const displayParents = new Map();
     const displayChildren = new Map(accountNodes.map(node => [node, []]));
     for (const node of accountNodes) {
         let parent = node.parent;
-        let skippedVirtualParent = false;
-        while (parent && parent.virtual) {
-            if (parent.bucket !== bucket) {
-                parent = null;
-                break;
-            }
-            skippedVirtualParent = true;
+        while (parent && parent.bucket !== bucket) {
             parent = parent.parent;
-        }
-        if (parent && parent.bucket !== bucket) parent = null;
-
-        if (!parent && skippedVirtualParent) {
-            const level = Number(node.level);
-            for (let codeLength = node.code.length - 1; codeLength > 0; codeLength--) {
-                const candidate = accountsByCode.get(node.code.slice(0, codeLength));
-                if (!candidate) continue;
-                const candidateLevel = Number(candidate.level);
-                if (!Number.isFinite(level) || !Number.isFinite(candidateLevel) || candidateLevel < level) {
-                    parent = candidate;
-                    break;
-                }
-            }
         }
 
         if (parent && parent !== node) {
@@ -295,17 +258,19 @@ function treeForBucket(graph, bucket) {
     }
 
     const clones = new Map();
-    const hasBalance = new Map();
-    const hasVisibleBalance = (node) => {
-        if (hasBalance.has(node)) return hasBalance.get(node);
-        const active = node.ownBalance !== 0 ||
-            displayChildren.get(node).some(child => hasVisibleBalance(child));
-        hasBalance.set(node, active);
-        return active;
+    const subtreeCentsByNode = new Map();
+    const subtotalCents = (node) => {
+        if (subtreeCentsByNode.has(node)) return subtreeCentsByNode.get(node);
+        const subtotal = node.ownBalance + displayChildren.get(node).reduce(
+            (sum, child) => sum + subtotalCents(child),
+            0
+        );
+        subtreeCentsByNode.set(node, subtotal);
+        return subtotal;
     };
 
     for (const node of accountNodes) {
-        if (!hasVisibleBalance(node)) continue;
+        if (subtotalCents(node) === 0 && node.ownBalance === 0) continue;
         const displaySign = ['LIABILITY', 'EQUITY'].includes(bucket) ? -1 : 1;
         clones.set(node, {
             id: node.id,
@@ -320,7 +285,8 @@ function treeForBucket(graph, bucket) {
     }
     const roots = [];
     for (const [node, clone] of clones) {
-        const parent = displayParents.get(node);
+        let parent = displayParents.get(node);
+        while (parent && !clones.has(parent)) parent = displayParents.get(parent);
         const parentClone = parent && clones.get(parent);
         if (parentClone) parentClone.hijos.push(clone);
         else roots.push(clone);
@@ -347,7 +313,7 @@ function statementItems(accounts, bucket, graph) {
         if (isProfitClearingAccount(account) || isRegulatoryAccount(account)) return null;
         const accountBucket = type === 'RESULT'
             ? (movement.signed >= 0 ? 'EXPENSE' : 'REVENUE')
-            : (graph.nodes.get(String(account.code || ''))?.bucket || naturalBucket(account, movement.signed));
+            : (graphNodeForAccount(graph, account)?.bucket || naturalBucket(account, movement.signed));
         if (accountBucket !== bucket) return null;
         const signed = bucket === 'REVENUE' ? -movement.signed : movement.signed;
         if (signed === 0) return null;
@@ -369,7 +335,7 @@ function buildFinancialReports(accounts, { startDate, endDate, hasResultClosing 
             ? 'CLEARING'
             : (typeOf(account) === 'RESULT'
                 ? (period.signed >= 0 ? 'EXPENSE' : 'REVENUE')
-                : (graph.nodes.get(String(account.code || ''))?.bucket || 'UNKNOWN'));
+                : (graphNodeForAccount(graph, account)?.bucket || 'UNKNOWN'));
         return { account, bucket };
     });
 
@@ -405,7 +371,8 @@ function buildFinancialReports(accounts, { startDate, endDate, hasResultClosing 
             hijos: [resultNode]
         });
         const recalc = (node) => {
-            node.total = (node.ownBalance || 0) + node.hijos.reduce((sum, child) => sum + recalc(child), 0);
+            const childrenCents = node.hijos.reduce((sum, child) => sum + cents(recalc(child)), 0);
+            node.total = amount(cents(node.ownBalance || 0) + childrenCents);
             return node.total;
         };
         equity.forEach(recalc);
@@ -484,12 +451,12 @@ function closingProposal(accounts, { closingDate, hasClosingEntries = false } = 
 
     const graph = makeAccountGraph(accounts);
     const leafAccounts = accounts.filter(account => {
-        const node = graph.nodes.get(String(account.code || ''));
+        const node = graphNodeForAccount(graph, account);
         return !node || node.children.length === 0;
     });
     const clearingAccounts = leafAccounts.filter(account => isProfitClearingAccount(account) &&
-        graph.nodes.get(String(account.code))?.bucket === 'CLEARING');
-    const retainedEarnings = leafAccounts.filter(account => graph.nodes.get(String(account.code))?.bucket === 'EQUITY' &&
+        graphNodeForAccount(graph, account)?.bucket === 'CLEARING');
+    const retainedEarnings = leafAccounts.filter(account => graphNodeForAccount(graph, account)?.bucket === 'EQUITY' &&
         /resultados acumulados/.test(normalized(account.name)));
     if (clearingAccounts.length !== 1 || retainedEarnings.length !== 1) {
         throw new Error(`Se requiere una sola cuenta hoja de Pérdidas y Ganancias/Resultado del ejercicio y una sola cuenta hoja de Resultados Acumulados. Encontradas: P&G=${clearingAccounts.length}, acumulados=${retainedEarnings.length}.`);
@@ -507,7 +474,7 @@ function closingProposal(accounts, { closingDate, hasClosingEntries = false } = 
         if (isRegulatoryAccount(account) || isProfitClearingAccount(account)) continue;
         const bucket = typeOf(account) === 'RESULT'
             ? (movement.signed >= 0 ? 'EXPENSE' : 'REVENUE')
-            : (graph.nodes.get(String(account.code || ''))?.bucket || naturalBucket(account, movement.signed));
+            : (graphNodeForAccount(graph, account)?.bucket || naturalBucket(account, movement.signed));
         if (movement.signed === 0 || !['REVENUE', 'COST', 'EXPENSE'].includes(bucket)) continue;
 
         if (movement.signed > 0) {
@@ -549,7 +516,7 @@ function closingProposal(accounts, { closingDate, hasClosingEntries = false } = 
     }
 
     const orderAccounts = accounts.filter(account =>
-        graph.nodes.get(String(account.code || ''))?.bucket === 'ORDER'
+        graphNodeForAccount(graph, account)?.bucket === 'ORDER'
     );
     const orderEntries = [];
     let orderDebitCents = 0;

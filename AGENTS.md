@@ -131,9 +131,15 @@ de distribución. No es una página independiente.
 - `GET /api/reports/financial-statements` es la fuente de Dashboard, Estados
   Financieros y datos oficiales del borrador Worksheet. Balance acumulado y
   resultado del ejercicio tienen ventanas de fecha distintas; conservarlas.
-- Los grupos de cuentas inferidos por código/jerarquía pueden ser virtuales para
-  presentación. Nunca persistir esas agrupaciones ni reescribir cuentas durante
-  el cálculo del reporte.
+- El Balance General consume la jerarquía importada y persistida (`parent_code`,
+  `level` y orden de importación). No inferir padres/niveles desde el código ni
+  crear grupos virtuales o filas "Grupo ...". Si un padre implícito no existe
+  como cuenta, resolverlo solo con nivel y orden importados; si no es inequívoco,
+  dejar la cuenta sin padre y emitir una advertencia. Excluir cuentas sin saldo
+  propio y ramas vacías de saldo cero; conservar una cuenta con saldo propio no
+  nulo aunque su subtotal consolidado se compense con sus descendientes. Mantener
+  las cuentas reguladoras en su rubro con signo de contra-cuenta. Todo cambio a
+  esta lógica debe actualizar `test_financial_reports_core.js` y pasar `npm test`.
 - `POST /api/reports/closing-entries-proposal` no debe cerrar activos, pasivos ni
   patrimonio permanente, calcular IUE desde utilidad contable ni estimar reserva
   legal sin datos y fundamento aplicables. Todo asiento propuesto debe cuadrar al
