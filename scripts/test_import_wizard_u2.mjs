@@ -257,8 +257,8 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     });
     const reviewContract = rContract([
         rNode('1', { name: 'ACTIVO', classification: 'ROOT', nature: 'INFERRED', natureConfidence: 0.6, isPostable: 'INFERRED_TRUE' }),
-        rNode('11', { name: 'CAJA', level: 2, parent: '1', cls: undefined, classification: 'LEAF', parentInfo: { code: '1', method: 'PAD_TO_BLOCK', confidence: 0.91, evidence: ['hermano en bloque'], requiresReview: true } }),
-        rNode('1101', { name: 'CAJA MN', level: 3, parent: '11', classification: 'LEAF' })
+        rNode('11', { name: 'CAJA', level: 2, parent: '1', classification: 'GROUP', parentInfo: { code: '1', method: 'PAD_TO_BLOCK', confidence: 0.91, evidence: ['hermano en bloque'], requiresReview: true } }),
+        rNode('1101', { name: 'CAJA MN', level: 3, parent: '11', classification: 'LEAF', parentInfo: { code: '11', method: 'EXPLICIT_PARENT', confidence: 1, evidence: [], requiresReview: false } })
     ]);
 
     // B14: bulk type (la secuencia del botón "Asignar tipo"): N overrides con traza
@@ -282,7 +282,10 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     s = S.resolveReview(s, `${rid}:w0`);
     s = S.resolveReview(s, `${rid}:1`);
     s = S.confirmNature(s, `${rid}:0`, 'Activo');
-    criterion('B16.gatesClear', S.canImport(s) === true, 'warn + nodo resueltos + raíz confirmada → canImport=true');
+    const b16Effective = S.effectiveContractOf(s);
+    const b16Validation = ImportContractValidator.validate(b16Effective, { baselineContract: reviewContract });
+    criterion('B16.gatesClear', S.canImport(s) === true && b16Validation.valid,
+        'árbol válido + warn/nodo resueltos + raíz confirmada → validator válido y canImport=true');
 
     // B17: lote con un uid inválido no tumba la secuencia (semántica del handler bulk)
     let s2 = S.createImportSession({ regions: [reviewContract] });

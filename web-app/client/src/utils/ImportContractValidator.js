@@ -36,7 +36,8 @@ export function findUnmaterializedParentReferences(contract, { baselineContract 
         ? new Set((baselineContract.nodes || []).map(node => String(node.normalizedCode || node.code || '').trim()).filter(Boolean))
         : null;
     return nodes.flatMap((node, index) => {
-        const parent = String(node.parent ?? '').trim() || String(node.parentInfo?.code ?? '').trim();
+        const parent = String(node.parent ?? '').trim() || String(node.parentInfo?.code ?? '').trim() ||
+            String(node.parentInfo?.declaredCode ?? '').trim();
         if (!parent || codes.has(parent) || (baselineCodes && !baselineCodes.has(parent))) return [];
         return [{
             index,
@@ -97,10 +98,10 @@ export class ImportContractValidator {
             if (n.requiresReview === undefined) warnings.push(`${tag}: sin flag requiresReview`);
         });
 
-        const changedMissingParents = new Set(
-            findUnmaterializedParentReferences(contract, { baselineContract })
-                .map(issue => `${issue.index}\u0000${issue.parent}`)
-        );
+        const changedMissingParents = baselineContract
+            ? new Set(findUnmaterializedParentReferences(contract, { baselineContract })
+                .map(issue => `${issue.index}\u0000${issue.parent}`))
+            : new Set();
         for (const issue of findUnmaterializedParentReferences(contract)) {
             const node = nodes[issue.index];
             const message = `node[${issue.index}] (${issue.code}): padre ${issue.parent} no está materializado en nodes`;
@@ -167,8 +168,27 @@ export class ImportContractValidator {
             } else if ((n.classification === 'ROOT' || n.classification === 'GROUP') && !hasChildren && level > 1 && n.classification === 'GROUP') {
                 warnings.push(`node ${code}: GROUP sin hijos (posible inconsistencia)`);
             }
-            if (level === 1 && n.parent) warnings.push(`node ${code}: nivel 1 con padre (${n.parent})`);
-            if (level !== undefined && (!Number.isInteger(level) || level < 1)) errors.push(`node ${code}: level inválido ${level}`);
+            if (!Number.isInteger(level) || level < 1) {
+                errors.push(`node ${code}: level inválido o ausente (${level})`);
+            }
+            const parentCode = String(n.parent ?? '').trim();
+            if (parentCode) {
+                if (parentCode === String(code)) {
+                    errors.push(`node ${code}: no puede ser su propio padre`);
+                } else if (level === 1 || n.classification === 'ROOT') {
+                    errors.push(`node ${code}: raíz/nivel 1 con padre (${n.parent})`);
+                }
+                const parent = byCode.get(parentCode);
+                if (parent && Number.isInteger(parent.level) && Number.isInteger(level) && parent.level >= level) {
+                    errors.push(`node ${code}: nivel ${level} no es más profundo que el padre ${n.parent} (nivel ${parent.level})`);
+                }
+            }
+            if (n.parentInfo && Object.prototype.hasOwnProperty.call(n.parentInfo, 'code')) {
+                const parentInfoCode = String(n.parentInfo.code ?? '').trim();
+                if (parentInfoCode !== parentCode) {
+                    errors.push(`node ${code}: parent (${parentCode || 'null'}) contradice parentInfo (${parentInfoCode || 'null'})`);
+                }
+            }
             if (n.isPostable && !VALID_POSTABLE.includes(n.isPostable)) errors.push(`node ${code}: isPostable inválido ${n.isPostable}`);
             if (n.nature && typeof n.nature === 'object') {
                 const kind = n.nature.kind || n.nature.nature;
@@ -191,9 +211,10 @@ export class ImportContractValidator {
         const rowsTotal = contract.rowsTotal ?? (contract.stats && contract.stats.totalRows) ?? (contract.source && contract.source.rowCount);
         const validRows = nodes.length;
         const rejected = Array.isArray(contract.rejectedRows) ? contract.rejectedRows.length : (contract.droppedRows ? contract.droppedRows.length : 0);
+        const excluded = Number(contract.stats?.excludedRows || 0);
         if (rowsTotal !== undefined && rowsTotal > 0) {
-            if (rowsTotal !== validRows + rejected) {
-                errors.push(`Reconciliación rota: rowsTotal=${rowsTotal} ≠ valid=${validRows} + rejected=${rejected} (unaccounted=${rowsTotal - validRows - rejected})`);
+            if (rowsTotal !== validRows + rejected + excluded) {
+                errors.push(`Reconciliación rota: rowsTotal=${rowsTotal} ≠ valid=${validRows} + rejected=${rejected} + excluded=${excluded} (unaccounted=${rowsTotal - validRows - rejected - excluded})`);
             }
         }
         if (contract.stats && contract.stats.total !== undefined && contract.stats.total !== nodes.length) {

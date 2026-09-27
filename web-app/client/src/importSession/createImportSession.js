@@ -31,7 +31,7 @@
 
 import { CompatibilityAdapter } from '../utils/CompatibilityAdapter.js';
 import { contractFingerprint } from '../utils/ImportContractSchema.js';
-import { findUnmaterializedParentReferences } from '../utils/ImportContractValidator.js';
+import { findUnmaterializedParentReferences, ImportContractValidator } from '../utils/ImportContractValidator.js';
 
 const EDITABLE_FIELDS = new Set(['code', 'name', 'type', 'level']);
 
@@ -227,7 +227,7 @@ function effectiveRegionContract(session, region) {
             parent: node.parent,
             parentInfo: node.parentInfo
                 ? { ...node.parentInfo, evidence: (node.parentInfo.evidence || []).slice() }
-                : { code: null, method: 'OTHER', confidence: 0, evidence: [], requiresReview: true },
+                : { code: node.parent ?? null, method: 'OTHER', confidence: 0, evidence: [], requiresReview: true },
             type: node.type,
             nature: node.nature,
             natureConfidence: node.natureConfidence,
@@ -239,7 +239,19 @@ function effectiveRegionContract(session, region) {
         };
         const ov = overrideMap.get(uid);
         if (ov) {
-            if ('code' in ov) { out.code = ov.code; out.normalizedCode = ov.code; }
+            if ('code' in ov) {
+                const previousCode = String(out.normalizedCode ?? out.code ?? '');
+                out.code = ov.code;
+                out.normalizedCode = ov.code;
+                if (previousCode !== String(ov.code)) {
+                    out.transformations.push({
+                        type: 'user_override',
+                        field: 'code',
+                        from: previousCode,
+                        to: String(ov.code)
+                    });
+                }
+            }
             if ('name' in ov) out.name = ov.name;
             if ('type' in ov) out.type = ov.type;
             if ('level' in ov) out.level = ov.level;
@@ -270,7 +282,11 @@ function effectiveRegionContract(session, region) {
         rootNodes: nodes.filter(n => n.classification === 'ROOT').map(n => n.code),
         nodeCounts: { total: nodes.length, roots: rootCount, groups: groupCount, leaves: leafCount },
         leafCounts: leafCount,
-        stats: c.stats ? { ...c.stats, validRows: nodes.length } : undefined,
+        stats: c.stats ? {
+            ...c.stats,
+            validRows: nodes.length,
+            excludedRows: c.nodes.length - nodes.length
+        } : undefined,
         nodes,
         transformations: nodes
             .filter(n => n.transformations && n.transformations.length > 0)
@@ -307,6 +323,11 @@ function gateReasons(session, region) {
     const resolvedNodes = new Set(sessionReviewResolutionsOf(session, region).filter(r => r.uid).map(r => r.uid));
     const resolvedWarnKeys = new Set(sessionReviewResolutionsOf(session, region).filter(r => r.warnKey).map(r => r.warnKey));
     const confirmedUids = new Set(sessionNatureConfirmationsOf(session, region).map(e => e.uid));
+
+    const structuralValidation = ImportContractValidator.validate(effective, { baselineContract: c });
+    for (const error of structuralValidation.errors) {
+        reasons.push(`BLOCK estructural — ${error}`);
+    }
 
     // 1) BLOCK sin resolver (contrato efectivo) — mensajes accionables.
     // El usuario no siempre debe borrar: puede editar el valor señalado o
@@ -581,6 +602,65 @@ export function simulate(session, { companyId = null, regionId } = {}) {
     const region = findRegion(session, regionId);
     const effective = effectiveRegionContract(session, region);
     const confirmedNatureMap = confirmedNatureMapOf(session, region);
+    const missingParents = findUnmaterializedParentReferences(effective, { baselineContract: region.contract });
+    if (missingParents.length > 0) {
+        const blocks = missingParents.map(issue => ({
+            type: 'unmaterializedParent',
+            severity: 'BLOCK',
+            code: issue.code,
+            parent: issue.parent,
+            message: `La cuenta ${issue.code} declara un padre ${issue.parent} que no existe en el contrato efectivo`
+        }));
+        return {
+            ok: false,
+            allowed: false,
+            reason: 'BLOCK — hay referencias a padres no materializados',
+            blocks,
+            payload: null,
+            expectedCounts: null,
+            effectiveNodeCount: effective.nodes.length,
+            fingerprint: contractFingerprint(effective),
+            at: nowOf(session)
+        };
+    }
+    const structuralValidation = ImportContractValidator.validate(effective, { baselineContract: region.contract });
+    if (!structuralValidation.valid) {
+        const fingerprint = contractFingerprint(effective);
+        return {
+            ok: false,
+            allowed: false,
+            reason: 'BLOCK — el contrato efectivo no supera la validación estructural',
+            blocks: structuralValidation.errors.map(message => ({
+                type: 'structuralValidation',
+                severity: 'BLOCK',
+                message
+            })),
+            payload: null,
+            expectedCounts: null,
+            effectiveNodeCount: effective.nodes.length,
+            fingerprint,
+            at: nowOf(session)
+        };
+    }
+    const readiness = canImportReport(session, { regionId: region.regionId });
+    if (!readiness.can) {
+        const fingerprint = contractFingerprint(effective);
+        return {
+            ok: false,
+            allowed: false,
+            reason: readiness.reasons.join('\n'),
+            blocks: readiness.reasons.map(message => ({
+                type: message.startsWith('BLOCK') ? 'importGate' : 'unresolvedReview',
+                severity: message.startsWith('BLOCK') ? 'BLOCK' : 'REVIEW',
+                message
+            })),
+            payload: null,
+            expectedCounts: null,
+            effectiveNodeCount: effective.nodes.length,
+            fingerprint,
+            at: nowOf(session)
+        };
+    }
     let outcome;
     try {
         outcome = CompatibilityAdapter.toBulkPayload(effective, companyId, { confirmedNatureMap });
@@ -590,23 +670,6 @@ export function simulate(session, { companyId = null, regionId } = {}) {
             allowed: false,
             error: `simulate falló: ${err && err.message ? err.message : String(err)}`,
             at: nowOf(session)
-        };
-    }
-    const missingParents = findUnmaterializedParentReferences(effective, { baselineContract: region.contract });
-    if (outcome.allowed && missingParents.length > 0) {
-        const blocks = missingParents.map(issue => ({
-            type: 'unmaterializedParent',
-            severity: 'BLOCK',
-            code: issue.code,
-            parent: issue.parent,
-            message: `La cuenta ${issue.code} declara un padre ${issue.parent} que no existe en el contrato efectivo`
-        }));
-        outcome = {
-            allowed: false,
-            reason: 'BLOCK — hay referencias a padres no materializados',
-            blocks,
-            payload: null,
-            expectedCounts: null
         };
     }
     let fingerprint = null;

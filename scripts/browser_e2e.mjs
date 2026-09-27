@@ -179,6 +179,41 @@ async function main() {
         }
     }
 
+    // Confirmación final: un BLOCK estructural no debe producir POST aunque
+    // el REVIEW de la cuenta ya se haya resuelto en la sesión.
+    try {
+        const tab = await fetch(`http://127.0.0.1:${debugPort}/json/new?about:blank`, { method: 'PUT' }).then(r => r.json());
+        const s = cdpSession(tab);
+        await s.ready;
+        await s.send('Page.enable');
+        await s.send('Runtime.enable');
+        await s.send('Page.navigate', { url: `http://127.0.0.1:${port}/e2e-confirmation-harness.html` });
+        try { await s.waitEvent('Page.loadEventFired', 25000); } catch { }
+        let gate = null;
+        for (let i = 0; i < 40 && !gate?.ready; i++) {
+            await new Promise(r => setTimeout(r, 250));
+            try {
+                const raw = await s.evl('window.__IMPORT_GATE_E2E__ ? JSON.stringify(window.__IMPORT_GATE_E2E__) : null');
+                gate = raw ? JSON.parse(raw) : null;
+            } catch { }
+        }
+        await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
+        s.close();
+        const ok = gate && gate.ready && gate.validationValid === false && gate.report?.canImport === false &&
+            gate.report?.simulation?.allowed === false && gate.report?.simulation?.payload == null &&
+            gate.buttonDisabled === true && Array.isArray(gate.postAttempts) && gate.postAttempts.length === 0;
+        if (ok) {
+            pass++;
+            log('✅ ConfirmationGate: validator BLOCK → botón deshabilitado, simulación sin payload, 0 POST');
+        } else {
+            fail++;
+            log('❌ ConfirmationGate: resultado inesperado ' + JSON.stringify(gate));
+        }
+    } catch (e) {
+        fail++;
+        log(`❌ ConfirmationGate: excepción ${e.message}`);
+    }
+
     // Limpieza
     try { fs.rmSync(corpusDir, { recursive: true, force: true }); } catch { }
     try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch { }

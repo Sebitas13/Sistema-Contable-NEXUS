@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Import confirmation gate E2E</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        import React from 'react';
+        import { createRoot } from 'react-dom/client';
+        import axios from 'axios';
+        import ImportConfirmationStep from '/src/components/import/ImportConfirmationStep.jsx';
+        import { ToastProvider } from '/src/components/ToastProvider.jsx';
+        import { createImportSession, resolveReview, canImport, simulate } from '/src/importSession/index.js';
+        import { ImportContractValidator } from '/src/utils/ImportContractValidator.js';
+
+        const makeNode = (code, { parent = null, classification, requiresReview = false } = {}) => ({
+            code,
+            rawCode: code,
+            name: code,
+            normalizedCode: code,
+            transformations: [],
+            requiresReview,
+            level: 1,
+            parent,
+            parentInfo: {
+                code: parent,
+                method: parent ? 'EXPLICIT_PARENT' : 'EXPLICIT_PARENT_ROOT',
+                confidence: 1,
+                evidence: [],
+                requiresReview
+            },
+            type: 'Activo',
+            nature: 'EXPLICIT',
+            natureConfidence: 1,
+            natureReason: 'source_column',
+            natureSource: 'source_column',
+            classification,
+            isPostable: 'EXPLICIT_TRUE',
+            postableConfidence: 1
+        });
+        const contract = {
+            contractVersion: '1.0',
+            schemaVersion: '1.0',
+            analyzerVersion: 'e2e',
+            source: { file: 'gate.csv', sheet: null, headers: ['CODIGO', 'NOMBRE'], rowCount: 2 },
+            columnMapping: { codeColumn: 'CODIGO', nameColumn: 'NOMBRE', parentColumn: 'PADRE', typeColumn: null },
+            hierarchy: { separator: null, levelLengths: [], levelCount: 1 },
+            separator: null,
+            levels: [],
+            rootNodes: ['100000'],
+            nodeCounts: { total: 2, roots: 1, groups: 1, leaves: 0 },
+            leafCounts: 0,
+            stats: { totalRows: 2, validRows: 2, rejectedRows: 0 },
+            nodes: [
+                makeNode('100000', { classification: 'ROOT' }),
+                makeNode('110000', { parent: '100000', classification: 'GROUP', requiresReview: true })
+            ],
+            transformations: [],
+            rejectedRows: [],
+            warnings: [],
+            errors: [],
+            confidence: { overall: 1, secondBest: 0, ambiguityMargin: 1 },
+            requiresConfirmation: false,
+            dataLoss: { silentTransformationCount: 0, unaccountedRows: 0 },
+            silentCorruptionCount: 0
+        };
+
+        let session = createImportSession({ regions: [contract] });
+        session = resolveReview(session, 'region_0:1');
+        const validation = ImportContractValidator.validate(session.regions[0].contract);
+        const report = { canImport: canImport(session), simulation: simulate(session, { companyId: 'e2e' }) };
+        const postAttempts = [];
+        axios.defaults.adapter = async config => {
+            postAttempts.push({ method: config.method, url: config.url });
+            return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
+        };
+
+        window.__IMPORT_GATE_E2E__ = { ready: false, validationValid: validation.valid, report, postAttempts };
+        createRoot(document.getElementById('root')).render(
+            React.createElement(ToastProvider, null,
+                React.createElement(ImportConfirmationStep, {
+                    session,
+                    companyId: 'e2e',
+                    companyName: 'Empresa de prueba',
+                    onBack: () => {},
+                    onSuccess: () => {},
+                    onClose: () => {}
+                })
+            )
+        );
+
+        setTimeout(() => {
+            const button = document.querySelector('[data-testid="u2-confirm-btn"]');
+            if (button) button.click();
+            setTimeout(() => {
+                window.__IMPORT_GATE_E2E__.buttonDisabled = !!button?.disabled;
+                window.__IMPORT_GATE_E2E__.postAttempts = postAttempts;
+                window.__IMPORT_GATE_E2E__.ready = true;
+            }, 100);
+        }, 100);
+    </script>
+</body>
+</html>

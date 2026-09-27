@@ -427,6 +427,42 @@ const cleanContract = mkContract({ nodes: N() });
     criterion('B13.originalMissingIsReview', originalMissingValidation.valid && originalMissingValidation.warnings.some(warning =>
         warning.includes('padre 2 no está materializado')),
         'una referencia ya ausente en el origen sigue siendo warning/review, no BLOCK del validador');
+    const originalMissingWithoutBaseline = ImportContractValidator.validate(reviewedImplicitParent);
+    criterion('B13b.noBaselineIsNotOverride', originalMissingWithoutBaseline.valid &&
+        originalMissingWithoutBaseline.warnings.some(warning => warning.includes('padre 2 no está materializado')),
+        'sin baseline el validador no presume que un padre ausente fue roto por un override');
+
+    const contractWithoutParentInfo = mkContract({ nodes: [
+        mkNode({ code: '1', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '11', name: 'CUENTA', level: 2, parent: '1', cls: 'LEAF' })
+    ] });
+    delete contractWithoutParentInfo.nodes[1].parentInfo;
+    let contractWithoutParentInfoSession = S.createImportSession({ regions: [contractWithoutParentInfo], now });
+    const parentInfoEffective = S.effectiveContractOf(contractWithoutParentInfoSession);
+    const parentInfoValidation = ImportContractValidator.validate(parentInfoEffective, {
+        baselineContract: contractWithoutParentInfo
+    });
+    contractWithoutParentInfoSession = S.resolveReview(contractWithoutParentInfoSession, 'region_0:1');
+    const parentInfoSimulation = S.simulate(contractWithoutParentInfoSession, { companyId: 'c1' });
+    criterion('B13c.missingParentInfoNoFalseBlock', parentInfoValidation.valid &&
+        S.canImport(contractWithoutParentInfoSession) && parentInfoSimulation.allowed &&
+        parentInfoSimulation.payload.accounts[1].parent_code === '1',
+        'un parent materializado sin metadatos parentInfo no genera una contradicción sintética');
+
+    const flattenedHierarchy = mkContract({ nodes: [
+        mkNode({ code: '100000', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '110000', name: 'GRUPO', level: 1, parent: '100000', cls: 'ROOT', piReq: true, reqReview: true }),
+        mkNode({ code: '110100', name: 'CUENTA', level: 1, parent: '110000', cls: 'LEAF', piReq: true, reqReview: true })
+    ] });
+    let flattenedSession = S.createImportSession({ regions: [flattenedHierarchy], now });
+    flattenedSession = S.resolveReview(flattenedSession, 'region_0:1');
+    flattenedSession = S.resolveReview(flattenedSession, 'region_0:2');
+    const flattenedEffective = S.effectiveContractOf(flattenedSession);
+    const flattenedValidation = ImportContractValidator.validate(flattenedEffective, { baselineContract: flattenedHierarchy });
+    const flattenedSimulation = S.simulate(flattenedSession, { companyId: 'c1' });
+    criterion('G1.validatorFalsePass', !flattenedValidation.valid && !S.canImport(flattenedSession) &&
+        !flattenedSimulation.allowed && flattenedSimulation.payload == null,
+        'resolver REVIEW no habilita un árbol aplanado que el validador estructural rechaza');
 
     const silentContract = mkContract({ nodes: N(), silentCorruptionCount: 1, dataLoss: { dataLossCount: 1, silentTransformationCount: 1, unaccountedRows: 0 } });
     criterion('B5.silent', S.canImport(S.createImportSession({ regions: [silentContract], now })) === false, 'silentCorruptionCount=1 → canImport=false');

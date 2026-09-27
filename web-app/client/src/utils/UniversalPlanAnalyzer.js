@@ -880,7 +880,7 @@ export class UniversalPlanAnalyzer {
         const parentMap = {};
         const codeToType = {};
         plausible.forEach(a => {
-            if (a.parentRaw) parentMap[a.normalizedCode] = this.sanitizeCode(a.parentRaw);
+            if (parentColumn) parentMap[a.normalizedCode] = this.sanitizeCode(a.parentRaw || '');
             if (a.typeRaw) codeToType[a.normalizedCode] = a.typeRaw;
         });
 
@@ -1011,6 +1011,7 @@ export class UniversalPlanAnalyzer {
                 // Evidencia auditable del padre: cómo y con qué confianza se obtuvo
                 parentInfo: {
                     code: parent || null,
+                    declaredCode: info.declaredParent || null,
                     method: info.method,
                     confidence: info.confidence,
                     evidence: info.evidence,
@@ -1661,10 +1662,22 @@ export class UniversalPlanAnalyzer {
 
     // Versión eficiente (caché de hermanos por bloque) usada en el mapa de padres.
     static _resolveParentWithMethodFast(code, codeSet, effectiveParentMap, parentMap, config, blockParentOf, blockChildCount) {
-        // 1) EXPLICIT
-        const explicit = (effectiveParentMap && effectiveParentMap[code]) || (parentMap && parentMap[code]);
-        if (explicit && codeSet.has(String(explicit)) && String(explicit) !== code) {
-            return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
+        // Una columna de padre declarada tiene precedencia: no se sustituye
+        // silenciosamente una referencia ausente por una heurística de código.
+        const hasExplicitParent = parentMap && Object.prototype.hasOwnProperty.call(parentMap, code);
+        if (hasExplicitParent) {
+            const declared = String(parentMap[code] ?? '').trim();
+            if (!declared) {
+                return { parent: null, method: 'EXPLICIT_PARENT_ROOT', confidence: 1.0, evidence: ['empty_source_parent'], requiresReview: false };
+            }
+            const explicit = (effectiveParentMap && effectiveParentMap[code]) || declared;
+            if (String(explicit) === code) {
+                return { parent: null, declaredParent: String(explicit), method: 'EXPLICIT_PARENT_SELF', confidence: 1.0, evidence: ['source_parent_self_reference'], requiresReview: true };
+            }
+            if (codeSet.has(String(explicit)) && String(explicit) !== code) {
+                return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
+            }
+            return { parent: null, declaredParent: String(explicit), method: 'EXPLICIT_PARENT_MISSING', confidence: 1.0, evidence: ['source_parent_column_unmaterialized'], requiresReview: true };
         }
         // 2) El padre estructural materializado prevalece. El relleno por
         //    bloques solo se considera si este candidato no existe.

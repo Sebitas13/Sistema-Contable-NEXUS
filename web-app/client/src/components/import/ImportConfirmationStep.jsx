@@ -35,7 +35,9 @@ export default function ImportConfirmationStep({ session, companyId, companyName
 
     const blockedReason = !companyId
         ? 'No hay empresa activa para importar.'
-        : (!can ? 'Hay puntos sin resolver: vuelve a la revisión.' : null);
+        : (!can || !sim.allowed
+            ? (sim.reason || 'Hay puntos sin resolver: vuelve a la revisión.')
+            : null);
     const payloadAccounts = (sim.payload && Array.isArray(sim.payload.accounts)) ? sim.payload.accounts : [];
 
     async function handleConfirm() {
@@ -145,10 +147,10 @@ export default function ImportConfirmationStep({ session, companyId, companyName
                     No hay empresa activa para importar. Abre el asistente desde el plan de cuentas de una empresa.
                 </div>
             )}
-            {companyId && !can && (
+            {companyId && (!can || !sim.allowed) && (
                 <div className="alert alert-danger">
                     <i className="bi bi-x-octagon me-2"></i>
-                    Hay puntos sin resolver: vuelve a la revisión antes de confirmar.
+                    {sim.reason || 'Hay puntos sin resolver: vuelve a la revisión antes de confirmar.'}
                 </div>
             )}
 
