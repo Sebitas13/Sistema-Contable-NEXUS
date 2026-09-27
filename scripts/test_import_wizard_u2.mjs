@@ -81,8 +81,14 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('A9.fileImports', fileImports.every(i => i === 'react'), 'ImportFileStep solo importa react (presentacional puro)');
     const valImports = [...contents['ImportValidationStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     criterion('A11.valImports', valImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractValidator.js'), 'ImportValidationStep: react + importSession + Validator del engine (presenta veredictos, no decide)');
+    criterion('A11.baselineValidation', contents['ImportValidationStep.jsx'].includes('baselineContract') &&
+        contents['ImportValidationStep.jsx'].includes('ImportContractValidator.validate(effective, { baselineContract })'),
+        'ImportValidationStep pasa el contrato original para que el validador distinga faltas originales de jerarquía rota por cambios');
     const revImports = [...contents['ImportReviewStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     criterion('A12.revImports', revImports.every(i => i === 'react' || i === '../../importSession/index.js'), 'ImportReviewStep: react + importSession (overrides con traza, sin re-inferir)');
+    criterion('A12.parentBlocks', contents['ImportReviewStep.jsx'].includes('findUnmaterializedParentReferences(effective, { baselineContract: region.contract })') &&
+        contents['ImportReviewStep.jsx'].includes('isBlocked: blockedCodes.has'),
+        'el paso de revisión marca como bloqueada la cuenta cuyo padre dejó de existir; no inventa otra relación');
     const sumImports = [...contents['ImportSummaryStep.jsx'].matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
     criterion('A13.sumImports', sumImports.every(i => i === 'react' || i === '../../importSession/index.js' || i === '../../utils/ImportContractSchema.js'), 'ImportSummaryStep: react + importSession + Schema (fingerprints, sin red)');
     const confSrc = contents['ImportConfirmationStep.jsx'];

@@ -20,6 +20,7 @@ const root = path.resolve(__dirname, '..');
 
 const S = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 const { UniversalPlanAnalyzer } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/UniversalPlanAnalyzer.js')).href);
+const { ImportContractValidator, findUnmaterializedParentReferences } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
 
 const FIXED_CLOCK = 1700000000000;
 const now = () => FIXED_CLOCK;
@@ -76,7 +77,7 @@ function mkContract({ nodes, errors = [], warnings = [], requiresConfirmation = 
         columnMapping: { codeColumn: 0, nameColumn: 1, parentColumn: null, typeColumn: null, confidence: 0.9, ambiguous: false, scored: false, ambiguityMargin: null },
         hierarchy: { separator: null, levelLengths: [], levelCount: 0 },
         separator: null, levels: [],
-        rootNodes: nodes.filter(n => n.classification === 'ROOT').map(n => n.code),
+        rootNodes: nodes.filter(n => n.classification === 'ROOT'),
         nodeCounts: { total: nodes.length, roots, groups, leaves }, leafCounts: leaves,
         stats: stats || { totalRows: nodes.length, validRows: nodes.length, rejectedRows: 0 },
         nodes, transformations: [], rejectedRows: [],
@@ -239,6 +240,32 @@ const cleanContract = mkContract({ nodes: N() });
         sChanged.overrides.find(o => o.uid === 'region_0:0' && o.field === 'type').originalValue === 'Activo' &&
         sChanged.overrides.find(o => o.uid === 'region_0:0' && o.field === 'type').value === 'Patrimonio',
         'el cambio conserva la traza original → valor');
+
+    const inferredRootContract = mkContract({
+        nodes: [mkNode({ code: '2', name: 'PATRIMONIO', level: 1, cls: 'ROOT', nature: 'INFERRED',
+            type: 'Pasivo', postable: 'EXPLICIT_FALSE' })],
+        requiresConfirmation: true
+    });
+    let codeThenNature = S.createImportSession({ regions: [inferredRootContract], now });
+    codeThenNature = S.applyOverride(codeThenNature, 'region_0:0', 'code', '3');
+    codeThenNature = S.confirmNature(codeThenNature, 'region_0:0', 'Patrimonio');
+    const codeThenNatureSim = S.simulate(codeThenNature, { companyId: 'c1' });
+    criterion('U8.codeBeforeConfirm',
+        codeThenNature.natureConfirmations[0].code === '3' &&
+        S.canImport(codeThenNature) && codeThenNatureSim.allowed &&
+        codeThenNatureSim.payload.accounts[0].code === '3' &&
+        codeThenNatureSim.payload.accounts[0].type === 'Patrimonio',
+        'corregir código y luego confirmar naturaleza conserva la confirmación bajo el código efectivo');
+
+    let natureThenCode = S.createImportSession({ regions: [inferredRootContract], now });
+    natureThenCode = S.confirmNature(natureThenCode, 'region_0:0', 'Patrimonio');
+    natureThenCode = S.applyOverride(natureThenCode, 'region_0:0', 'code', '3');
+    const natureThenCodeSim = S.simulate(natureThenCode, { companyId: 'c1' });
+    criterion('U9.confirmBeforeCode',
+        S.canImport(natureThenCode) && natureThenCodeSim.allowed &&
+        natureThenCodeSim.payload.accounts[0].code === '3' &&
+        natureThenCodeSim.payload.accounts[0].type === 'Patrimonio',
+        'confirmar naturaleza y luego corregir código deriva la clave de confirmación del código efectivo');
     try { S.confirmNature(s, 'region_0:0', ''); criterion('U6.emptyNature', false, 'confirmNature vacío debía lanzar'); }
     catch { criterion('U6.emptyNature', true, 'confirmNature con valor vacío lanza'); }
 }
@@ -302,6 +329,105 @@ const cleanContract = mkContract({ nodes: N() });
         S.canImport(newDup) === false && newDupReport.reasons.some(r => r.includes('creado por tus cambios')),
         'editar hacia un código ya existente → BLOCK nuevo detectado (jamás llega al backend)');
 
+    const parentContract = mkContract({ nodes: [
+        mkNode({ code: '2', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '21', name: 'HIJA', level: 2, parent: '2', cls: 'LEAF' })
+    ] });
+    let parentEdit = S.createImportSession({ regions: [parentContract], now });
+    criterion('B8.parentInitiallyValid', S.canImport(parentEdit), 'una referencia de padre materializada permite importar');
+    parentEdit = S.applyOverride(parentEdit, 'region_0:0', 'code', '3');
+    const parentEditGate = S.canImportReport(parentEdit);
+    const parentEditSimulation = S.simulate(parentEdit, { companyId: 'c1' });
+    const parentEditValidation = ImportContractValidator.validate(S.effectiveContractOf(parentEdit), { baselineContract: parentContract });
+    criterion('B9.parentAfterCodeEdit',
+        !parentEditGate.can && parentEditGate.reasons.some(r => r.includes('padre «2»') && r.includes('ya no existe')) &&
+        S.summaryOf(parentEdit).issues.blocks === 1 && !parentEditSimulation.allowed && !parentEditSimulation.payload &&
+        parentEditSimulation.blocks.some(block => block.type === 'unmaterializedParent') && !parentEditValidation.valid,
+        'un padre ausente bloquea gate, simulación y validador tras editar el código de la cuenta padre');
+
+    const parentRestored = S.applyOverride(parentEdit, 'region_0:0', 'code', '2');
+    criterion('B9b.parentRestored', S.canImport(parentRestored) && S.simulate(parentRestored).allowed &&
+        ImportContractValidator.validate(S.effectiveContractOf(parentRestored), { baselineContract: parentContract }).valid,
+        'restaurar el código efectivo del padre elimina el BLOCK derivado sin persistir un error');
+
+    const reviewedEditContract = mkContract({ nodes: [
+        mkNode({ code: '2', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '21', name: 'HIJA', level: 2, parent: '2', cls: 'LEAF', piReq: true, reqReview: true })
+    ] });
+    let reviewedParentEdit = S.createImportSession({ regions: [reviewedEditContract], now });
+    reviewedParentEdit = S.applyOverride(reviewedParentEdit, 'region_0:0', 'code', '3');
+    const reviewedEditValidation = ImportContractValidator.validate(
+        S.effectiveContractOf(reviewedParentEdit), { baselineContract: reviewedEditContract }
+    );
+    criterion('B9c.noValidatorFalsePass', !reviewedEditValidation.valid &&
+        reviewedEditValidation.errors.some(error => error.includes('BLOCK por jerarquía rota')),
+        'el validador externo no muestra PASS si una edición rompe una relación aunque el nodo ya requiriera revisión');
+
+    let parentExcluded = S.excludeRow(S.createImportSession({ regions: [parentContract], now }), 'region_0:0');
+    criterion('B9d.excludedParentBlocks', !S.canImport(parentExcluded) && !S.simulate(parentExcluded).payload,
+        'excluir un padre con hijos efectivos bloquea y no produce payload');
+    const parentReincluded = S.excludeRow(parentExcluded, 'region_0:0', false);
+    criterion('B9e.parentReincluded', S.canImport(parentReincluded) && S.simulate(parentReincluded).allowed,
+        're-incluir el padre restaura la referencia materializada y limpia el BLOCK derivado');
+    parentExcluded = S.excludeRow(parentExcluded, 'region_0:1');
+    criterion('B9f.excludedBranch', S.canImport(parentExcluded) && S.simulate(parentExcluded).allowed,
+        'excluir la rama completa elimina las referencias efectivas y no deja padres fantasma');
+
+    const intermediateContract = mkContract({ nodes: [
+        mkNode({ code: '1', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '11', name: 'GRUPO', level: 2, parent: '1', cls: 'GROUP' }),
+        mkNode({ code: '1101', name: 'HIJA', level: 3, parent: '11', cls: 'LEAF' })
+    ] });
+    let intermediateEdit = S.applyOverride(
+        S.createImportSession({ regions: [intermediateContract], now }), 'region_0:1', 'code', '12'
+    );
+    criterion('B9g.intermediateEdit', !S.canImport(intermediateEdit) &&
+        S.canImportReport(intermediateEdit).reasons.some(reason => reason.includes('padre «11»')),
+        'editar un nodo intermedio revalida y bloquea sus hijos que aún apuntan al código anterior');
+    intermediateEdit = S.applyOverride(intermediateEdit, 'region_0:1', 'code', '11');
+    criterion('B9h.intermediateRestored', S.canImport(intermediateEdit) && S.simulate(intermediateEdit).allowed,
+        'restaurar el nodo intermedio restablece una jerarquía válida');
+
+    const parentInfoOnly = mkContract({ nodes: [
+        mkNode({ code: '3', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '31', name: 'HIJA', level: 2, cls: 'LEAF' })
+    ] });
+    parentInfoOnly.nodes[1].parentInfo.code = '2';
+    criterion('B10.parentInfoFallback',
+        findUnmaterializedParentReferences(parentInfoOnly).some(issue => issue.code === '31' && issue.parent === '2') &&
+        !ImportContractValidator.validate(parentInfoOnly).valid,
+        'la referencia heredada desde parentInfo también bloquea si el padre no está materializado');
+    const emptyParentFallback = mkContract({ nodes: [
+        mkNode({ code: '3', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+        mkNode({ code: '31', name: 'HIJA', level: 2, parent: '', cls: 'LEAF' })
+    ] });
+    emptyParentFallback.nodes[1].parentInfo.code = '2';
+    criterion('B10b.emptyParentFallback',
+        findUnmaterializedParentReferences(emptyParentFallback).some(issue => issue.code === '31' && issue.parent === '2'),
+        'una referencia parentInfo no se pierde cuando parent está vacío en lugar de null');
+
+    const reviewedImplicitParent = mkContract({
+        nodes: [
+            mkNode({ code: '3', name: 'RAÍZ', level: 1, cls: 'ROOT' }),
+            mkNode({ code: '31', name: 'HIJA', level: 2, parent: '2', cls: 'LEAF', piReq: true, reqReview: true })
+        ],
+        warnings: [{ type: 'implicitMissingParent', severity: 'REVIEW', code: '31', parent: '2', message: 'Padre inferido no materializado' }]
+    });
+    let reviewedParentSession = S.createImportSession({ regions: [reviewedImplicitParent], now });
+    criterion('B11.implicitParentNeedsReview', !S.canImport(reviewedParentSession),
+        'un padre ya ausente en el origen requiere resolver la revisión antes de importar');
+    reviewedParentSession = S.resolveReview(reviewedParentSession, 'region_0:w0');
+    reviewedParentSession = S.resolveReview(reviewedParentSession, 'region_0:1');
+    criterion('B12.reviewedImplicitParent', S.canImport(reviewedParentSession) &&
+        S.simulate(reviewedParentSession).allowed,
+        'una relación de origen revisada explícitamente no se confunde con una referencia rota por edición');
+    const originalMissingValidation = ImportContractValidator.validate(reviewedImplicitParent, {
+        baselineContract: reviewedImplicitParent
+    });
+    criterion('B13.originalMissingIsReview', originalMissingValidation.valid && originalMissingValidation.warnings.some(warning =>
+        warning.includes('padre 2 no está materializado')),
+        'una referencia ya ausente en el origen sigue siendo warning/review, no BLOCK del validador');
+
     const silentContract = mkContract({ nodes: N(), silentCorruptionCount: 1, dataLoss: { dataLossCount: 1, silentTransformationCount: 1, unaccountedRows: 0 } });
     criterion('B5.silent', S.canImport(S.createImportSession({ regions: [silentContract], now })) === false, 'silentCorruptionCount=1 → canImport=false');
 
@@ -331,6 +457,7 @@ const cleanContract = mkContract({ nodes: N() });
     s = S.excludeRow(s, 'region_0:3');
     criterion('I4.stillBlock', S.canImport(s) === false, 'excluir 1 duplicado real → sigue bloqueado');
     s = S.excludeRow(s, 'region_0:2');
+    s = S.confirmNature(s, 'region_0:1', 'Activo');
     const report = S.canImportReport(s);
     criterion('I5.gatesOk', report.can === true && report.reasons.length === 0, 'engine real: BLOCK limpio + raíz confirmada → canImport=true');
     const sim2 = S.simulate(s, { companyId: 'c1' });

@@ -11,7 +11,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { PdfAdapter, ExcelAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
 const { UniversalPlanAnalyzer: Analyzer } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/UniversalPlanAnalyzer.js')).href);
-const { canImportReport, createImportSession } = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
+const { AccountPlanProfile } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/AccountPlanProfile.js')).href);
+const { applyOverride, canImportReport, createImportSession, effectiveContractOf, simulate } = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
+const { ImportContractValidator } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
 
 function localFile(relativePath) {
     return fs.readFileSync(path.join(root, relativePath));
@@ -36,6 +38,8 @@ async function analyzePdf(relativePath) {
     assert.equal(contract.region.extractionMode, 'narrative');
     assert.deepEqual(contract.region.pageRange, { start: 7, end: 18 });
     assert.equal(contract.nodes.length, 379, 'debe recuperar el catalogo sin importar pies ni prosa');
+    assert.equal(contract.hierarchy.levelCount, contract.hierarchy.levelLengths.length,
+        'el contador de niveles debe coincidir con las longitudes declaradas');
     assert.deepEqual(
         contract.nodes.slice(0, 3).map(node => [node.normalizedCode, node.name]),
         [['1', 'ACTIVO'], ['11', 'ACTIVO CORRIENTE'], ['111', 'Disponible']]
@@ -47,12 +51,108 @@ async function analyzePdf(relativePath) {
     assert.equal((contract.errors || []).filter(error => error.severity === 'BLOCK').length, 0);
     assert.equal((contract.rejectedRows || []).length, 0);
 
+    const codeSet = new Set(contract.nodes.map(node => node.normalizedCode));
+    const deepestNodes = contract.nodes.filter(node => node.level === contract.hierarchy.levelCount);
+    assert.ok(deepestNodes.length > 0);
+    assert.ok(deepestNodes.every(node => node.parent && codeSet.has(node.parent) && !node.parentInfo.requiresReview),
+        'el padre inmediato de cada cuenta del ultimo nivel debe existir en el plan');
+
+    const rootIndex = contract.nodes.findIndex(node => node.normalizedCode === '2');
+    const session = createImportSession({ regions: [contract] });
+    const correctedRoot = applyOverride(session, `${session.regions[0].regionId}:${rootIndex}`, 'code', '3');
+    const correctedRootGate = canImportReport(correctedRoot);
+    assert.ok(correctedRootGate.reasons.some(reason => reason.includes('padre «2»') && reason.includes('ya no existe')),
+        'una correccion de codigo no puede dejar que hijos sigan apuntando al codigo anterior');
+    assert.equal(simulate(correctedRoot).allowed, false,
+        'la simulacion tampoco debe ofrecer un payload con referencias a padres inexistentes');
+    assert.equal(ImportContractValidator.validate(effectiveContractOf(correctedRoot)).valid, false,
+        'el validador independiente debe rechazar referencias a padres no materializados');
+
     const decimalProse = Analyzer.extractNarrativeAccounts([
         { text: '1.5 millones de bolivianos', allowDelimitedCode: false },
         { text: '1.1 ACTIVO CORRIENTE', allowDelimitedCode: true }
     ]);
     assert.equal(decimalProse.accounts.some(account => account.code === '1.5'), false);
     assert.equal(decimalProse.accounts.some(account => account.code === '1.1'), true);
+}
+
+// La derivación del padre distingue prefijos consecutivos de códigos con
+// bloques de relleno sin depender del nombre del plan ni de códigos concretos.
+{
+    assert.equal(AccountPlanProfile.calculateParent('98765', {
+        hasSeparator: false, levelLengths: [1, 2, 3, 4, 5], levelCount: 5
+    }), '98760', 'regresión: el helper compartido conserva el relleno histórico para el importador clásico');
+    assert.equal(AccountPlanProfile.calculateParent('123456789', {
+        hasSeparator: false, levelLengths: [1, 2, 3, 6, 9], levelCount: 5
+    }), '123456000');
+    assert.equal(AccountPlanProfile.calculateParent('123456', {
+        hasSeparator: false, levelLengths: [2, 4, 6], levelCount: 3,
+        materializedCodes: new Set(['123456', '1234', '123400'])
+    }), '1234', 'un prefijo de nivel ya materializado prevalece sobre el relleno candidato');
+    assert.equal(AccountPlanProfile.calculateParent('123456', {
+        hasSeparator: false, levelLengths: [2, 4, 6], levelCount: 3,
+        materializedCodes: new Set(['123456', '123400'])
+    }), '123400', 'el relleno solo se elige si el prefijo inmediato no está materializado');
+    const competingParents = new Set(['123456', '1234', '123400']);
+    assert.equal(Analyzer._evaluateBlockPrecomputed(
+        '123456', '123400', competingParents, new Map([['123400', 2]])
+    ).accepted, true, 'la alternativa de bloque del caso sintético tiene evidencia de hermanos');
+    const resolved = Analyzer._resolveParentWithMethodFast(
+        '123456', competingParents, null, null,
+        { hasSeparator: false, levelLengths: [2, 4, 6], levelCount: 3 },
+        new Map([['123456', '123400']]), new Map([['123400', 2]])
+    );
+    assert.equal(resolved.parent, '1234',
+        'un padre de prefijo materializado debe prevalecer aunque exista una alternativa por bloques');
+
+    const paddedOnly = new Set(['123456']);
+    const noGhost = Analyzer._resolveParentWithMethodFast(
+        '123456', paddedOnly, null, null,
+        { hasSeparator: false, levelLengths: [2, 4, 6], levelCount: 3 },
+        new Map([['123456', '123400']]), new Map([['123400', 2]])
+    );
+    assert.equal(noGhost.parent, null,
+        'si no existe ni prefijo ni candidato rellenado, el importador no inventa un padre');
+
+    const similarCodes = new Set(['123', '012']);
+    const exactPrefix = Analyzer._resolveParentWithMethodFast(
+        '123', similarCodes, null, null,
+        { hasSeparator: false, levelLengths: [2, 3], levelCount: 2 }, new Map(), new Map()
+    );
+    assert.equal(exactPrefix.parent, null,
+        'un código visualmente parecido no materializa el prefijo exacto requerido');
+
+    const decimal = Analyzer._resolveParentWithMethodFast(
+        '1.1.01', new Set(['1', '1.1', '1.1.01']), null, null,
+        { hasSeparator: true, separator: '.', levelLengths: [1, 2, 5], levelCount: 3 }, new Map(), new Map()
+    );
+    assert.equal(decimal.parent, '1.1', 'la jerarquía decimal elige el segmento padre exacto materializado');
+
+    const variableWidths = Analyzer._resolveParentWithMethodFast(
+        '1101', new Set(['1', '11', '1101']), null, null,
+        { hasSeparator: false, levelLengths: [1, 2, 4], levelCount: 3 }, new Map(), new Map()
+    );
+    assert.equal(variableWidths.parent, '11', 'los códigos 1→2→4 mantienen su padre materializado');
+
+    const uniformWidths = Analyzer._resolveParentWithMethodFast(
+        '123456', new Set(['12', '1234', '123456']), null, null,
+        { hasSeparator: false, levelLengths: [2, 4, 6], levelCount: 3 }, new Map(), new Map()
+    );
+    assert.equal(uniformWidths.parent, '1234', 'regresión: anchos uniformes existentes mantienen padre; no se altera fixed-width');
+
+    const fixedWidthCodes = ['100000', '110000', '110100', '110101', '200000', '210000', '210100'];
+    const fixedWidthProfile = AccountPlanProfile.analyze(fixedWidthCodes.map(code => ({ code })));
+    const fixedWidthContract = Analyzer.generateImportContract({
+        fileName: 'synthetic-fixed-width.xlsx',
+        sheetName: 'Plan',
+        headers: ['CODIGO', 'NOMBRE'],
+        rows: fixedWidthCodes.map(code => ({ CODIGO: code, NOMBRE: `Cuenta ${code}` })),
+        codeColumn: 'CODIGO',
+        nameColumn: 'NOMBRE'
+    });
+    assert.deepEqual(fixedWidthContract.hierarchy.levelLengths, [6]);
+    assert.ok(fixedWidthContract.hierarchy.levelCount >= fixedWidthProfile.levelsCount,
+        'regresión: levelCount conserva la señal lógica previa aunque levelLengths colapse; el arreglo completo queda separado');
 }
 
 // PDF APS complementa el corpus con jerarquia por puntos y numeracion variable.

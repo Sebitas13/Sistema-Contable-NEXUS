@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
-    canImportReport, effectiveContractOf
+    canImportReport, effectiveContractOf, findUnmaterializedParentReferences
 } from '../../importSession/index.js';
 
 // Vocabulario de tipos de cuenta (mismo que el asistente clásico; el backend
@@ -37,9 +37,10 @@ function reviewRowsOf(session) {
         if (e.regionId === region.regionId) confByUid[e.uid] = e.nature;
     }
     const effective = effectiveContractOf(session, { regionId: region.regionId });
-    const blockedCodes = new Set(
-        (effective.errors || []).filter(e => e && e.severity === 'BLOCK' && e.code).map(e => e.code)
-    );
+    const blockedCodes = new Set([
+        ...(effective.errors || []).filter(e => e && e.severity === 'BLOCK' && e.code).map(e => e.code),
+        ...findUnmaterializedParentReferences(effective, { baselineContract: region.contract }).map(issue => issue.code)
+    ]);
     // Duplicados efectivos (incluye los creados al editar): ≥2 códigos iguales
     // es BLOCK para el backend (UNIQUE), aunque el analyzer no lo haya visto.
     const codeCountSel = new Map();

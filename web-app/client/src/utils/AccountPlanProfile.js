@@ -561,10 +561,24 @@ export class AccountPlanProfile {
             const parentLen = levels[level - 2];
             let parentCode = c.substring(0, parentLen);
 
-            // FIX: Mantener el relleno de ceros si el código original lo tenía (PUCT)
+            // El modo legacy conserva su relleno histórico. El importador
+            // universal pasa materializedCodes para elegir solo padres existentes.
             const maxLen = levels[levels.length - 1];
             if (!config.hasSeparator && c.length === maxLen) {
-                parentCode = parentCode.padEnd(maxLen, '0');
+                const materializedCodes = config.materializedCodes;
+                if (!(materializedCodes instanceof Set)) {
+                    parentCode = parentCode.padEnd(maxLen, '0');
+                } else {
+                    const hasPaddedBlocks = levels.some((length, index) =>
+                        index > 0 && length - levels[index - 1] > 1
+                    );
+                    if (hasPaddedBlocks) {
+                        const paddedParentCode = parentCode.padEnd(maxLen, '0');
+                        if (!materializedCodes.has(parentCode) && materializedCodes.has(paddedParentCode)) {
+                            parentCode = paddedParentCode;
+                        }
+                    }
+                }
             }
             return parentCode;
         }

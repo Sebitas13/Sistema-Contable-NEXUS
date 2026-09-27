@@ -31,6 +31,7 @@
 
 import { CompatibilityAdapter } from '../utils/CompatibilityAdapter.js';
 import { contractFingerprint } from '../utils/ImportContractSchema.js';
+import { findUnmaterializedParentReferences } from '../utils/ImportContractValidator.js';
 
 const EDITABLE_FIELDS = new Set(['code', 'name', 'type', 'level']);
 
@@ -178,6 +179,13 @@ function sessionOverridesOf(session, region) {
     return session.overrides.filter(o => o.regionId === region.regionId);
 }
 
+function effectiveCodeOf(session, region, nodeIndex) {
+    const uid = uidOf(region.regionId, nodeIndex);
+    const node = region.contract.nodes[nodeIndex];
+    const codeOverride = sessionOverridesOf(session, region).find(o => o.uid === uid && o.field === 'code');
+    return codeOverride ? codeOverride.value : (node.normalizedCode ?? node.code);
+}
+
 function sessionNatureConfirmationsOf(session, region) {
     return session.natureConfirmations.filter(e => e.regionId === region.regionId);
 }
@@ -285,7 +293,7 @@ function confirmedNatureMapOf(session, region) {
     const excludedUids = sessionExcludedUids(session, region);
     for (const conf of sessionNatureConfirmationsOf(session, region)) {
         if (excludedUids.has(conf.uid)) continue;
-        map[conf.code] = conf.nature;
+        map[effectiveCodeOf(session, region, conf.nodeIndex)] = conf.nature;
     }
     return map;
 }
@@ -327,6 +335,13 @@ function gateReasons(session, region) {
         if (count >= 2 && !blockedCodes.has(code)) {
             reasons.push(`BLOCK sin resolver — código duplicado «${code}» ×${count} (creado por tus cambios): corrige una de las filas o exclúyela`);
         }
+    }
+
+    // Una edición/exclusión no debe dejar referencias a padres que ya no
+    // existen en el contrato efectivo. No se re-infiere ni se reescribe el
+    // árbol aquí: se bloquea hasta corregir el origen de forma explícita.
+    for (const issue of findUnmaterializedParentReferences(effective, { baselineContract: region.contract })) {
+        reasons.push(`BLOCK sin resolver — la cuenta «${issue.code}» conserva el padre «${issue.parent}», pero ese código ya no existe entre las cuentas efectivas; restaura el código anterior del padre o excluye las cuentas afectadas antes de importar`);
     }
 
     // 2) REVIEW de warnings (severity REVIEW del contrato original) sin resolución
@@ -494,7 +509,6 @@ export function confirmNature(session, uid, nature) {
         throw new TypeError('ImportSession: confirmNature requiere un valor de naturaleza/tipo');
     }
     const { region, nodeIndex } = parseUid(session, uid);
-    const node = region.contract.nodes[nodeIndex];
     const natureValue = String(nature);
     const existing = session.natureConfirmations.find(e => e.uid === uid);
     if (existing && existing.nature === natureValue) return session;
@@ -503,7 +517,7 @@ export function confirmNature(session, uid, nature) {
         uid,
         regionId: region.regionId,
         nodeIndex,
-        code: node.normalizedCode ?? node.code,
+        code: effectiveCodeOf(session, region, nodeIndex),
         nature: natureValue,
         at: nowOf(session)
     });
@@ -576,6 +590,23 @@ export function simulate(session, { companyId = null, regionId } = {}) {
             allowed: false,
             error: `simulate falló: ${err && err.message ? err.message : String(err)}`,
             at: nowOf(session)
+        };
+    }
+    const missingParents = findUnmaterializedParentReferences(effective, { baselineContract: region.contract });
+    if (outcome.allowed && missingParents.length > 0) {
+        const blocks = missingParents.map(issue => ({
+            type: 'unmaterializedParent',
+            severity: 'BLOCK',
+            code: issue.code,
+            parent: issue.parent,
+            message: `La cuenta ${issue.code} declara un padre ${issue.parent} que no existe en el contrato efectivo`
+        }));
+        outcome = {
+            allowed: false,
+            reason: 'BLOCK — hay referencias a padres no materializados',
+            blocks,
+            payload: null,
+            expectedCounts: null
         };
     }
     let fingerprint = null;
@@ -668,7 +699,7 @@ export function summaryOf(session, { regionId } = {}) {
             reviewResolutions: reviewHere.length
         },
         issues: {
-            blocks: (c.errors || []).filter(e => e && e.severity === 'BLOCK').length,
+            blocks: reasons.filter(r => r.startsWith('BLOCK sin resolver')).length,
             blockUnresolved: reasons.filter(r => r.startsWith('BLOCK sin resolver')).length,
             reviewWarnings,
             reviewWarningsResolved,

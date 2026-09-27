@@ -17,6 +17,7 @@
  *   const report = simulate(session, { companyId });
  */
 
+export { findUnmaterializedParentReferences } from '../utils/ImportContractValidator.js';
 export {
     createImportSession,
     selectRegion,

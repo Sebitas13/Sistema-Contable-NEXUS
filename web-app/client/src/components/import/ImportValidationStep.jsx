@@ -29,7 +29,14 @@ export default function ImportValidationStep({ session, onBack, onNext }) {
     const report = useMemo(() => canImportReport(session), [session]);
     const summary = useMemo(() => summaryOf(session), [session]);
     const effective = useMemo(() => effectiveContractOf(session), [session]);
-    const external = useMemo(() => ImportContractValidator.validate(effective), [effective]);
+    const baselineContract = useMemo(
+        () => session.regions.find(region => region.regionId === session.activeRegionId)?.contract,
+        [session.regions, session.activeRegionId]
+    );
+    const external = useMemo(
+        () => ImportContractValidator.validate(effective, { baselineContract }),
+        [effective, baselineContract]
+    );
     const sim = useMemo(() => simulate(session, { companyId: null }), [session]);
 
     const blocks = (effective.errors || []).filter(e => e && e.severity === 'BLOCK');

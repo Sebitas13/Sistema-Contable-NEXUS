@@ -1126,7 +1126,11 @@ export class UniversalPlanAnalyzer {
 
             source: { file: fileName, sheet: sheetName, headers, rowCount: rows.length },
             columnMapping: { codeColumn, nameColumn, parentColumn, typeColumn, confidence: 0.85, ambiguous: false, scored: false, ambiguityMargin: null },
-            hierarchy: { separator: analysis.separator, levelLengths: analysis.validLengths || [], levelCount: analysis.levelsCount },
+            hierarchy: {
+                separator: analysis.separator,
+                levelLengths: analysis.validLengths || [],
+                levelCount: Math.max((analysis.validLengths || []).length, analysis.levelsCount || 0)
+            },
             separator: analysis.separator,
             levels: analysis.validLengths,
             rootNodes,
@@ -1662,11 +1666,9 @@ export class UniversalPlanAnalyzer {
         if (explicit && codeSet.has(String(explicit)) && String(explicit) !== code) {
             return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
         }
-        // 2) calculateParent clásico por defecto (SEGMENT/PREFIX/longitud).
-        //    Excepción: si el documento tiene señal de bloques (MEFP) y el
-        //    blockAlt existe, difiere del calc y es aceptado por evidencia,
-        //    el bloque gana (13110→13100, no el 13000 de la heurística).
-        const calc = AccountPlanProfile.calculateParent(code, config);
+        // 2) El padre estructural materializado prevalece. El relleno por
+        //    bloques solo se considera si este candidato no existe.
+        const calc = AccountPlanProfile.calculateParent(code, { ...config, materializedCodes: codeSet });
         const calcOk = calc && codeSet.has(String(calc)) && String(calc) !== code;
         const blockAlt = blockParentOf.get(code) || null;
         // Evaluación de bloque O(1) con hijos precomputados
@@ -1674,7 +1676,7 @@ export class UniversalPlanAnalyzer {
         if (blockAlt && codeSet.has(String(blockAlt)) && String(blockAlt) !== code) {
             blockAccepted = this._evaluateBlockPrecomputed(code, blockAlt, codeSet, blockChildCount);
         }
-        if (calcOk && (!blockAccepted || !blockAccepted.accepted || blockAlt === calc)) {
+        if (calcOk) {
             const method = config.hasSeparator ? 'SEGMENT' : 'PREFIX';
             return { parent: String(calc), method, confidence: 0.85, evidence: ['structural_hierarchy'], requiresReview: false };
         }
@@ -1780,7 +1782,7 @@ export class UniversalPlanAnalyzer {
             return { parent: String(explicit), method: 'EXPLICIT_PARENT', confidence: 1.0, evidence: ['source_parent_column'], requiresReview: false };
         }
         // 2) calculateParent clásico (SEGMENT o PREFIX según config)
-        const calc = AccountPlanProfile.calculateParent(code, config);
+        const calc = AccountPlanProfile.calculateParent(code, { ...config, materializedCodes: codeSet });
         if (calc && codeSet.has(String(calc)) && String(calc) !== code) {
             const method = config.hasSeparator ? 'SEGMENT' : 'PREFIX';
             return { parent: String(calc), method, confidence: 0.85, evidence: ['structural_hierarchy'], requiresReview: false };

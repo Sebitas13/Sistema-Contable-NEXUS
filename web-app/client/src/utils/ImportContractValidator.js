@@ -29,15 +29,33 @@ const VALID_NATURES = ['EXPLICIT', 'INFERRED', 'INHERITED', 'USER_DEFINED', 'UNK
 const VALID_CLASSIFICATIONS = ['ROOT', 'GROUP', 'LEAF', 'MIXED', 'UNKNOWN'];
 const VALID_POSTABLE = ['EXPLICIT_TRUE', 'EXPLICIT_FALSE', 'INFERRED_TRUE', 'INFERRED_FALSE', 'UNKNOWN'];
 
+export function findUnmaterializedParentReferences(contract, { baselineContract } = {}) {
+    const nodes = Array.isArray(contract?.nodes) ? contract.nodes : [];
+    const codes = new Set(nodes.map(node => String(node.normalizedCode || node.code || '').trim()).filter(Boolean));
+    const baselineCodes = baselineContract
+        ? new Set((baselineContract.nodes || []).map(node => String(node.normalizedCode || node.code || '').trim()).filter(Boolean))
+        : null;
+    return nodes.flatMap((node, index) => {
+        const parent = String(node.parent ?? '').trim() || String(node.parentInfo?.code ?? '').trim();
+        if (!parent || codes.has(parent) || (baselineCodes && !baselineCodes.has(parent))) return [];
+        return [{
+            index,
+            code: String(node.normalizedCode || node.code || '').trim(),
+            parent
+        }];
+    });
+}
+
 export class ImportContractValidator {
     /**
      * @param {Object} contract  ImportContract a validar
      * @param {Object} [opts]
      * @param {boolean} [opts.requireVersion=true]  exige contractVersion soportada
+     * @param {Object} [opts.baselineContract]  contrato fuente antes de cambios de sesión
      * @returns {{valid:boolean, errors:string[], warnings:string[], blocks:string[], fingerprint:string|null}}
      */
     static validate(contract, opts = {}) {
-        const { requireVersion = true } = opts || {};
+        const { requireVersion = true, baselineContract } = opts || {};
         const errors = [];
         const warnings = [];
 
@@ -78,6 +96,22 @@ export class ImportContractValidator {
             }
             if (n.requiresReview === undefined) warnings.push(`${tag}: sin flag requiresReview`);
         });
+
+        const changedMissingParents = new Set(
+            findUnmaterializedParentReferences(contract, { baselineContract })
+                .map(issue => `${issue.index}\u0000${issue.parent}`)
+        );
+        for (const issue of findUnmaterializedParentReferences(contract)) {
+            const node = nodes[issue.index];
+            const message = `node[${issue.index}] (${issue.code}): padre ${issue.parent} no está materializado en nodes`;
+            if (changedMissingParents.has(`${issue.index}\u0000${issue.parent}`)) {
+                errors.push(`BLOCK por jerarquía rota tras cambios: ${message}`);
+            } else if (node.requiresReview || node.parentInfo?.requiresReview) {
+                warnings.push(message);
+            } else {
+                errors.push(message);
+            }
+        }
 
         // ── 4) Ciclos de parent (DFS sobre normalizedCode) ─────────
         const parentOf = new Map();
@@ -145,7 +179,7 @@ export class ImportContractValidator {
         // ── 8) rootNodes ──────────────────────────────────────────
         if (Array.isArray(contract.rootNodes)) {
             contract.rootNodes.forEach(rn => {
-                const code = rn.normalizedCode ?? rn.code;
+                const code = typeof rn === 'string' ? rn : (rn.normalizedCode ?? rn.code);
                 const node = byCode.get(String(code));
                 if (!node) errors.push(`rootNode ${code} no existe en nodes`);
                 else if ((node.level ?? 1) !== 1) errors.push(`rootNode ${code} no tiene level 1 (level=${node.level})`);
