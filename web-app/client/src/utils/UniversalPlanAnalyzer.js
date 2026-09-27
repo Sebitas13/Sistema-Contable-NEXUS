@@ -257,6 +257,40 @@ export class UniversalPlanAnalyzer {
         return { type: 'INVALID_LEVEL_TRANSITION', severity: 'BLOCK', message: `Salto inválido ${fromLevel}→${toLevel} — intermedios parcialmente materializados [${materialized.join(',')}] — ${fromCode}→${toCode}` };
     }
 
+    static detectSiblingSequenceGaps(nodes) {
+        const groups = new Map();
+        for (const node of nodes || []) {
+            const code = String(node.normalizedCode || node.code || '');
+            const match = code.match(/^(.*)([.-])(\d+)$/);
+            if (!match) continue;
+            const [, prefix, separator, suffix] = match;
+            const key = `${prefix}${separator}${suffix.length}`;
+            if (!groups.has(key)) groups.set(key, { prefix, siblings: [] });
+            groups.get(key).siblings.push({ code, number: Number(suffix) });
+        }
+
+        const warnings = [];
+        for (const { prefix, siblings } of groups.values()) {
+            siblings.sort((left, right) => left.number - right.number);
+            for (let index = 1; index < siblings.length; index++) {
+                const previous = siblings[index - 1];
+                const current = siblings[index];
+                const missingCount = current.number - previous.number - 1;
+                if (missingCount <= 0 || missingCount > 5 || current.number === 99) continue;
+                warnings.push({
+                    type: 'SEQUENCE_GAP',
+                    severity: 'WARNING',
+                    parentPrefix: prefix,
+                    from: previous.code,
+                    to: current.code,
+                    missingCount,
+                    message: `Salto de numeración entre ${previous.code} y ${current.code}; es informativo y no bloquea la importación.`
+                });
+            }
+        }
+        return warnings;
+    }
+
     // ──────────────────────────────────────────────────────────────
     // 5) Detección multi-columna por COMPORTAMIENTO (diagonal) + cabecera fuzzy
     // ──────────────────────────────────────────────────────────────
@@ -1044,6 +1078,8 @@ export class UniversalPlanAnalyzer {
             }
         }
 
+        warnings.push(...this.detectSiblingSequenceGaps(nodes));
+
         // Naturaleza inferida sin confirmación → requiere confirmación.
         // REGLA: si hay CUALQUIER error BLOCK, el contrato jamás está "listo".
         const inferredRoots = nodes.filter(n => n.nature === 'INFERRED' && n.classification === 'ROOT');
@@ -1053,8 +1089,8 @@ export class UniversalPlanAnalyzer {
         // Confianza global basada en validaciones y ambigüedad
         let overallConfidence = 0.9;
         if (errors.length > 0) overallConfidence = 0.3;
-        else if (warnings.length > 5) overallConfidence = 0.6;
-        else if (warnings.length > 0) overallConfidence = 0.75;
+        else if (warnings.filter(w => !w || w.severity !== 'WARNING').length > 5) overallConfidence = 0.6;
+        else if (warnings.some(w => !w || w.severity !== 'WARNING')) overallConfidence = 0.75;
         if (analysis.secondBestConfidence !== undefined) {
             const margin = analysis.ambiguityMargin || 0;
             if (margin < 0.1) overallConfidence = Math.min(overallConfidence, 0.5);
@@ -1140,20 +1176,31 @@ export class UniversalPlanAnalyzer {
     static extractNarrativeAccounts(lines) {
         const accounts = [];
         // Códigos 1-6 dígitos (el MEFP usa desde "1 ACTIVO" hasta "111229 ...").
-        const CODE_RE = /^(\d{1,6})\s+(.+)$/;
-        const CODE_ONLY_RE = /^(\d{1,6})$/;
+        const CODE_RE = /^(\d{1,6}(?:[.-]\d{1,6})*\.?)\s+(.+)$/;
+        const CODE_ONLY_RE = /^(\d{1,6}(?:[.-]\d{1,6})*\.?)$/;
         // Dinámica contable MEFP: matrices "1 1 1 0" (dígitos sueltos
         // separados por espacios) — NO son cuentas.
         const DYNAMICS_RE = /^(\d\s)+\d*$/;
 
         // Primera pasada: marca cada línea como código (con/sin nombre) o texto
         const marks = lines.map(rawLine => {
-            const line = String(rawLine ?? '').replace(/\u00A0/g, ' ').trim();
+            const structuredLine = rawLine && typeof rawLine === 'object';
+            const line = String(structuredLine ? rawLine.text : rawLine ?? '').replace(/\u00A0/g, ' ').trim();
+            const allowDelimitedCode = !structuredLine || rawLine.allowDelimitedCode === true;
             if (!line) return { type: 'empty', line };
             const m = line.match(CODE_RE);
             if (m && m[2].trim().length <= 120) {
+                if (/^\d{1,6}\.$/.test(m[1]) && /^(?:introducci[oó]n|[ií]ndice|cap[ií]tulo|secci[oó]n|contenido)\b/i.test(m[2].trim())) {
+                    return { type: 'document_heading', line };
+                }
+                if (/[.-]/.test(m[1]) && !allowDelimitedCode) {
+                    return { type: 'text', line };
+                }
                 // "1 1 1 0" → m[1]="1", m[2]="1 1 0": dinámica, no cuenta
                 if (DYNAMICS_RE.test(line)) return { type: 'text', line };
+                if (/^.{0,80}:\s*(?:grupo\s+de\s+cuentas|comprende|representa|registra|integra|corresponde|incluye|son\s|es\s)/i.test(m[2].trim())) {
+                    return { type: 'text', line };
+                }
                 // Nota al pie MEFP: "N De uso exclusivo..." con N=1 dígito y
                 // texto que empieza con "De uso": es la leyenda del plan, no
                 // una cuenta hija del código N.
@@ -1166,7 +1213,13 @@ export class UniversalPlanAnalyzer {
             // En modo NARRATIVO un número solo en su línea es número de página
             // o nota, NO una cuenta (el MEFP siempre escribe "código + nombre").
             // Los code_bare quedan SOLO para cuando ya confirmamos jerarquía.
-            if (mo) return { type: 'page_number', code: mo[1], line };
+            if (mo) {
+                if (/[.-]/.test(mo[1]) && !allowDelimitedCode) {
+                    return { type: 'text', line };
+                }
+                if (/[.-]/.test(mo[1])) return { type: 'code_bare', code: mo[1], line };
+                return { type: 'page_number', code: mo[1], line };
+            }
             return { type: 'text', line };
         });
 
@@ -1178,10 +1231,15 @@ export class UniversalPlanAnalyzer {
         for (const mark of marks) {
             if (mark.type === 'footnote') continue; // leyenda, no cuenta
             if (mark.type === 'page_number') continue; // paginación del documento
+            if (mark.type === 'document_heading') {
+                if (pending) result.push(pending);
+                pending = null;
+                continue;
+            }
             if (mark.type === 'code_named' || mark.type === 'code_bare') {
                 if (pending) result.push(pending);
                 pending = mark.type === 'code_named'
-                    ? { code: mark.code, name: mark.name, rawLine: mark.line }
+                    ? { code: mark.code, name: mark.name, rawLine: mark.line, continuationLines: 1 }
                     : { code: mark.code, name: '', rawLine: mark.line, continuationLines: 0 };
                 continue;
             }
@@ -1209,11 +1267,163 @@ export class UniversalPlanAnalyzer {
         // Normaliza cuentas sin nombre final
         const accounts2 = result.map(a => ({
             code: a.code,
-            name: (a.name || '').trim() || `Cuenta ${a.code}`,
+            name: (a.name || '').trim(),
             rawLine: a.rawLine
         }));
         const rejected = marks.filter(m => m.type === 'text').map(m => m.line);
         return { accounts: accounts2, rejected };
+    }
+
+    static selectPdfPlanSection(doc) {
+        const rowsByPage = new Map();
+        for (const row of doc.rows || []) {
+            const cellPage = row.cells?.find(cell => Number.isFinite(Number(cell.page)))?.page;
+            const page = Number(cellPage ?? row.page ?? 1);
+            const orderedCells = [...(row.cells || [])]
+                .sort((left, right) => Number(left.x ?? left.col ?? 0) - Number(right.x ?? right.col ?? 0));
+            const hasLeadingBullet = orderedCells.length >= 3 &&
+                /^[-\u2013\u2014]$/.test(String(orderedCells[0].rawValue ?? '').trim()) &&
+                /^\d{1,6}(?:[.-]\d{1,6})*\.?$/.test(String(orderedCells[1].rawValue ?? '').trim()) &&
+                String(orderedCells[2].rawValue ?? '').trim() !== '';
+            const cells = hasLeadingBullet ? orderedCells.slice(1) : orderedCells;
+            const line = cells
+                .map(cell => String(cell.rawValue ?? '').trim())
+                .filter(Boolean)
+                .join(' ')
+                .trim();
+            if (!line) continue;
+            if (!rowsByPage.has(page)) rowsByPage.set(page, []);
+            const firstValue = String(cells[0]?.rawValue ?? '').trim();
+            const codeColumnMatch = /^\d{1,6}(?:[.-]\d{1,6})*\.?$/.test(firstValue) && /[.-]/.test(firstValue);
+            const columnGap = cells[1]
+                ? Number(cells[1].x) - (Number(cells[0].x) + Number(cells[0].width || 0))
+                : 0;
+            rowsByPage.get(page).push({
+                text: line,
+                allowDelimitedCode: codeColumnMatch && Number.isFinite(columnGap) && columnGap >= 8,
+                delimitedCodeCell: codeColumnMatch,
+                firstCellX: Number(cells[0]?.x),
+                firstCellWidth: Number(cells[0]?.width || 0)
+            });
+        }
+
+        const pages = [...rowsByPage.entries()]
+            .sort(([left], [right]) => left - right)
+            .map(([page, rows]) => ({
+                page,
+                rows,
+                lines: rows.map(row => row.text),
+                text: rows.map(row => row.text).join(' ')
+            }));
+        if (pages.length === 0) return null;
+        for (const page of pages) {
+            for (let index = 0; index < page.rows.length - 1; index++) {
+                const row = page.rows[index];
+                const next = page.rows[index + 1];
+                const nextLooksLikeCode = /^\d{1,6}(?:[.-]\d{1,6})*\.?(?:\s|$)/.test(next.text);
+                const labelColumnGap = next.firstCellX - (row.firstCellX + row.firstCellWidth);
+                if (row.delimitedCodeCell && !row.allowDelimitedCode && !nextLooksLikeCode &&
+                    Number.isFinite(labelColumnGap) && labelColumnGap >= 8) {
+                    row.allowDelimitedCode = true;
+                }
+            }
+        }
+
+        const normalizeText = value => String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/\s+/g, ' ');
+        const startPattern = /\b(?:plan\s+(?:unico\s+)?de\s+cuentas|catalogo\s+de\s+cuentas|nomenclatura\s+de\s+cuentas)\b/;
+        const endPattern = /\b(?:descripcion\s+(?:de\s+)?(?:las\s+)?cuentas|dinamica\s+(?:de\s+)?(?:las\s+)?cuentas)\b/;
+        const starts = pages.filter(page => startPattern.test(normalizeText(page.text)));
+        const ends = pages.filter(page => endPattern.test(normalizeText(page.text)));
+        const candidates = [];
+
+        for (const start of starts) {
+            const end = ends.find(page => page.page > start.page);
+            const endPage = end?.page ?? pages[pages.length - 1].page + 1;
+            const sectionPages = pages.filter(page => page.page >= start.page && page.page < endPage);
+            const parsed = this.extractNarrativeAccounts(sectionPages.flatMap(page => page.rows));
+            const accounts = parsed.accounts.filter(account =>
+                this.isPlausibleCode(this.sanitizeCode(account.code)) && String(account.name || '').trim()
+            );
+            const codes = [...new Set(accounts.map(account => this.sanitizeCode(account.code)))];
+            if (codes.length < 10 || !this._hasRealHierarchy(codes)) continue;
+            const accountPages = sectionPages.filter(page =>
+                this.extractNarrativeAccounts(page.rows).accounts.some(account =>
+                    this.isPlausibleCode(this.sanitizeCode(account.code)) && String(account.name || '').trim()
+                )
+            );
+            candidates.push({
+                startPage: accountPages[0]?.page ?? start.page,
+                endPage: accountPages[accountPages.length - 1]?.page ?? sectionPages[sectionPages.length - 1]?.page ?? start.page,
+                pages: sectionPages,
+                method: 'section-heading',
+                accountCount: accounts.length,
+                uniqueCount: codes.length
+            });
+        }
+
+        if (candidates.length > 0) {
+            candidates.sort((left, right) =>
+                right.uniqueCount - left.uniqueCount ||
+                right.accountCount - left.accountCount ||
+                right.startPage - left.startPage
+            );
+            return candidates[0];
+        }
+
+        const pageCandidates = pages.map(page => {
+            const parsed = this.extractNarrativeAccounts(page.rows);
+            const accounts = parsed.accounts.filter(account =>
+                this.isPlausibleCode(this.sanitizeCode(account.code)) && String(account.name || '').trim()
+            );
+            return { ...page, accounts };
+        });
+        const runs = [];
+        let run = [];
+        for (const page of pageCandidates) {
+            if (page.accounts.length === 0) {
+                if (run.length > 0 && page.page - run[run.length - 1].page > 1) {
+                    runs.push(run);
+                    run = [];
+                }
+                continue;
+            }
+            if (run.length > 0 && page.page - run[run.length - 1].page > 2) {
+                runs.push(run);
+                run = [];
+            }
+            run.push(page);
+        }
+        if (run.length > 0) runs.push(run);
+
+        const rankedRuns = runs.map(pagesInRun => {
+            const accounts = pagesInRun.flatMap(page => page.accounts);
+            const codes = [...new Set(accounts.map(account => this.sanitizeCode(account.code)))];
+            return {
+                startPage: pagesInRun[0].page,
+                endPage: pagesInRun[pagesInRun.length - 1].page,
+                pages: pagesInRun,
+                method: 'account-density',
+                accountCount: accounts.length,
+                uniqueCount: codes.length,
+                hasHierarchy: this._hasRealHierarchy(codes),
+                score: codes.length * (codes.length / Math.max(1, accounts.length))
+            };
+        }).filter(candidate => candidate.uniqueCount >= 10 && candidate.hasHierarchy);
+        rankedRuns.sort((left, right) => right.score - left.score || right.uniqueCount - left.uniqueCount);
+        if (rankedRuns.length > 0) return rankedRuns[0];
+
+        return {
+            startPage: pages[0].page,
+            endPage: pages[pages.length - 1].page,
+            pages,
+            method: 'whole-document-fallback',
+            accountCount: 0,
+            uniqueCount: 0
+        };
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -1229,25 +1439,45 @@ export class UniversalPlanAnalyzer {
             };
         }
 
-        // Detección de regiones/tablas sobre las filas canónicas
-        const rawSheet = doc.rows.map(r => r.cells.map(c => c.rawValue));
-        const regions = this.detectTableRegions(rawSheet);
+        const isPdf = doc.source?.format === 'pdf' || doc.source?.format === 'ocr';
+        const pdfSection = isPdf ? this.selectPdfPlanSection(doc) : null;
+        const pdfPageSet = pdfSection ? new Set(pdfSection.pages.map(page => page.page)) : null;
+        const documentRows = pdfPageSet
+            ? doc.rows.filter(row => {
+                const page = Number(row.cells?.find(cell => Number.isFinite(Number(cell.page)))?.page ?? row.page ?? 1);
+                return pdfPageSet.has(page);
+            })
+            : doc.rows;
+        const pdfRows = pdfSection ? pdfSection.pages.flatMap(page => page.rows) : [];
+        const narrative = isPdf && pdfSection ? this.extractNarrativeAccounts(pdfRows) : null;
+        const narrativePlausible = narrative
+            ? narrative.accounts
+                .map(account => ({ ...account, normalizedCode: this.sanitizeCode(account.code) }))
+                .filter(account => this.isPlausibleCode(account.normalizedCode))
+            : [];
+        const narrativeCodes = [...new Set(narrativePlausible.map(account => account.normalizedCode))];
+        const useNarrative = narrativePlausible.filter(account => String(account.name || '').trim()).length >= 10 &&
+            this._hasRealHierarchy(narrativeCodes);
+
+        // A coherent PDF catalogue is one contract; tabular fallback is section-scoped.
+        const rawSheet = useNarrative ? [] : documentRows.map(row => row.cells.map(cell => cell.rawValue));
+        const regions = useNarrative ? { regions: [], warnings: [] } : this.detectTableRegions(rawSheet);
 
         const contracts = [];
         for (const region of regions.regions) {
-            const headerRow = doc.rows[region.headerRowIndex];
+            const headerRow = documentRows[region.headerRowIndex];
             const headers = headerRow
-                ? headerRow.cells.map(c => c.displayValue ?? c.rawValue).filter(Boolean)
+                ? headerRow.cells.map(c => c.displayValue ?? c.rawValue)
                 : [];
 
             // Elige columnas de código/nombre con heurística de cabecera sobre evidencia canónica
-            const codeCol = this._guessCodeColumn(headers, doc.rows, region);
+            const codeCol = this._guessCodeColumn(headers, documentRows, region);
             const nameCol = this._guessNameColumn(headers, codeCol);
             const parentCol = headers.findIndex(h => /padre|parent/i.test(String(h)));
 
             const dataRows = [];
-            for (let r = region.dataStart; r < region.dataEnd && r < doc.rows.length; r++) {
-                const row = doc.rows[r];
+            for (let r = region.dataStart; r < region.dataEnd && r < documentRows.length; r++) {
+                const row = documentRows[r];
                 const codeCell = row.cells[codeCol];
                 const nameCell = row.cells[nameCol];
                 const parentCell = parentCol >= 0 ? row.cells[parentCol] : null;
@@ -1274,38 +1504,25 @@ export class UniversalPlanAnalyzer {
             contracts.push(contract);
         }
 
-        // Ruta narrativa (PDFs institucionales desglosados): líneas completas
-        // que empiezan con código + texto explicativo entre cuentas.
-        if (doc.source.format === 'pdf' || doc.source.format === 'ocr') {
-            const allLines = doc.rows.map(r =>
-                r.cells.map(c => c.rawValue).filter(Boolean).join(' ').trim()
-            );
-            const narrative = this.extractNarrativeAccounts(allLines);
-            const narrativePlausible = narrative.accounts.filter(a => this.isPlausibleCode(a.code));
-
-            // Decide ruta: narrativa gana si produce cuentas plausibles con
-            // jerarquía detectable (no solo números sueltos de índice/páginas).
-            if (narrativePlausible.length >= 10) {
-                const hierarchySignal = this._hasRealHierarchy(narrativePlausible.map(a => a.code));
-                if (hierarchySignal) {
-                    const contract = this.generateImportContract({
-                        fileName: doc.source.fileName,
-                        sheetName: `${doc.source.format}:narrative`,
-                        headers: ['CODIGO', 'NOMBRE'],
-                        rows: narrativePlausible.map(a => ({ 'CODIGO': a.code, 'NOMBRE': a.name })),
-                        codeColumn: 'CODIGO', nameColumn: 'NOMBRE',
-                        parentColumn: null, typeColumn: null
-                    });
-                    contract.region = {
-                        id: 'narrative',
-                        headerRowIndex: -1, headers: ['CODIGO', 'NOMBRE'],
-                        dataStartRow: 0, dataEndRow: narrativePlausible.length,
-                        titleRows: [], extractionMode: 'narrative',
-                        rejectedLines: narrative.rejected.length
-                    };
-                    contracts.push(contract);
-                }
-            }
+        if (useNarrative) {
+            const contract = this.generateImportContract({
+                fileName: doc.source.fileName,
+                sheetName: `${doc.source.format}:narrative:${pdfSection.startPage}-${pdfSection.endPage}`,
+                headers: ['CODIGO', 'NOMBRE'],
+                rows: narrativePlausible.map(account => ({ 'CODIGO': account.code, 'NOMBRE': account.name })),
+                codeColumn: 'CODIGO', nameColumn: 'NOMBRE',
+                parentColumn: null, typeColumn: null
+            });
+            contract.region = {
+                id: 'narrative',
+                headerRowIndex: -1, headers: ['CODIGO', 'NOMBRE'],
+                dataStartRow: 0, dataEndRow: narrativePlausible.length,
+                titleRows: [], extractionMode: 'narrative',
+                pageRange: { start: pdfSection.startPage, end: pdfSection.endPage },
+                pageSelection: pdfSection.method,
+                rejectedLines: narrative.rejected.length
+            };
+            contracts.push(contract);
         }
 
         // ImportAnalysis: multi-región, el usuario decide qué región importar

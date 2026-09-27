@@ -401,7 +401,7 @@ asiento de cierre. El usuario revisa y confirma con `POST /api/transactions/batc
 2. **Engine (shadow, Fase 5 cerrada con GO)**: pipeline puro en
    `client/src/utils/` — `FormatAdapter` (Excel/PDF/CSV, worker pdfjs local) →
    `CanonicalDocument` → `UniversalPlanAnalyzer.analyzeCanonicalDocument`
-   (multi-región) → `ImportContract` → `ImportContractValidator` →
+   (sección documental para PDF; multi-región para hojas tabulares) → `ImportContract` → `ImportContractValidator` →
    `CompatibilityAdapter.toBulkPayload`. Cero escrituras; `silentCorruption=0`,
    `unaccountedRows=0` garantizados por las suites (`npm test`: adversarial 42,
    shadow 68, contract audit 42, production gate 51 + Browser E2E real 6/6).
@@ -418,6 +418,27 @@ asiento de cierre. El usuario revisa y confirma con `POST /api/transactions/batc
    PUCT multicolumna NO está aprobado. `IMPORT_WIZARD_MIGRATION_DESIGN.md` conserva
    el diseño de migración; `UNIVERSAL_IMPORT_ENGINE_BASELINE.md` es el baseline
    congelado del motor.
+
+#### PDF del plan de cuentas
+
+El analizador selecciona la sección de catálogo por encabezados y densidad
+jerárquica, y usa una sola extracción narrativa cuando el documento presenta el
+plan como una secuencia de códigos y nombres. En la muestra MEFP
+`PlanDeCuentasPublicacionVer5.pdf`, el catálogo está en las páginas PDF 7–18 y
+produce 379 cuentas; la página 20 contiene definiciones, no filas del catálogo.
+La muestra APS comprueba además códigos jerárquicos separados por puntos y
+alineados en columnas; recupera 67 cuentas, incluida una fila cuyo código tiene
+un guion decorativo anterior en el PDF. El parser no toma decimales en prosa ni
+títulos numerados como `1. Introducción` por cuentas. Un hueco de hasta cinco
+números entre cuentas hermanas se muestra como aviso
+informativo (excepto terminales `.99`); un padre ausente/no inferible requiere
+revisión en el flujo de importación. Ninguna de estas alertas se presenta como
+"Revisión del reporte" en Estados Financieros.
+
+`PUCT/Plan_de_cuentas_APS_RA_0656_2024.pdf` y
+`PUCT/PCASP_TCE_PR_2026_v1.0a.xlsx` son fixtures públicos de formatos y no
+normativa aplicable al sistema boliviano. Sus fuentes y alcance están en
+`PUCT/FUENTES_DE_MUESTRAS.txt`.
 
 ### G) Login (graceful)
 1. Al cargar la app, `AuthContext` consulta `GET /api/auth/config`.

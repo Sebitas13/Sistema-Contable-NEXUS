@@ -16,14 +16,17 @@ function pct(x) {
 export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, onNext }) {
     const summary = summaryOf(session);
     const contract = effectiveContractOf(session);
-    const regions = session.regions.map(r => ({
-        regionId: r.regionId,
-        meta: r.meta,
-        nodes: r.contract.nodes.length,
-        requiresConfirmation: r.contract.requiresConfirmation,
-        blocks: (r.contract.errors || []).filter(e => e.severity === 'BLOCK').length,
-        reviews: (r.contract.warnings || []).filter(w => w && w.severity === 'REVIEW').length
-    }));
+    const regions = session.regions.map(r => {
+        const issues = summaryOf(session, { regionId: r.regionId }).issues;
+        return {
+            regionId: r.regionId,
+            meta: r.meta,
+            nodes: r.contract.nodes.length,
+            requiresConfirmation: r.contract.requiresConfirmation,
+            blocks: (r.contract.errors || []).filter(e => e.severity === 'BLOCK').length,
+            reviews: issues.reviewWarningsUnresolved + issues.nodeReviewsUnresolved
+        };
+    });
 
     const mapping = contract.columnMapping || {};
     const hierarchy = contract.hierarchy || {};
@@ -49,6 +52,8 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
     const roots = contract.nodes.filter(n => n.classification === 'ROOT').slice(0, 5);
     const sample = contract.nodes.slice(0, 8);
     const transformations = (contract.transformations || []).slice(0, 5);
+    const informationalWarnings = (contract.warnings || []).filter(w => w && w.severity === 'WARNING');
+    const pageRange = contract.region?.pageRange;
 
     return (
         <div data-testid="u2-diag">
@@ -68,6 +73,7 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
                             >
                                 {r.meta.extractionMode === 'narrative' ? 'Narrativa' : `Región ${i + 1}`} ({r.nodes})
                                 {r.blocks > 0 && <span className="badge bg-danger ms-1">{r.blocks} BLOCK</span>}
+                                {r.reviews > 0 && <span className="badge bg-warning text-dark ms-1">{r.reviews} REVIEW</span>}
                             </button>
                         ))}
                     </div>
@@ -79,6 +85,12 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
                     <i className="bi bi-exclamation-triangle me-2"></i>
                     <strong>Requiere tu confirmación.</strong> Hay naturalezas inferidas
                     ({inferredRoots.length} raíces) o revisiones pendientes. Nada se importará sin tu decisión explícita.
+                </div>
+            )}
+
+            {pageRange && (
+                <div className="alert alert-info py-2 small" data-testid="u2-pdf-page-range">
+                    Catálogo reconocido en las páginas PDF {pageRange.start}–{pageRange.end}.
                 </div>
             )}
 
@@ -136,12 +148,26 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
                 </div>
                 <div className="card-body small d-flex flex-wrap gap-2" data-testid="u2-issues">
                     <span className={`badge ${(summary.issues.blocks || 0) > 0 ? 'bg-danger' : 'bg-success'}`}>BLOCK: {summary.issues.blocks || 0}</span>
-                    <span className={`badge ${(summary.issues.reviewWarningsUnresolved || 0) > 0 ? 'bg-warning text-dark' : 'bg-success'}`}>REVIEW: {summary.issues.reviewWarningsUnresolved || 0} pendientes</span>
+                    <span className={`badge ${(summary.issues.reviewWarningsUnresolved + summary.issues.nodeReviewsUnresolved) > 0 ? 'bg-warning text-dark' : 'bg-success'}`}>REVIEW: {summary.issues.reviewWarningsUnresolved + summary.issues.nodeReviewsUnresolved} pendientes</span>
                     <span className={`badge ${(summary.issues.unknownNatureUnresolved || 0) > 0 ? 'bg-warning text-dark' : 'bg-success'}`}>UNKNOWN: {summary.issues.unknownNatureUnresolved || 0} sin confirmar</span>
                     <span className="badge bg-info text-dark">Raíces inferidas: {inferredRoots.length}</span>
                     <span className="badge bg-secondary">Nodos: {summary.nodeCounts.effective}</span>
                 </div>
             </div>
+
+            {informationalWarnings.length > 0 && (
+                <div className="alert alert-info mt-3 py-2 small" data-testid="u2-informational-warnings">
+                    <strong>Avisos del plan ({informationalWarnings.length})</strong>
+                    <ul className="mb-0 mt-1 ps-3">
+                        {informationalWarnings.slice(0, 10).map((warning, index) => (
+                            <li key={`${warning.type}-${index}`}>{warning.message}</li>
+                        ))}
+                    </ul>
+                    {informationalWarnings.length > 10 && (
+                        <div className="mt-1">Y {informationalWarnings.length - 10} aviso(s) más.</div>
+                    )}
+                </div>
+            )}
 
             {transformations.length > 0 && (
                 <div className="card glass-panel border-secondary mt-3">

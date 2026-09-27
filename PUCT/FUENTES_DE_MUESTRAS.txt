@@ -1,0 +1,18 @@
+Muestras publicas agregadas para pruebas del importador (consulta: 2026-09-26)
+
+Plan_de_cuentas_APS_RA_0656_2024.pdf
+  Autoridad de Fiscalizacion y Control de Pensiones y Seguros (APS), Bolivia.
+  Anexo II: Plan de Cuentas de la RA 0656/2024. Incluye jerarquia con niveles
+  de profundidad variable, codigos con puntos, saltos y una muestra de errores
+  de extraccion/OCR en tablas.
+  Fuente oficial:
+  https://www.aps.gob.bo/index.php/component/rsfiles/Descargar?Itemid=437&path=UNE%2Frn%2Fpensiones%2Fdocs%2F3.+LIBRO+3%2F2.+T%C3%8DTULO+II+-+RECAUDACI%C3%93N%2F1%2FANEXOS+RA+0656+2024.pdf
+
+PCASP_TCE_PR_2026_v1.0a.xlsx
+  Tribunal de Contas do Estado do Parana (TCE-PR), Brasil.
+  PCASP padronizado para 2026, versao 1.0a, publicado el 2026-01-14.
+  Fuente oficial:
+  https://www.tce.pr.gov.br/fiscalizado/detalhes-documentos/pcasp-padrao-pr-2026-versao1-0a-publicado-em-14-01-2026-xlsx.htm
+
+Estos archivos son fixtures de pruebas del importador; no son normativa
+aplicable al sistema contable boliviano ni reemplazan el corpus local.

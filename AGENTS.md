@@ -146,6 +146,21 @@ de distribución. No es una página independiente.
   centavo y las cuentas de orden deben cuadrar como conjunto.
 - La Hoja de Trabajo es auxiliar: sus fórmulas y overrides locales no pueden
   alimentar estados, dashboard ni asientos de cierre.
+- Los avisos de clasificación y jerarquía del plan se resuelven en el importador;
+  no mostrar un panel genérico de "Revisión del reporte" en Estados Financieros.
+  Un padre ausente o no inferible debe requerir revisión antes de confirmar la
+  importación. Saltos de numeración entre cuentas hermanas (p. ej. `151.01` a
+  `151.03`) con hasta cinco posiciones omitidas son `WARNING` informativos y por
+  sí solos no bloquean ni reducen la confianza del contrato. No avisar por
+  terminales `.99` ni por huecos amplios, que son convenciones frecuentes.
+- En PDF, seleccionar la sección del catálogo por encabezados y evidencia
+  jerárquica; excluir índices, decimales en prosa y secciones descriptivas. Los
+  códigos con puntos/guiones requieren evidencia espacial de columna código/
+  nombre o continuación alineada. Un guion decorativo anterior al código solo
+  se descarta cuando después hay celdas separadas de código y nombre; títulos
+  numerados evidentes como `1. Introducción` no son cuentas aunque estén en
+  columnas. Mantener un solo contrato cuando el catálogo se extrae como una
+  secuencia coherente. La cobertura está fijada por `scripts/test_pdf_import_quality.mjs`.
 - Antes de cambios contables/tributarios, revisar primero los documentos de
   `C:\Users\user\Desktop\UMSA-CONTA\CONTA\MARCO - INTERNACIONAL_Y_NACIONAL` y
   comprobar la versión vigente en fuentes oficiales. Documentar alcance, artículo,

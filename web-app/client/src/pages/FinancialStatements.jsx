@@ -318,18 +318,6 @@ export default function FinancialStatements() {
             </div>
 
             {error && <div className="alert alert-danger mb-4 shadow-sm">{error}</div>}
-            {((reportMetadata?.warnings?.length || 0) > 0 || (reportMetadata?.accountsNotClassified || 0) > 0) && (
-                <div className="alert alert-warning mb-4 shadow-sm">
-                    <strong>Revisión del reporte</strong>
-                    <ul className="mb-0 mt-1 ps-3">
-                        {(reportMetadata?.warnings || []).map((warning, index) => <li key={`${warning.type}-${index}`}>{warning.message}</li>)}
-                        {(reportMetadata?.accountsNotClassified || 0) > 0 && (
-                            <li>{reportMetadata.accountsNotClassified} cuenta(s) no pudieron clasificarse con el tipo, código o jerarquía disponibles.</li>
-                        )}
-                    </ul>
-                </div>
-            )}
-
             <ul className="nav nav-tabs mb-4 border-secondary">
                 <li className="nav-item">
                     <button className={`nav-link border-0 ${activeTab === 'balance' ? 'active text-primary bg-transparent' : 'text-white-50 bg-transparent'}`} 

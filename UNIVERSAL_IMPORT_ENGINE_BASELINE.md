@@ -20,8 +20,10 @@
 - **Excel**: PUCT 5-col (2217 nodos), PUCT9/Hoja4 (2217), Hoja1 dual-code (586),
   DASH/Hoja2 (235), VARLEN/Hoja5 (577), PGC/Hoja6 (886 vía parser de columna
   única), ASFI (2859).
-- **PDF**: MEFP PlanDeCuentasPublicacionVer5 (págs 6-16: 214 tabla + 311 narrativa),
-  Clasificadores Presupuestarios 2026 (págs 22-49).
+- **PDF, baseline histórica**: MEFP PlanDeCuentasPublicacionVer5 (págs 6-16: 214
+  tabla + 311 narrativa; esa doble región era una extracción falsa, corregida en
+  la actualización 2026-09-26 abajo), Clasificadores Presupuestarios 2026
+  (págs 22-49).
 - **TXT (verdad de tierra)**: MEFP 979 cuentas, Clasificadores 2789 — recall 100%.
 - **Adversarial sintético**: 42 casos (outliers, ciclos, huérfanos, dual-code,
   ceros iniciales, NBSP, separadores mixtos, merged, hidden, corruptos...).
@@ -75,6 +77,29 @@
 7. **MEFP con sets mínimos**: sin hermanos no se infiere pad-to-block
    (conservador: requiere evidencia documental).
 
+### Actualización de extracción PDF (2026-09-26)
+
+La fila histórica del corpus PDF arriba corresponde a la extracción previa, que
+contaba simultáneamente una región tabular falsa y otra narrativa. La inspección
+visual de `PlanDeCuentasPublicacionVer5.pdf` confirmó que la página 7 inicia el
+catálogo, la 18 lo termina y la página 20 ya contiene definiciones. El flujo
+actual selecciona una sola región narrativa de las páginas 7–18 y recupera 379
+cuentas con nombre, sin pies de página ni definiciones importadas. Los códigos
+con separadores requieren evidencia de columna o continuación espacialmente
+alineada para no confundir decimales en prosa con cuentas. Los avisos de
+secuencia se limitan a huecos de hasta cinco números y excluyen terminales
+`.99`. Esta
+corrección actualiza la cobertura PDF, no las demás expectativas/versiones de
+la baseline congelada.
+
+Se añaden fixtures externos para robustez de formatos: un plan APS boliviano en
+PDF (67 cuentas; códigos jerárquicos con puntos y una fila con guion decorativo
+antes del código) y el PCASP TCE-PR brasileño en XLSX (estructura tabular ancha).
+Se excluyen títulos numerados como `1. Introducción` incluso cuando el PDF los
+separa en columnas. Son corpus técnicos de importación, no fuentes de normativa
+boliviana. La prueba reproducible está en
+`scripts/test_pdf_import_quality.mjs`.
+
 ## Política de duplicados (Fase 5, conclusión del corpus real)
 
 - A duplicado exacto → **BLOCK** (hay 11 en el corpus: errores de datos reales).
@@ -88,8 +113,9 @@
 ## Decisiones arquitectónicas
 
 - `ImportAnalysis` (multi-región) cubre multitabla: cada región produce un
-  `ImportContract` y el usuario elige cuál importar (evidencia: MEFP-PDF
-  produce 2 regiones — tabla + narrativa).
+  `ImportContract` y el usuario elige cuál importar. La doble región MEFP-PDF
+  que aparecía en la baseline histórica fue un falso positivo; ver la corrección
+  de extracción documentada abajo.
 - `CompatibilityAdapter` es transformación MECÁNICA (prueba de mutación:
   mutar level/parent/type del contrato → payload refleja exactamente la
   mutación, sin recálculo).

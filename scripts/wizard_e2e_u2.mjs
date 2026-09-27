@@ -30,7 +30,7 @@ const CORPUS = [
     // PUCT5C: excluido por el guard U-9 (no llega a diagnóstico).
     { name: 'U9-PUCT5C', file: 'PUCT/puct.xlsx', publicName: 'u2-puct5c.xlsx', sheet: null, pages: null, expectGuard: true },
     { name: 'U5-DASH(Hoja2)', file: 'PUCT/Planes de cuentas.xlsx', publicName: 'u2-hoja2.xlsx', sheet: 'Hoja2', pages: null, expectNodes: 200, expectRegions: 1, expectBlocks: 1 },
-    { name: 'U5-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '6-16', expectNodes: 200, expectRegions: 2, expectBlocks: 0 },
+    { name: 'U5-MEFP-PDF', file: 'PUCT/PlanDeCuentasPublicacionVer5.pdf', publicName: 'u2-mefp.pdf', sheet: null, pages: '7-18', expectNodes: 379, expectRegions: 1, expectBlocks: 0 },
     // Caso limpio: camina 1→6 (resuelve todo en revisión, resumen en verde,
     // confirmación deshabilitada sin empresa). Generado, no copiado.
     { name: 'U5-CSV', generated: 'CODIGO,NOMBRE\n1,ACTIVO\n11,CAJA\n1101,CAJA MN\n', publicName: 'u2-mini.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 0, walkToSix: true },
