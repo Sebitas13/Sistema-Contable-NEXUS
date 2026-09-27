@@ -76,6 +76,9 @@ export class ImportContractValidator {
         }
 
         const nodes = contract.nodes;
+        if (contract.hierarchy?.status === 'UNKNOWN') {
+            errors.push('Jerarquía lógica desconocida: requiere evidencia o una confirmación explícita de plan plano');
+        }
         const errorsSev = (contract.errors || []).filter(e => e.severity === 'BLOCK');
         const byCode = new Map();
 
@@ -161,6 +164,14 @@ export class ImportContractValidator {
             const code = n.normalizedCode ?? n.code;
             const hasChildren = (childCount.get(String(code)) || 0) > 0;
             const level = n.level;
+            if (Number.isInteger(n.sourceLevel) && n.sourceLevel !== level &&
+                n.hierarchyEvidence?.effectiveLevelMethod !== 'USER_OVERRIDE') {
+                errors.push(`node ${code}: nivel fuente ${n.sourceLevel} fue cambiado/perdido (efectivo=${level})`);
+            }
+            if (String(n.sourceParent ?? '').trim() && !/^[-—–]$/.test(String(n.sourceParent).trim()) &&
+                !String(n.parentInfo?.method || '').startsWith('EXPLICIT_PARENT')) {
+                errors.push(`node ${code}: padre fuente "${n.sourceParent}" no está preservado como evidencia explícita`);
+            }
             if (n.classification && !VALID_CLASSIFICATIONS.includes(n.classification)) {
                 errors.push(`node ${code}: classification inválida ${n.classification}`);
             } else if (n.classification === 'LEAF' && hasChildren) {

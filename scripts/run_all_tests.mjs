@@ -10,11 +10,12 @@
  *   4. production_gate.mjs         (production readiness: fidelidad Excel, adapter
  *                                   forense, payload parity, pad-to-block II, etc.)
  *   5. test_import_session.mjs       (ImportSession U-1: capa pura de sesión)
- *   6. test_import_wizard_u2.mjs     (Wizard U-9: opt-in+guard+log+flag+pasos)
- *   7. shadow_differential.mjs       (U-7: diferencial shadow legacy vs universal)
- *   8. test_financial_reports_core.js (estados, jerarquía ASFI y cierre al centavo)
- *   9. test_worksheet_accounts.mjs (filtro de filas sin actividad)
- *  10. test_pdf_import_quality.mjs (PDF MEFP/APS, XLSX oficial y avisos del importador)
+ *   6. test_hierarchy_evidence.mjs  (anchos, niveles, padres y confirmación plana)
+ *   7. test_import_wizard_u2.mjs     (Wizard U-9: opt-in+guard+log+flag+pasos)
+ *   8. shadow_differential.mjs       (U-7: diferencial shadow legacy vs universal)
+ *   9. test_financial_reports_core.js (estados, jerarquía ASFI y cierre al centavo)
+ *  10. test_worksheet_accounts.mjs (filtro de filas sin actividad)
+ *  11. test_pdf_import_quality.mjs (PDF MEFP/APS, XLSX oficial y avisos del importador)
  *
  * Exit code != 0 si alguna suite falla.
  */
@@ -30,6 +31,7 @@ const suites = [
     { file: 'contract_audit.mjs', label: 'Auditoría de contrato' },
     { file: 'production_gate.mjs', label: 'Production readiness gate' },
     { file: 'test_import_session.mjs', label: 'ImportSession (U-1, puro)' },
+    { file: 'test_hierarchy_evidence.mjs', label: 'Jerarquía y evidencia de importación' },
     { file: 'test_import_wizard_u2.mjs', label: 'Wizard U-9 (guard+opt-in+log)' },
     { file: 'shadow_differential.mjs', label: 'Shadow differential (U-7)' },
     { file: '../web-app/server/test_financial_reports_core.js', label: 'Estados y cierre contable (core puro)' },

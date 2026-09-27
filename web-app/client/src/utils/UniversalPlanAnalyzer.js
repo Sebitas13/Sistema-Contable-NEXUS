@@ -677,10 +677,7 @@ export class UniversalPlanAnalyzer {
         // El caller puede pasar parentMap explícito; si no, intentamos inferir si hay columna "padre"
         // Por ahora, si rawRows y rawHeaders contienen una columna padre con >70% datos, validamos
         if (rawHeaders && rawRows) {
-            const parentHeader = rawHeaders.find(h => {
-                const n = String(h).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                return n.includes('padre') || n.includes('parent') || n === 'cuenta padre 6n';
-            });
+            const parentHeader = this.findEvidenceColumn(rawHeaders, 'parent');
             if (parentHeader) {
                 const codes = accounts.map(a => a.code);
                 const parentMap = {};
@@ -705,12 +702,16 @@ export class UniversalPlanAnalyzer {
             }
         }
 
-        // Construye levelMap para sugerencia de raíces
+        // No sugerir raíces usando una única longitud física como si fuera
+        // profundidad lógica. En ese caso la sesión pedirá evidencia explícita.
+        const hasLogicalCodeShape = Boolean(base.separator) || (validLengths && validLengths.length > 1);
         const levelMap = {};
-        accounts.forEach(a => {
-            try { levelMap[a.code] = AccountPlanProfile.calculateLevel(a.code, base); } catch { levelMap[a.code] = 1; }
-        });
-        const rootTypeSuggestions = this.suggestRootTypes(accounts, levelMap);
+        if (hasLogicalCodeShape) {
+            accounts.forEach(a => {
+                try { levelMap[a.code] = AccountPlanProfile.calculateLevel(a.code, base); } catch { /* sin sugerencia */ }
+            });
+        }
+        const rootTypeSuggestions = hasLogicalCodeShape ? this.suggestRootTypes(accounts, levelMap) : [];
 
         return {
             ...base,
@@ -740,8 +741,15 @@ export class UniversalPlanAnalyzer {
 
         if (analysis.validLengths && analysis.validLengths.length > 0) {
             if (!analysis.separator) {
-                baseConfig.levelLengths = [...analysis.validLengths];
-                baseConfig.levelCount = baseConfig.levelLengths.length;
+                // A single observed width describes physical encoding only. It
+                // is not enough to declare a one-level logical hierarchy.
+                if (analysis.validLengths.length > 1) {
+                    baseConfig.levelLengths = [...analysis.validLengths];
+                    baseConfig.levelCount = baseConfig.levelLengths.length;
+                } else {
+                    baseConfig.levelLengths = [];
+                    baseConfig.levelCount = 0;
+                }
             }
         }
 
@@ -821,14 +829,107 @@ export class UniversalPlanAnalyzer {
     // ──────────────────────────────────────────────────────────────
     // ImportContract — única fuente de verdad, determinista, sin re-inferencia
     // ──────────────────────────────────────────────────────────────
-    static generateImportContract({ fileName, sheetName, headers, rows, codeColumn, nameColumn, parentColumn, typeColumn }) {
-        const rawAccounts = rows.map(r => ({
-            rawCode: String(r[codeColumn] ?? ''),
-            rawName: String(r[nameColumn] ?? ''),
-            code: String(r[codeColumn] ?? ''),
-            name: String(r[nameColumn] ?? ''),
-            parentRaw: parentColumn ? String(r[parentColumn] ?? '') : null,
-            typeRaw: typeColumn ? String(r[typeColumn] ?? '') : null
+    static normalizeHeader(value) {
+        return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    }
+
+    static findEvidenceColumn(headers, kind) {
+        const normalized = (headers || []).map(header => {
+            const spaced = String(header || '')
+                .replace(/([A-Z]{2,})([A-Z][a-z])/g, '$1 $2')
+                .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+                .replace(/([A-Za-z])([0-9])/g, '$1 $2');
+            return this.normalizeHeader(spaced);
+        });
+        const index = normalized.findIndex(header => {
+            const words = header.split(' ');
+            const compactHeader = header.replace(/\s/g, '');
+            if (kind === 'level') {
+                const hasLevel = [
+                    'nivel', 'level', 'lvl', 'jerarquia', 'jerarquico', 'jerarquica', 'hierarchy', 'subnivel', 'sublevel'
+                ].some(token => words.includes(token)) ||
+                    /^(?:nivel|level|lvl|jerarquia|hierarchy)(?:cuenta|account|code|codigo|jerarquico|jerarquica|hierarchical|number|num)?$/.test(compactHeader) ||
+                    /^(?:cuenta|account|code|codigo)(?:nivel|level|lvl|jerarquia|hierarchy)$/.test(compactHeader);
+                return hasLevel &&
+                    !words.includes('anterior') && !words.includes('superior') &&
+                    !words.includes('padre') && !words.includes('parent');
+            }
+            const parentWords = new Set(['padre', 'parent', 'madre', 'mother']);
+            const parentContext = new Set([
+                'cuenta', 'cta', 'codigo', 'cod', 'code', 'account', 'acct', 'id', 'ref',
+                'reference', 'key', 'number', 'num', 'numero', 'de', 'del', 'la', 'el', 'los', 'las', 'lo',
+                'un', 'una', 'source', 'original'
+            ]);
+            const hasParent = words.some(word => parentWords.has(word));
+            const contextWords = words.filter(word => !parentWords.has(word));
+            const separatedParent = hasParent && contextWords.every(word =>
+                parentContext.has(word) || /^\d+[a-z]?$/.test(word));
+            const compactParentLabel = compactHeader.replace(/\d+[a-z]?$/, '');
+            const joinedParent = /^(?:cuenta|cta|codigo|cod|account|acct|id|code)(?:padre|parent|madre|mother)$/.test(compactParentLabel) ||
+                /^(?:padre|parent|madre|mother)(?:cuenta|cta|codigo|cod|account|acct|code|id|ref|reference|key|number|num)$/.test(compactParentLabel);
+            return separatedParent || joinedParent;
+        });
+        return index < 0 ? null : headers[index];
+    }
+
+    static readSourceValue(row, column, headers) {
+        if (column === null || column === undefined) return null;
+        if (Array.isArray(row)) {
+            const index = typeof column === 'number' ? column : headers.indexOf(column);
+            return index >= 0 ? row[index] : null;
+        }
+        return row?.[column] ?? null;
+    }
+
+    static parseSourceLevel(value) {
+        const raw = String(value ?? '').trim();
+        if (!raw) return { value: null, valid: true };
+        if (!/^\d+$/.test(raw)) return { value: null, valid: false };
+        const level = Number(raw);
+        return { value: Number.isSafeInteger(level) && level > 0 ? level : null, valid: Number.isSafeInteger(level) && level > 0 };
+    }
+
+    static deriveLevelsFromParents(accounts, parentOf) {
+        const levels = new Map();
+        const visiting = new Set();
+        const resolve = code => {
+            if (levels.has(code)) return levels.get(code);
+            if (visiting.has(code)) return null;
+            visiting.add(code);
+            const info = parentOf.get(code);
+            const parent = info?.parent;
+            let level = 1;
+            if (parent) {
+                if (!parentOf.has(parent)) level = null;
+                else {
+                    const parentLevel = resolve(parent);
+                    level = Number.isInteger(parentLevel) ? parentLevel + 1 : null;
+                }
+            } else if (info?.requiresReview || info?.declaredParent) level = null;
+            visiting.delete(code);
+            levels.set(code, level);
+            return level;
+        };
+        for (const account of accounts) resolve(account.normalizedCode);
+        return levels;
+    }
+
+    static generateImportContract({ fileName, sheetName, headers = [], rows, codeColumn, nameColumn, parentColumn, levelColumn, typeColumn }) {
+        parentColumn = parentColumn === undefined ? this.findEvidenceColumn(headers, 'parent') : parentColumn;
+        levelColumn = levelColumn === undefined ? this.findEvidenceColumn(headers, 'level') : levelColumn;
+        const hasParentColumn = parentColumn !== null && parentColumn !== undefined;
+        const hasLevelColumn = levelColumn !== null && levelColumn !== undefined;
+        const rawAccounts = rows.map((r, rowIndex) => ({
+            sourceRow: rowIndex,
+            rawCode: String(this.readSourceValue(r, codeColumn, headers) ?? ''),
+            rawName: String(this.readSourceValue(r, nameColumn, headers) ?? ''),
+            code: String(this.readSourceValue(r, codeColumn, headers) ?? ''),
+            name: String(this.readSourceValue(r, nameColumn, headers) ?? ''),
+            parentRaw: hasParentColumn ? String(this.readSourceValue(r, parentColumn, headers) ?? '') : null,
+            levelRaw: hasLevelColumn ? String(this.readSourceValue(r, levelColumn, headers) ?? '') : null,
+            sourceEvidence: r && !Array.isArray(r) ? (r.__sourceEvidence || null) : null,
+            typeRaw: typeColumn !== null && typeColumn !== undefined ? String(this.readSourceValue(r, typeColumn, headers) ?? '') : null
         }));
 
         // Sanitización auditable por registro
@@ -874,19 +975,30 @@ export class UniversalPlanAnalyzer {
 
         const analysis = this.analyzeUniversal(accountsForAnalysis, headers, rows);
         const config = this.proposeStructureUniversal(accountsForAnalysis, headers, rows).config;
+        const observedCodeLengths = [...new Set(plausible.map(a => a.normalizedCode.replace(/[.\-/]/g, '').length))]
+            .sort((a, b) => a - b);
 
         // Clasificación de nodos y validaciones con severidades
         const codeSet = new Set(plausible.map(a => a.normalizedCode));
         const parentMap = {};
         const codeToType = {};
+        const sourceLevelByCode = new Map();
         plausible.forEach(a => {
-            if (parentColumn) parentMap[a.normalizedCode] = this.sanitizeCode(a.parentRaw || '');
+            if (hasParentColumn) parentMap[a.normalizedCode] = this.sanitizeCode(a.parentRaw || '');
+            if (hasLevelColumn) {
+                const parsed = this.parseSourceLevel(a.levelRaw);
+                a.sourceLevel = parsed.value;
+                if (!parsed.valid) {
+                    errors.push({ type: 'invalidSourceLevel', severity: 'BLOCK', code: a.normalizedCode,
+                        message: `Nivel fuente inválido "${a.levelRaw}" para ${a.normalizedCode}` });
+                } else if (parsed.value !== null) {
+                    sourceLevelByCode.set(a.normalizedCode, parsed.value);
+                }
+            } else {
+                a.sourceLevel = null;
+            }
             if (a.typeRaw) codeToType[a.normalizedCode] = a.typeRaw;
         });
-
-        // Si no hay parentColumn pero hay códigos jerárquicos, infiere padres
-        const levelMap = {};
-        plausible.forEach(a => { levelMap[a.normalizedCode] = AccountPlanProfile.calculateLevel(a.normalizedCode, config); });
 
         // Se fusionan los hallazgos de analyzeUniversal (declarados vacíos antes)
         // con las validaciones estructurales propias de generateImportContract.
@@ -897,12 +1009,12 @@ export class UniversalPlanAnalyzer {
         // Primero resuelve referencias fuzzy (padre "111" para código "111.00")
         let unresolved = [];
         let effectiveParentMap = parentMap;
-        if (Object.keys(parentMap).length > 0) {
+        if (hasParentColumn) {
             const resolution = this.resolveParentReferences(plausible.map(a => a.normalizedCode), parentMap);
             effectiveParentMap = resolution.resolved;
             unresolved = resolution.unresolved;
         }
-        if (Object.keys(effectiveParentMap).length > 0) {
+        if (hasParentColumn) {
             const dag = this.validateDAG(plausible.map(a => a.normalizedCode), effectiveParentMap);
             dag.orphans.forEach(o => {
                 // Diferencia huérfano explícito vs implícito:
@@ -950,6 +1062,105 @@ export class UniversalPlanAnalyzer {
             parentOf.set(code, info);
             parentMethod.set(code, info.method);
         }
+
+        // Explicit levels are authoritative. A materialized structural parent
+        // at level N-1 outranks row order, which may be breadth-first. If neither
+        // structure nor a unique preceding candidate resolves the edge, require
+        // review instead of attaching the last sibling by default.
+        if (hasLevelColumn && !hasParentColumn) {
+            const precedingByLevel = new Map();
+            for (const account of plausible) {
+                const code = account.normalizedCode;
+                const level = sourceLevelByCode.get(code);
+                const structural = parentOf.get(code);
+                if (!level) continue;
+                if (level === 1) {
+                    if (structural?.parent) {
+                        parentOf.set(code, { parent: null, method: 'SOURCE_LEVEL_ROOT_REVIEW', confidence: 1,
+                            evidence: ['source_level_column', 'structural_parent_conflict', structural.parent], requiresReview: true });
+                    } else {
+                        parentOf.set(code, { parent: null, method: 'SOURCE_LEVEL_ROOT', confidence: 1,
+                            evidence: ['source_level_column', 'source_order'], requiresReview: false });
+                    }
+                } else {
+                    const candidates = precedingByLevel.get(level - 1) || [];
+                    const structuralParent = structural?.parent || null;
+                    const structuralParentLevel = structuralParent ? sourceLevelByCode.get(structuralParent) : null;
+                    if (structuralParent && structuralParentLevel === level - 1) {
+                        const parentPrecedesChild = candidates.includes(structuralParent);
+                        parentOf.set(code, {
+                            ...structural,
+                            evidence: [...(structural.evidence || []), 'source_level_column', 'structural_parent_level_match'],
+                            requiresReview: Boolean(structural.requiresReview || !parentPrecedesChild)
+                        });
+                    } else if (structuralParent && Number.isInteger(structuralParentLevel)) {
+                        parentOf.set(code, { parent: null, method: 'SOURCE_LEVEL_PARENT_REVIEW', confidence: 0,
+                            evidence: ['source_level_without_matching_structural_parent', `structural_parent_level_${structuralParentLevel}`],
+                            requiresReview: true });
+                    } else if (candidates.length === 1) {
+                        const orderedParent = candidates[0];
+                        parentOf.set(code, { parent: orderedParent, method: 'SOURCE_LEVEL_ORDER', confidence: 1,
+                            evidence: ['source_level_column', 'unique_preceding_level_candidate', `preceding_level_${level - 1}`],
+                            requiresReview: false });
+                    } else if (candidates.length > 1) {
+                        parentOf.set(code, { parent: null, method: 'SOURCE_LEVEL_PARENT_AMBIGUOUS', confidence: 0,
+                            evidence: ['source_level_column', `preceding_level_${level - 1}`, `candidate_count_${candidates.length}`],
+                            requiresReview: true });
+                    } else {
+                        parentOf.set(code, { parent: null, method: 'SOURCE_LEVEL_PARENT_UNKNOWN', confidence: 0,
+                            evidence: ['source_level_without_preceding_parent'], requiresReview: true });
+                    }
+                }
+                if (!precedingByLevel.has(level)) precedingByLevel.set(level, []);
+                precedingByLevel.get(level).push(code);
+            }
+        }
+
+        const graphLevels = this.deriveLevelsFromParents(plausible, parentOf);
+        const lengthStructureIsUsable = Boolean(config.hasSeparator && config.levelLengths?.length) ||
+            Boolean(!config.hasSeparator && config.levelLengths?.length > 1);
+        const levelMap = {};
+        let hasUnknownLevel = false;
+        for (const account of plausible) {
+            const code = account.normalizedCode;
+            const sourceLevel = sourceLevelByCode.get(code) ?? null;
+            let level = sourceLevel;
+            let method = sourceLevel !== null ? 'SOURCE_LEVEL' : null;
+            if (level === null && hasParentColumn && graphLevels.get(code) !== null) {
+                level = graphLevels.get(code);
+                method = 'EXPLICIT_PARENT_GRAPH';
+            } else if (level === null && hasLevelColumn && graphLevels.get(code) !== null) {
+                level = graphLevels.get(code);
+                method = 'SOURCE_ORDER_PARENT_GRAPH';
+            } else if (level === null && lengthStructureIsUsable) {
+                level = AccountPlanProfile.calculateLevel(code, config);
+                method = 'CODE_STRUCTURE';
+            } else if (level === null && graphLevels.get(code) !== null &&
+                [...parentOf.values()].some(info => info.parent)) {
+                level = graphLevels.get(code);
+                method = 'MATERIALIZED_PARENT_GRAPH';
+            }
+            if (!Number.isInteger(level) || level < 1) {
+                level = null;
+                hasUnknownLevel = true;
+                warnings.push({ type: 'unknownHierarchy', severity: 'REVIEW', code,
+                    message: `No hay evidencia suficiente para determinar el nivel de ${code}` });
+            }
+            account.inferredLevel = sourceLevel === null ? level : null;
+            account.levelMethod = method || 'UNKNOWN';
+            levelMap[code] = level;
+        }
+
+        for (const account of plausible) {
+            const code = account.normalizedCode;
+            const parent = parentOf.get(code)?.parent;
+            const sourceLevel = sourceLevelByCode.get(code);
+            const parentLevel = parent ? levelMap[parent] : null;
+            if (sourceLevel !== undefined && parent && Number.isInteger(parentLevel) && parentLevel >= sourceLevel) {
+                errors.push({ type: 'levelParentConflict', severity: 'BLOCK', code, parent,
+                    message: `Nivel fuente ${sourceLevel} no es más profundo que su padre ${parent} (nivel ${parentLevel})` });
+            }
+        }
         // Índice hijos: parent -> [child codes] (una sola pasada)
         const childrenOf = new Map();
         for (const [code, info] of parentOf) {
@@ -967,15 +1178,15 @@ export class UniversalPlanAnalyzer {
             let classification = 'UNKNOWN';
             if (level === 1 && !hasChildren) classification = 'LEAF';
             else if (level === 1 && hasChildren) classification = 'ROOT';
-            else if (hasChildren) classification = 'GROUP';
-            else if (!hasChildren) classification = 'LEAF';
+            else if (Number.isInteger(level) && hasChildren) classification = 'GROUP';
+            else if (Number.isInteger(level) && !hasChildren) classification = 'LEAF';
             if (level === 1 && hasChildren && plausible.some(o => levelMap[o.normalizedCode] === 1 && o.normalizedCode !== a.normalizedCode)) classification = 'ROOT';
 
             // isPostable con 5 estados
             const explicitPostable = a.typeRaw ? (String(a.typeRaw).toLowerCase().includes('posteable') ? true : null) : null;
             // Si no hay columna POSTE, usa heurística de isPostable pero marcada como INFERRED
             let postableInfo;
-            if (typeColumn && a.typeRaw !== null) {
+            if (typeColumn !== null && typeColumn !== undefined && a.typeRaw !== null) {
                 // Si hay columna tipo/poste explícita, úsala
                 postableInfo = this.classifyPostable({ level, hasChildren }, explicitPostable);
             } else {
@@ -1005,9 +1216,23 @@ export class UniversalPlanAnalyzer {
                 name: String(a.rawName || '').replace(/\s+/g, ' ').trim(),
                 normalizedCode: a.normalizedCode,
                 transformations: a.transformations,
-                requiresReview: a.requiresReview || info.requiresReview,
+                requiresReview: a.requiresReview || info.requiresReview || !Number.isInteger(level),
+                normalizationRequiresReview: Boolean(a.requiresReview),
                 level,
                 parent: parent || null,
+                sourceLevel: a.sourceLevel ?? null,
+                inferredLevel: a.inferredLevel ?? null,
+                sourceParent: hasParentColumn ? (a.parentRaw || null) : null,
+                inferredParent: hasParentColumn ? null : (parent || null),
+                hierarchyEvidence: {
+                    levelMethod: a.levelMethod || 'UNKNOWN',
+                    sourceLevel: a.sourceLevel ?? null,
+                    inferredLevel: a.inferredLevel ?? null,
+                    parentMethod: info.method,
+                    sourceParent: hasParentColumn ? (a.parentRaw || null) : null,
+                    inferredParent: hasParentColumn ? null : (parent || null),
+                    source: a.sourceEvidence ? { ...a.sourceEvidence } : { row: a.sourceRow }
+                },
                 // Evidencia auditable del padre: cómo y con qué confianza se obtuvo
                 parentInfo: {
                     code: parent || null,
@@ -1066,12 +1291,13 @@ export class UniversalPlanAnalyzer {
         }
 
         // Transiciones de nivel con 3 tipos
-        const validLevels = analysis.validLengths || Array.from(new Set(plausible.map(a => levelMap[a.normalizedCode]))).sort((a,b)=>a-b);
+        const validLevels = [...new Set(Object.values(levelMap).filter(Number.isInteger))].sort((a, b) => a - b);
         for (let i = 1; i < plausible.length; i++) {
             const prev = plausible[i-1];
             const curr = plausible[i];
-            const fromLevel = levelMap[prev.normalizedCode] || 1;
-            const toLevel = levelMap[curr.normalizedCode] || 1;
+            const fromLevel = levelMap[prev.normalizedCode];
+            const toLevel = levelMap[curr.normalizedCode];
+            if (!Number.isInteger(fromLevel) || !Number.isInteger(toLevel)) continue;
             const cls = this.classifyLevelTransition(fromLevel, toLevel, prev.normalizedCode, curr.normalizedCode, validLevels);
             if (cls) {
                 if (cls.severity === 'BLOCK') errors.push({ type: cls.type, severity: cls.severity, from: prev.normalizedCode, to: curr.normalizedCode, message: cls.message });
@@ -1085,7 +1311,7 @@ export class UniversalPlanAnalyzer {
         // REGLA: si hay CUALQUIER error BLOCK, el contrato jamás está "listo".
         const inferredRoots = nodes.filter(n => n.nature === 'INFERRED' && n.classification === 'ROOT');
         const hasBlocks = errors.some(e => e.severity === 'BLOCK');
-        const requiresConfirmation = hasBlocks || inferredRoots.length > 0 || warnings.some(w => w.severity === 'REVIEW');
+        const requiresConfirmation = hasBlocks || hasUnknownLevel || inferredRoots.length > 0 || warnings.some(w => w.severity === 'REVIEW');
 
         // Confianza global basada en validaciones y ambigüedad
         let overallConfidence = 0.9;
@@ -1100,6 +1326,40 @@ export class UniversalPlanAnalyzer {
         const rootNodes = nodes.filter(n => n.classification === 'ROOT');
         const leafCount = nodes.filter(n => n.classification === 'LEAF').length;
         const groupCount = nodes.filter(n => n.classification === 'GROUP').length;
+        const logicalLevelCount = validLevels.length > 0 ? Math.max(...validLevels) : 0;
+        const explicitLevelWidths = new Map();
+        for (const account of plausible) {
+            const level = levelMap[account.normalizedCode];
+            if (!Number.isInteger(level)) continue;
+            const width = account.normalizedCode.replace(/[.\-/]/g, '').length;
+            if (!explicitLevelWidths.has(level)) explicitLevelWidths.set(level, new Set());
+            explicitLevelWidths.get(level).add(width);
+        }
+        let logicalLevelLengths = sourceLevelByCode.size === 0 && lengthStructureIsUsable
+            ? [...config.levelLengths]
+            : [];
+        if (!logicalLevelLengths.length && sourceLevelByCode.size === plausible.length && !hasUnknownLevel) {
+            const orderedLevels = [...explicitLevelWidths.keys()].sort((a, b) => a - b);
+            const coversEveryLevel = orderedLevels.length === logicalLevelCount &&
+                orderedLevels.every((level, index) => level === index + 1);
+            const widths = coversEveryLevel ? orderedLevels.map(level => {
+                const values = [...explicitLevelWidths.get(level)];
+                return values.length === 1 ? values[0] : null;
+            }) : [];
+            if (widths.length > 0 && widths.every((width, index) =>
+                Number.isInteger(width) && (index === 0 || width > widths[index - 1]))) {
+                logicalLevelLengths = widths;
+            }
+        }
+        const hasMaterializedParents = [...parentOf.values()].some(info => info.parent);
+        const hierarchyStatus = hasUnknownLevel ? 'UNKNOWN' : sourceLevelByCode.size > 0 ? 'EXPLICIT_LEVELS' :
+            hasParentColumn ? 'EXPLICIT_PARENTS' : lengthStructureIsUsable ? 'CODE_STRUCTURE' :
+                hasMaterializedParents ? 'MATERIALIZED_PARENT_GRAPH' : 'UNKNOWN';
+        const hasNonEmptySourceParent = plausible.some(account =>
+            String(account.parentRaw ?? '').trim() !== '' && !/^[-—–]$/.test(String(account.parentRaw).trim()));
+        const hasInvalidSourceLevel = errors.some(error => error.type === 'invalidSourceLevel');
+        const canConfirmFlat = hierarchyStatus === 'UNKNOWN' && sourceLevelByCode.size === 0 &&
+            !hasNonEmptySourceParent && !hasInvalidSourceLevel && !hasMaterializedParents;
 
         // ── Data-loss accounting (invariante: dataLossCount === 0) ──
         // dataLossCount = SOLO pérdidas NO inventariadas. Las filas rechazadas
@@ -1126,14 +1386,25 @@ export class UniversalPlanAnalyzer {
             analyzerVersion: ANALYZER_VERSION,
 
             source: { file: fileName, sheet: sheetName, headers, rowCount: rows.length },
-            columnMapping: { codeColumn, nameColumn, parentColumn, typeColumn, confidence: 0.85, ambiguous: false, scored: false, ambiguityMargin: null },
+            columnMapping: { codeColumn, nameColumn, parentColumn: hasParentColumn ? parentColumn : null,
+                levelColumn: hasLevelColumn ? levelColumn : null, typeColumn, confidence: 0.85,
+                ambiguous: false, scored: false, ambiguityMargin: null },
             hierarchy: {
                 separator: analysis.separator,
-                levelLengths: analysis.validLengths || [],
-                levelCount: Math.max((analysis.validLengths || []).length, analysis.levelsCount || 0)
+                status: hierarchyStatus,
+                observedCodeLengths,
+                logicalLevelLengths,
+                levelLengths: logicalLevelLengths,
+                levelCount: logicalLevelCount,
+                canConfirmFlat,
+                evidence: {
+                    sourceLevelColumn: hasLevelColumn ? levelColumn : null,
+                    sourceParentColumn: hasParentColumn ? parentColumn : null,
+                    codeStructure: lengthStructureIsUsable ? 'segmented_or_variable_width' : null
+                }
             },
             separator: analysis.separator,
-            levels: analysis.validLengths,
+            levels: logicalLevelLengths,
             rootNodes,
             nodeCounts: { total: nodes.length, roots: rootNodes.length, groups: groupCount, leaves: leafCount },
             leafCounts: leafCount,
@@ -1212,7 +1483,8 @@ export class UniversalPlanAnalyzer {
                 if (/^De\s+uso\s+exclusivo/i.test(m[2].trim())) {
                     return { type: 'footnote', code: m[1], line };
                 }
-                return { type: 'code_named', code: m[1], name: m[2].trim(), line };
+                return { type: 'code_named', code: m[1], name: m[2].trim(), line,
+                    sourceEvidence: structuredLine ? rawLine.positionEvidence || null : null };
             }
             const mo = line.match(CODE_ONLY_RE);
             // En modo NARRATIVO un número solo en su línea es número de página
@@ -1244,7 +1516,7 @@ export class UniversalPlanAnalyzer {
             if (mark.type === 'code_named' || mark.type === 'code_bare') {
                 if (pending) result.push(pending);
                 pending = mark.type === 'code_named'
-                    ? { code: mark.code, name: mark.name, rawLine: mark.line, continuationLines: 1 }
+                    ? { code: mark.code, name: mark.name, rawLine: mark.line, sourceEvidence: mark.sourceEvidence, continuationLines: 1 }
                     : { code: mark.code, name: '', rawLine: mark.line, continuationLines: 0 };
                 continue;
             }
@@ -1273,7 +1545,8 @@ export class UniversalPlanAnalyzer {
         const accounts2 = result.map(a => ({
             code: a.code,
             name: (a.name || '').trim(),
-            rawLine: a.rawLine
+            rawLine: a.rawLine,
+            sourceEvidence: a.sourceEvidence || null
         }));
         const rejected = marks.filter(m => m.type === 'text').map(m => m.line);
         return { accounts: accounts2, rejected };
@@ -1308,7 +1581,13 @@ export class UniversalPlanAnalyzer {
                 allowDelimitedCode: codeColumnMatch && Number.isFinite(columnGap) && columnGap >= 8,
                 delimitedCodeCell: codeColumnMatch,
                 firstCellX: Number(cells[0]?.x),
-                firstCellWidth: Number(cells[0]?.width || 0)
+                firstCellWidth: Number(cells[0]?.width || 0),
+                positionEvidence: {
+                    format: 'pdf',
+                    page,
+                    code: { x: Number(cells[0]?.x), y: Number(cells[0]?.y), width: Number(cells[0]?.width || 0) },
+                    name: { x: Number(cells[1]?.x), y: Number(cells[1]?.y), width: Number(cells[1]?.width || 0) }
+                }
             });
         }
 
@@ -1478,7 +1757,10 @@ export class UniversalPlanAnalyzer {
             // Elige columnas de código/nombre con heurística de cabecera sobre evidencia canónica
             const codeCol = this._guessCodeColumn(headers, documentRows, region);
             const nameCol = this._guessNameColumn(headers, codeCol);
-            const parentCol = headers.findIndex(h => /padre|parent/i.test(String(h)));
+            const parentHeader = this.findEvidenceColumn(headers, 'parent');
+            const levelHeader = this.findEvidenceColumn(headers, 'level');
+            const parentCol = parentHeader === null ? -1 : headers.indexOf(parentHeader);
+            const levelCol = levelHeader === null ? -1 : headers.indexOf(levelHeader);
 
             const dataRows = [];
             for (let r = region.dataStart; r < region.dataEnd && r < documentRows.length; r++) {
@@ -1486,11 +1768,19 @@ export class UniversalPlanAnalyzer {
                 const codeCell = row.cells[codeCol];
                 const nameCell = row.cells[nameCol];
                 const parentCell = parentCol >= 0 ? row.cells[parentCol] : null;
+                const levelCell = levelCol >= 0 ? row.cells[levelCol] : null;
                 if (!codeCell) continue;
                 dataRows.push({
                     'CODIGO': codeCell.rawValue,
                     'NOMBRE': nameCell ? nameCell.rawValue : null,
-                    ...(parentCell ? { 'Cuenta Padre': parentCell.rawValue } : {})
+                    ...(parentCell ? { [parentHeader]: parentCell.rawValue } : {}),
+                    ...(levelCell ? { [levelHeader]: levelCell.rawValue } : {}),
+                    __sourceEvidence: {
+                        format: doc.source.format,
+                        row: row.rowIndex,
+                        code: { coordinate: codeCell.coordinate, page: codeCell.page, x: codeCell.x, y: codeCell.y, width: codeCell.width },
+                        name: nameCell ? { coordinate: nameCell.coordinate, page: nameCell.page, x: nameCell.x, y: nameCell.y, width: nameCell.width } : null
+                    }
                 });
             }
             if (dataRows.length === 0) continue;
@@ -1502,7 +1792,8 @@ export class UniversalPlanAnalyzer {
                 rows: dataRows,
                 codeColumn: 'CODIGO',
                 nameColumn: 'NOMBRE',
-                parentColumn: parentCol >= 0 ? 'Cuenta Padre' : null,
+                parentColumn: parentCol >= 0 ? parentHeader : null,
+                levelColumn: levelCol >= 0 ? levelHeader : null,
                 typeColumn: null
             });
             contract.region = region;
@@ -1514,7 +1805,11 @@ export class UniversalPlanAnalyzer {
                 fileName: doc.source.fileName,
                 sheetName: `${doc.source.format}:narrative:${pdfSection.startPage}-${pdfSection.endPage}`,
                 headers: ['CODIGO', 'NOMBRE'],
-                rows: narrativePlausible.map(account => ({ 'CODIGO': account.code, 'NOMBRE': account.name })),
+                rows: narrativePlausible.map(account => ({
+                    'CODIGO': account.code,
+                    'NOMBRE': account.name,
+                    __sourceEvidence: account.sourceEvidence || null
+                })),
                 codeColumn: 'CODIGO', nameColumn: 'NOMBRE',
                 parentColumn: null, typeColumn: null
             });

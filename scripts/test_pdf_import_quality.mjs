@@ -150,9 +150,13 @@ async function analyzePdf(relativePath) {
         codeColumn: 'CODIGO',
         nameColumn: 'NOMBRE'
     });
-    assert.deepEqual(fixedWidthContract.hierarchy.levelLengths, [6]);
-    assert.ok(fixedWidthContract.hierarchy.levelCount >= fixedWidthProfile.levelsCount,
-        'regresión: levelCount conserva la señal lógica previa aunque levelLengths colapse; el arreglo completo queda separado');
+    assert.deepEqual(fixedWidthContract.hierarchy.observedCodeLengths, [6]);
+    assert.deepEqual(fixedWidthContract.hierarchy.logicalLevelLengths, []);
+    assert.equal(fixedWidthContract.hierarchy.status, 'UNKNOWN');
+    assert.ok(fixedWidthContract.nodes.every(node => node.level === null),
+        'regresión: un ancho físico único no declara plan plano ni profundidad lógica');
+    assert.ok(fixedWidthContract.hierarchy.levelCount === 0 && fixedWidthProfile.levelsCount >= 1,
+        'la señal de AccountPlanProfile no se reutiliza como profundidad lógica del contrato');
 }
 
 // PDF APS complementa el corpus con jerarquia por puntos y numeracion variable.

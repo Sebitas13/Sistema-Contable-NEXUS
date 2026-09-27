@@ -7,8 +7,8 @@
  * desconocidas.
  */
 
-export const CONTRACT_SCHEMA_VERSION = '1.0';      // forma del JSON del contrato
-export const ANALYZER_VERSION = '2.1.0';           // versión del UniversalPlanAnalyzer
+export const CONTRACT_SCHEMA_VERSION = '1.1';      // forma del JSON del contrato
+export const ANALYZER_VERSION = '2.3.0';           // versión del UniversalPlanAnalyzer
 export const VALIDATOR_VERSION = '1.0';            // versión del ImportContractValidator
 
 /** Versión que el pipeline completo espera hoy. */

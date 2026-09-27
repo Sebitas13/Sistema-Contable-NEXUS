@@ -35,6 +35,11 @@ import { findUnmaterializedParentReferences, ImportContractValidator } from '../
 
 const EDITABLE_FIELDS = new Set(['code', 'name', 'type', 'level']);
 
+export function nodeNeedsReview(node, { flatConfirmed = false, resolved = false } = {}) {
+    if (!node || resolved || !(node.requiresReview || node.parentInfo?.requiresReview)) return false;
+    return !(flatConfirmed && !node.normalizationRequiresReview);
+}
+
 // ─────────────────────────────────────────────────────────────
 // Utilidades internas
 // ─────────────────────────────────────────────────────────────
@@ -209,6 +214,7 @@ function effectiveRegionContract(session, region) {
         if (excludedUids.has(conf.uid)) continue;
         natureMap.set(conf.uid, conf.nature);
     }
+    const flatConfirmation = session.hierarchyConfirmations.find(item => item.regionId === region.regionId);
 
     const codeCount = new Map(); // normalizedCode efectivo -> ocurrencias
     const nodes = [];
@@ -223,8 +229,14 @@ function effectiveRegionContract(session, region) {
             normalizedCode: node.normalizedCode,
             transformations: node.transformations ? node.transformations.slice() : [],
             requiresReview: node.requiresReview,
+            normalizationRequiresReview: Boolean(node.normalizationRequiresReview),
             level: node.level,
             parent: node.parent,
+            sourceLevel: node.sourceLevel ?? null,
+            inferredLevel: node.inferredLevel ?? null,
+            sourceParent: node.sourceParent ?? null,
+            inferredParent: node.inferredParent ?? null,
+            hierarchyEvidence: node.hierarchyEvidence ? clonePlain(node.hierarchyEvidence) : undefined,
             parentInfo: node.parentInfo
                 ? { ...node.parentInfo, evidence: (node.parentInfo.evidence || []).slice() }
                 : { code: node.parent ?? null, method: 'OTHER', confidence: 0, evidence: [], requiresReview: true },
@@ -254,7 +266,41 @@ function effectiveRegionContract(session, region) {
             }
             if ('name' in ov) out.name = ov.name;
             if ('type' in ov) out.type = ov.type;
-            if ('level' in ov) out.level = ov.level;
+            if ('level' in ov) {
+                out.level = ov.level;
+                out.hierarchyEvidence = {
+                    ...(out.hierarchyEvidence || {}),
+                    effectiveLevelMethod: 'USER_OVERRIDE',
+                    userLevelOverride: ov.level
+                };
+            }
+        }
+        if (flatConfirmation) {
+            out.level = 1;
+            out.parent = null;
+            out.requiresReview = out.normalizationRequiresReview;
+            out.inferredLevel = 1;
+            out.inferredParent = null;
+            out.classification = 'LEAF';
+            out.parentInfo = {
+                code: null,
+                declaredCode: null,
+                method: 'USER_CONFIRMED_FLAT',
+                confidence: 1,
+                evidence: ['explicit_user_confirmation_all_accounts_level_1'],
+                requiresReview: false
+            };
+            out.hierarchyEvidence = {
+                ...(out.hierarchyEvidence || {}),
+                levelMethod: 'USER_CONFIRMED_FLAT',
+                inferredLevel: 1,
+                parentMethod: 'USER_CONFIRMED_FLAT',
+                inferredParent: null
+            };
+            if (!['EXPLICIT_FALSE', 'EXPLICIT_TRUE'].includes(out.isPostable)) {
+                out.isPostable = 'INFERRED_TRUE';
+                out.postableConfidence = 0.6;
+            }
         }
         if (natureMap.has(uid)) {
             out.type = natureMap.get(uid);
@@ -276,9 +322,22 @@ function effectiveRegionContract(session, region) {
         analyzerVersion: c.analyzerVersion,
         source: c.source ? clonePlain(c.source) : undefined,
         columnMapping: c.columnMapping ? clonePlain(c.columnMapping) : undefined,
-        hierarchy: c.hierarchy ? clonePlain(c.hierarchy) : undefined,
+        hierarchy: c.hierarchy ? {
+            ...clonePlain(c.hierarchy),
+            ...(flatConfirmation ? {
+                status: 'FLAT_CONFIRMED',
+                levelCount: 1,
+                logicalLevelLengths: c.hierarchy.observedCodeLengths?.length === 1
+                    ? c.hierarchy.observedCodeLengths.slice() : [],
+                levelLengths: c.hierarchy.observedCodeLengths?.length === 1
+                    ? c.hierarchy.observedCodeLengths.slice() : [],
+                confirmation: clonePlain(flatConfirmation)
+            } : {})
+        } : undefined,
         separator: c.separator,
-        levels: c.levels ? c.levels.slice() : [],
+        levels: flatConfirmation
+            ? (c.hierarchy?.observedCodeLengths?.length === 1 ? c.hierarchy.observedCodeLengths.slice() : [])
+            : (c.levels ? c.levels.slice() : []),
         rootNodes: nodes.filter(n => n.classification === 'ROOT').map(n => n.code),
         nodeCounts: { total: nodes.length, roots: rootCount, groups: groupCount, leaves: leafCount },
         leafCounts: leafCount,
@@ -300,6 +359,7 @@ function effectiveRegionContract(session, region) {
         dataLoss: c.dataLoss ? clonePlain(c.dataLoss) : undefined,
         silentCorruptionCount: c.silentCorruptionCount ?? 0,
         region: c.region ? clonePlain(c.region) : undefined,
+        hierarchyResolution: flatConfirmation ? clonePlain(flatConfirmation) : null,
         _originalNodeCount: c.nodes.length
     };
 }
@@ -323,6 +383,7 @@ function gateReasons(session, region) {
     const resolvedNodes = new Set(sessionReviewResolutionsOf(session, region).filter(r => r.uid).map(r => r.uid));
     const resolvedWarnKeys = new Set(sessionReviewResolutionsOf(session, region).filter(r => r.warnKey).map(r => r.warnKey));
     const confirmedUids = new Set(sessionNatureConfirmationsOf(session, region).map(e => e.uid));
+    const flatConfirmed = session.hierarchyConfirmations.some(item => item.regionId === region.regionId);
 
     const structuralValidation = ImportContractValidator.validate(effective, { baselineContract: c });
     for (const error of structuralValidation.errors) {
@@ -369,6 +430,7 @@ function gateReasons(session, region) {
     for (let wi = 0; wi < c.warnings.length; wi++) {
         const warn = c.warnings[wi];
         if (!warn || typeof warn !== 'object' || warn.severity !== 'REVIEW') continue;
+        if (flatConfirmed && c.hierarchy?.canConfirmFlat && warn.type === 'unknownHierarchy') continue;
         if (typeof warn.code === 'string' && warn.code && !effective.warnings.includes(warn)) {
             continue; // su código fue excluido por completo → el issue ya no aplica
         }
@@ -383,10 +445,11 @@ function gateReasons(session, region) {
         const node = c.nodes[index];
         const uid = uidOf(region.regionId, index);
         if (excludedUids.has(uid)) continue;
-        if (node.requiresReview || (node.parentInfo && node.parentInfo.requiresReview)) {
-            if (!resolvedNodes.has(uid)) {
-                reasons.push(`REVIEW de nodo sin resolver (${uid}: ${node.code}, método ${node.parentInfo?.method || '?'})`);
-            }
+        if (nodeNeedsReview(node, {
+            flatConfirmed: flatConfirmed && c.hierarchy?.canConfirmFlat,
+            resolved: resolvedNodes.has(uid)
+        })) {
+            reasons.push(`REVIEW de nodo sin resolver (${uid}: ${node.code}, método ${node.parentInfo?.method || '?'})`);
         }
     }
 
@@ -457,7 +520,8 @@ export function createImportSession({ source, extraction, regions, activeRegionI
         overrides: [],            // { uid, regionId, nodeIndex, field, originalValue, value, at }
         exclusions: [],           // uids `${regionId}:${nodeIndex}` (NO renumera)
         natureConfirmations: [],  // { uid, regionId, nodeIndex, code, nature, at }
-        reviewResolutions: []     // { uid?, warnKey?, regionId, decision, at }
+        reviewResolutions: [],    // { uid?, warnKey?, regionId, decision, at }
+        hierarchyConfirmations: [] // { regionId, decision, observedCodeLengths, at }
     };
     if (typeof now === 'function') session._now = now;
     return deepFreeze(session);
@@ -509,7 +573,29 @@ export function applyOverride(session, uid, field, value) {
             nextSession = { ...nextSession, natureConfirmations: natureNext };
         }
     }
+    if (field === 'level') {
+        nextSession = {
+            ...nextSession,
+            hierarchyConfirmations: nextSession.hierarchyConfirmations.filter(item => item.regionId !== region.regionId)
+        };
+    }
     return nextSession;
+}
+
+/** Confirma expresamente que un contrato sin evidencia jerárquica es plano. */
+export function confirmFlatHierarchy(session, { regionId } = {}) {
+    const region = findRegion(session, regionId);
+    if (!region.contract.hierarchy?.canConfirmFlat) {
+        throw new TypeError('ImportSession: esta región no permite confirmar una jerarquía plana');
+    }
+    if (session.hierarchyConfirmations.some(item => item.regionId === region.regionId)) return session;
+    const confirmation = {
+        regionId: region.regionId,
+        decision: 'FLAT_ALL_LEVEL_1',
+        observedCodeLengths: (region.contract.hierarchy.observedCodeLengths || []).slice(),
+        at: nowOf(session)
+    };
+    return { ...session, hierarchyConfirmations: [...session.hierarchyConfirmations, confirmation] };
 }
 
 /** Excluye (o re-incluye con excluded=false) una fila. NO renumera nodos. */
@@ -714,6 +800,7 @@ export function summaryOf(session, { regionId } = {}) {
     const overridesHere = sessionOverridesOf(session, region);
     const natureHere = sessionNatureConfirmationsOf(session, region);
     const reviewHere = sessionReviewResolutionsOf(session, region);
+    const flatConfirmed = session.hierarchyConfirmations.some(item => item.regionId === region.regionId) && c.hierarchy?.canConfirmFlat;
 
     let reviewWarnings = 0;
     let reviewWarningsResolved = 0;
@@ -721,7 +808,9 @@ export function summaryOf(session, { regionId } = {}) {
         const warn = c.warnings[wi];
         if (!warn || typeof warn !== 'object' || warn.severity !== 'REVIEW') continue;
         reviewWarnings++;
-        if (resolvedWarnKeys.has(`${region.regionId}:w${wi}`)) reviewWarningsResolved++;
+        if (resolvedWarnKeys.has(`${region.regionId}:w${wi}`) || (flatConfirmed && warn.type === 'unknownHierarchy')) {
+            reviewWarningsResolved++;
+        }
     }
     let nodeReviews = 0;
     let nodeReviewsResolved = 0;
@@ -735,7 +824,9 @@ export function summaryOf(session, { regionId } = {}) {
         const excluded = excludedUids.has(uid);
         if (node.requiresReview || (node.parentInfo && node.parentInfo.requiresReview)) {
             nodeReviews++;
-            if (!excluded && resolvedNodeUids.has(uid)) nodeReviewsResolved++;
+            if (!excluded && !nodeNeedsReview(node, { flatConfirmed, resolved: resolvedNodeUids.has(uid) })) {
+                nodeReviewsResolved++;
+            }
         }
         if (node.isPostable === 'UNKNOWN') {
             unknownNodes++;
@@ -759,11 +850,12 @@ export function summaryOf(session, { regionId } = {}) {
             overrides: overridesHere.length,
             exclusions: excludedUids.size,
             natureConfirmations: natureHere.length,
-            reviewResolutions: reviewHere.length
+            reviewResolutions: reviewHere.length,
+            hierarchyConfirmations: session.hierarchyConfirmations.filter(item => item.regionId === region.regionId).length
         },
         issues: {
-            blocks: reasons.filter(r => r.startsWith('BLOCK sin resolver')).length,
-            blockUnresolved: reasons.filter(r => r.startsWith('BLOCK sin resolver')).length,
+            blocks: reasons.filter(r => r.startsWith('BLOCK')).length,
+            blockUnresolved: reasons.filter(r => r.startsWith('BLOCK')).length,
             reviewWarnings,
             reviewWarningsResolved,
             reviewWarningsUnresolved: Math.max(0, reviewWarnings - reviewWarningsResolved),

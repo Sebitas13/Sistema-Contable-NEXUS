@@ -46,7 +46,8 @@ export class CompatibilityAdapter {
         const sep = contract.separator || null;
         const levelLengths = (contract.levels && contract.levels.length > 0)
             ? contract.levels
-            : (contract.hierarchy && contract.hierarchy.levelLengths) || [1, 2, 4];
+            : (contract.hierarchy && contract.hierarchy.logicalLevelLengths) ||
+                (contract.hierarchy && contract.hierarchy.levelLengths) || [];
         const structureConfig = {
             hasSeparator: !!sep,
             separator: sep || '',

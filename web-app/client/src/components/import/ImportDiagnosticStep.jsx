@@ -13,7 +13,7 @@ function pct(x) {
     return typeof x === 'number' ? x.toFixed(2) : '—';
 }
 
-export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, onNext }) {
+export default function ImportDiagnosticStep({ session, onSelectRegion, onConfirmFlatHierarchy, onBack, onNext }) {
     const summary = summaryOf(session);
     const contract = effectiveContractOf(session);
     const regions = session.regions.map(r => {
@@ -32,11 +32,12 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
     const hierarchy = contract.hierarchy || {};
     const confidence = contract.confidence || {};
     const dataLoss = contract.dataLoss || {};
-    const levelLengths = contract.levels || hierarchy.levelLengths || [];
+    const levelLengths = hierarchy.logicalLevelLengths || contract.levels || hierarchy.levelLengths || [];
     // Niveles observados en los nodos del Contract (lectura, no inferencia):
     // algunos formatos (ej. DASH) no declaran levelLengths.
     const observedLevels = {};
     for (const n of contract.nodes) {
+        if (!Number.isInteger(n.level)) continue;
         observedLevels[n.level] = (observedLevels[n.level] || 0) + 1;
     }
     const observedSummary = Object.keys(observedLevels).sort((a, b) => a - b).map(l => `N${l}×${observedLevels[l]}`).join(' · ');
@@ -112,9 +113,21 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onBack, 
                             <small className="fw-bold"><i className="bi bi-diagram-3 me-2"></i>Jerarquía detectada</small>
                         </div>
                         <div className="card-body small">
-                            <div>Separador: <code>{hierarchy.separator || '(longitud fija)'}</code> · Niveles declarados: <strong>{hierarchy.levelCount ?? levelLengths.length}</strong></div>
-                            <div className="mt-1 text-white-50">Longitudes: <code>{levelLengths.join(' · ') || '—'}</code></div>
+                            <div>Estado: <strong data-testid="u2-hierarchy-status">{hierarchy.status || 'Sin evidencia'}</strong> · Profundidad lógica: <strong>{hierarchy.levelCount || 'desconocida'}</strong></div>
+                            <div className="mt-1 text-white-50">Anchos físicos observados: <code>{(hierarchy.observedCodeLengths || []).join(' · ') || '—'}</code> · Longitudes lógicas: <code>{levelLengths.join(' · ') || '—'}</code></div>
                             <div className="mt-1 text-white-50" data-testid="u2-observed-levels">Observados en nodos: <strong className="text-white">{observedSummary || '—'}</strong></div>
+                            {hierarchy.status === 'UNKNOWN' && hierarchy.canConfirmFlat && (
+                                <div className="alert alert-warning py-2 mt-2 mb-0">
+                                    No se determinó la jerarquía. Puedes confirmar explícitamente que todas las cuentas son de nivel 1.
+                                    <button type="button" data-testid="u2-confirm-flat" className="btn btn-sm btn-outline-warning d-block mt-2"
+                                        onClick={onConfirmFlatHierarchy}>
+                                        Confirmar plan plano: todas las cuentas en nivel 1
+                                    </button>
+                                </div>
+                            )}
+                            {hierarchy.status === 'FLAT_CONFIRMED' && (
+                                <div className="text-success mt-2" data-testid="u2-flat-confirmed">Plan plano confirmado explícitamente · todas las cuentas nivel 1</div>
+                            )}
                         </div>
                     </div>
                 </div>

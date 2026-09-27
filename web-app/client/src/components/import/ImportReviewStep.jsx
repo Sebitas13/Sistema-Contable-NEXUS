@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
-    canImportReport, effectiveContractOf, findUnmaterializedParentReferences
+    canImportReport, effectiveContractOf, findUnmaterializedParentReferences, nodeNeedsReview
 } from '../../importSession/index.js';
 
 // Vocabulario de tipos de cuenta (mismo que el asistente clásico; el backend
@@ -25,6 +25,8 @@ const PAGE_SIZE = 100;
 /** Arma las filas revisables por lectura de la sesión (sin re-inferir nada). */
 function reviewRowsOf(session) {
     const region = session.regions.find(r => r.regionId === session.activeRegionId);
+    const flatConfirmed = session.hierarchyConfirmations.some(item => item.regionId === region.regionId);
+    const appliesFlatConfirmation = flatConfirmed && region.contract.hierarchy?.canConfirmFlat;
     const excluded = new Set(session.exclusions.filter(u => u.startsWith(`${region.regionId}:`)));
     const ovByUid = {};
     for (const o of session.overrides) {
@@ -68,9 +70,15 @@ function reviewRowsOf(session) {
             rawCode: node.rawCode,
             name: ov.name ?? node.name,
             type: confByUid[uid] ?? ov.type ?? node.type,
-            level: ov.level ?? node.level,
-            parent: node.parent,
-            parentInfo: node.parentInfo,
+            level: appliesFlatConfirmation ? 1 : (ov.level ?? node.level),
+            parent: appliesFlatConfirmation ? null : node.parent,
+            parentInfo: appliesFlatConfirmation ? {
+                ...node.parentInfo,
+                code: null,
+                method: 'USER_CONFIRMED_FLAT',
+                evidence: ['explicit_user_confirmation_all_accounts_level_1'],
+                requiresReview: false
+            } : node.parentInfo,
             nature: node.nature,
             classification: node.classification,
             isPostable: node.isPostable,
@@ -79,7 +87,10 @@ function reviewRowsOf(session) {
             confirmed: uid in confByUid,
             isBlocked: blockedCodes.has(ov.code ?? node.normalizedCode) || dupCodes.has(String(ov.code ?? node.normalizedCode)),
             dupCount: codeCountSel.get(String(ov.code ?? node.normalizedCode)) || 0,
-            needsReview: !!((node.requiresReview || (node.parentInfo && node.parentInfo.requiresReview)) && !resolvedNodes.has(uid)),
+            needsReview: nodeNeedsReview(node, {
+                flatConfirmed: appliesFlatConfirmation,
+                resolved: resolvedNodes.has(uid)
+            }),
             isUnknown: node.isPostable === 'UNKNOWN' && !(uid in confByUid),
             inferredRoot: node.nature === 'INFERRED' && node.classification === 'ROOT' && !(uid in confByUid)
         };
@@ -101,6 +112,8 @@ export default function ImportReviewStep({
 }) {
     const { region, rows, excludedRows } = useMemo(() => reviewRowsOf(session), [session]);
     const report = useMemo(() => canImportReport(session), [session]);
+    const flatConfirmed = session.hierarchyConfirmations.some(item => item.regionId === region.regionId);
+    const appliesFlatConfirmation = flatConfirmed && region.contract.hierarchy?.canConfirmFlat;
 
     const [page, setPage] = useState(1);
     const [selected, setSelected] = useState([]);
@@ -130,7 +143,8 @@ export default function ImportReviewStep({
     const myConfirmations = session.natureConfirmations.filter(e => e.regionId === region.regionId);
     const reviewWarnings = (region.contract.warnings || [])
         .map((w, i) => ({ w, i }))
-        .filter(({ w }) => w && typeof w === 'object' && w.severity === 'REVIEW');
+        .filter(({ w }) => w && typeof w === 'object' && w.severity === 'REVIEW' &&
+            !(appliesFlatConfirmation && w.type === 'unknownHierarchy'));
     const resolvedWarnKeys = new Set(
         session.reviewResolutions.filter(r => r.warnKey && r.regionId === region.regionId).map(r => r.warnKey)
     );

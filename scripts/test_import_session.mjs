@@ -72,7 +72,7 @@ function mkContract({ nodes, errors = [], warnings = [], requiresConfirmation = 
         dataLossCount: 0, unaccountedRows: 0, collisions: []
     };
     const c = {
-        contractVersion: '1.0', schemaVersion: '1.0', analyzerVersion: '2.1.0',
+        contractVersion: '1.1', schemaVersion: '1.1', analyzerVersion: '2.3.0',
         source: { file: 'fixture.xlsx', sheet: 'S', headers: ['CODIGO', 'NOMBRE'], rowCount: nodes.length },
         columnMapping: { codeColumn: 0, nameColumn: 1, parentColumn: null, typeColumn: null, confidence: 0.9, ambiguous: false, scored: false, ambiguityMargin: null },
         hierarchy: { separator: null, levelLengths: [], levelCount: 0 },
@@ -341,7 +341,8 @@ const cleanContract = mkContract({ nodes: N() });
     const parentEditValidation = ImportContractValidator.validate(S.effectiveContractOf(parentEdit), { baselineContract: parentContract });
     criterion('B9.parentAfterCodeEdit',
         !parentEditGate.can && parentEditGate.reasons.some(r => r.includes('padre «2»') && r.includes('ya no existe')) &&
-        S.summaryOf(parentEdit).issues.blocks === 1 && !parentEditSimulation.allowed && !parentEditSimulation.payload &&
+        S.summaryOf(parentEdit).issues.blocks === parentEditGate.reasons.filter(r => r.startsWith('BLOCK')).length &&
+        S.summaryOf(parentEdit).issues.blocks > 0 && !parentEditSimulation.allowed && !parentEditSimulation.payload &&
         parentEditSimulation.blocks.some(block => block.type === 'unmaterializedParent') && !parentEditValidation.valid,
         'un padre ausente bloquea gate, simulación y validador tras editar el código de la cuenta padre');
 
@@ -460,8 +461,9 @@ const cleanContract = mkContract({ nodes: N() });
     const flattenedEffective = S.effectiveContractOf(flattenedSession);
     const flattenedValidation = ImportContractValidator.validate(flattenedEffective, { baselineContract: flattenedHierarchy });
     const flattenedSimulation = S.simulate(flattenedSession, { companyId: 'c1' });
+    const flattenedSummary = S.summaryOf(flattenedSession);
     criterion('G1.validatorFalsePass', !flattenedValidation.valid && !S.canImport(flattenedSession) &&
-        !flattenedSimulation.allowed && flattenedSimulation.payload == null,
+        !flattenedSimulation.allowed && flattenedSimulation.payload == null && flattenedSummary.issues.blocks > 0,
         'resolver REVIEW no habilita un árbol aplanado que el validador estructural rechaza');
 
     const silentContract = mkContract({ nodes: N(), silentCorruptionCount: 1, dataLoss: { dataLossCount: 1, silentTransformationCount: 1, unaccountedRows: 0 } });

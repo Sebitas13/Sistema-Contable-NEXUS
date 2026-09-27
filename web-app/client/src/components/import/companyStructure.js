@@ -5,28 +5,35 @@
  * el endpoint PUT /api/companies/:id ya acepta (misma fórmula que el
  * asistente clásico). Pura: sin React, sin red.
  *
- * REGLA: si el contrato NO declara longitudes de nivel, devuelve null y el
- * llamador OMITE el PUT. Jamás se inventa una máscara ni se escribe vacía.
+ * REGLA: jerarquía desconocida o longitudes lógicas no representables → null y
+ * se omite el PUT. El ancho físico nunca sustituye longitudes por nivel.
  */
 
 export function deriveCompanyStructure(effective) {
     if (!effective || typeof effective !== 'object') return null;
+    const hierarchy = effective.hierarchy || {};
+    if (hierarchy.status === 'UNKNOWN') return null;
     const sep = effective.separator || null;
-    const levelLengths = (effective.levels && effective.levels.length > 0)
-        ? effective.levels.slice()
-        : ((effective.hierarchy && effective.hierarchy.levelLengths) || []).slice();
-    if (!Array.isArray(levelLengths) || levelLengths.length === 0) return null;
+    const levelLengths = Array.isArray(hierarchy.logicalLevelLengths)
+        ? hierarchy.logicalLevelLengths.slice()
+        : [effective.levels, hierarchy.levelLengths]
+            .find(lengths => Array.isArray(lengths) && lengths.length > 0)?.slice() || [];
+    const observedCodeLengths = (hierarchy.observedCodeLengths || []).slice();
+    const levelCount = Number.isInteger(hierarchy.levelCount) ? hierarchy.levelCount : levelLengths.length;
+    if (!levelLengths.length || levelCount !== levelLengths.length) return null;
     const codeMask = sep
         ? levelLengths.map((len, i) => '#'.repeat(Math.max(1, len - (i > 0 ? levelLengths[i - 1] : 0)))).join(sep)
-        : '#'.repeat(levelLengths[levelLengths.length - 1] || 1);
+        : '#'.repeat(Math.max(1, ...levelLengths));
     if (!codeMask) return null;
     return {
         code_mask: codeMask,
         plan_structure: JSON.stringify({
             regex: sep ? `^\\d+(?:\\${sep}\\d+)*$` : '^\\d+$',
             separator: sep,
-            levelsCount: levelLengths.length,
+            levelsCount: levelCount,
             levelLengths,
+            observedCodeLengths,
+            hierarchySource: hierarchy.status,
             behavior: { strictlyNumerical: true }
         })
     };

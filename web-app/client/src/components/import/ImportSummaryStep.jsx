@@ -89,6 +89,7 @@ export default function ImportSummaryStep({ session, onBack, onNext }) {
                                 Overrides: <strong className="text-white">{summary.userActions.overrides}</strong> ·
                                 Exclusiones: <strong className="text-white">{summary.userActions.exclusions}</strong> ·
                                 Naturalezas confirmadas: <strong className="text-white">{summary.userActions.natureConfirmations}</strong> ·
+                                Jerarquías planas confirmadas: <strong className="text-white">{summary.userActions.hierarchyConfirmations || 0}</strong> ·
                                 Revisiones resueltas: <strong className="text-white">{summary.userActions.reviewResolutions}</strong>
                             </div>
                         </div>

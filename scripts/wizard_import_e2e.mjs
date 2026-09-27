@@ -10,7 +10,8 @@
  *
  * Flujo: crear empresa desechable → abrir /app/accounts?engine=universal →
  * importar CSV limpio (pasos 1→6, resolviendo gates en la UI) → Confirmar →
- * verificar cuentas vía API + code_mask persistido. Limpieza total al final.
+ * verificar cuentas vía API y evitar persistir una máscara no representable.
+ * Limpieza total al final.
  *
  * Exit: 0 PASS; 1 FAIL; 2 sin navegador.
  */
@@ -85,9 +86,8 @@ async function main() {
     fs.mkdirSync(tmp, { recursive: true });
     const dbPath = path.join(tmp, 'e2e.db');
     const csvPath = path.join(tmp, 'plan.csv');
-    // Fixture con jerarquía TOTALMENTE declarada por el engine (método SEGMENT):
-    // el E2E verifica persistencia fiel del contrato, no inferencia nueva.
-    fs.writeFileSync(csvPath, 'CODIGO,NOMBRE\n1,ACTIVO\n1.1,CAJA\n1.1.01,CAJA MN\n', 'utf8');
+    // Fixed-width con profundidad explícita y parent reconstruible por orden.
+    fs.writeFileSync(csvPath, 'CODIGO,NOMBRE,NIVEL\n100000,ACTIVO,1\n110000,DISPONIBLE,2\n110100,CAJA MN,3\n', 'utf8');
     // PUCT real del repo para el camino del guard (se sube directo, sin copiar).
     const puctPath = path.join(root, 'PUCT/puct.xlsx');
     const procs = [];
@@ -135,7 +135,11 @@ async function main() {
         log(`✅ Empresa desechable id=${companyId}`);
 
         // 3) Frontend dev (proxy /api → :3001)
-        const vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', '51971', '--strictPort', '--host', '127.0.0.1'], { cwd: clientDir, stdio: 'ignore' });
+        const vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', '51971', '--strictPort', '--host', '127.0.0.1'], {
+            cwd: clientDir,
+            stdio: 'ignore',
+            env: { ...process.env, VITE_API_URL: 'http://127.0.0.1:51971' }
+        });
         procs.push(vite);
         await waitForHttp('http://127.0.0.1:51971/');
         log('✅ Vite :51971');
@@ -166,9 +170,14 @@ async function main() {
                 if (btn) { btn.click(); return 'clicked'; }
                 await new Promise(r => setTimeout(r, 1000));
             }
-            return 'not-found';
+            return 'not-found:' + JSON.stringify({
+                url: location.href,
+                companyCards: document.querySelectorAll('.company-card').length,
+                body: document.body.innerText.slice(0, 700),
+                selectedCompanyId: localStorage.getItem('selectedCompanyId')
+            });
         })()`);
-        if (picked !== 'clicked') throw new Error('no se encontró la tarjeta de la empresa desechable en el selector');
+        if (picked !== 'clicked') throw new Error('no se encontró la tarjeta de la empresa desechable en el selector: ' + picked);
         await sleep(3000);
         const selId = await s.evl(`localStorage.getItem('selectedCompanyId')`);
         if (!selId) throw new Error('la empresa no quedó seleccionada tras el clic');
@@ -366,33 +375,38 @@ async function main() {
         }
         if (trailInfo.hasCompanyId) throw new Error('la bitácora contiene identificadores empresariales');
         log(`✅ Bitácora: ${trailInfo.events} eventos (${(trailInfo.kinds || []).join(',')}) sin identificadores`);
-        // El contrato punteado no declara longitudes: la máscara NO debe inventarse.
-        if (!/no determinada por el análisis — no actualizada/.test(receipt)) {
-            throw new Error('el recibo debía declarar estructura no actualizada (sin longitudes declaradas)');
+        // La profundidad explícita es real aunque los códigos tengan ancho uniforme.
+        if (!/Estructura de la empresa: no determinada por el análisis/.test(receipt)) {
+            throw new Error('el recibo debía indicar que no se persistió una máscara no representable');
         }
 
         // 9) Verificar en la DB local vía API
         const accounts = await fetch(`http://127.0.0.1:3001/api/accounts?companyId=${companyId}`).then(r => r.json());
         const rows = accounts.data || accounts;
         const codes = rows.map(a => a.code).sort();
-        if (JSON.stringify(codes) !== JSON.stringify(['1', '1.1', '1.1.01'])) {
+        if (JSON.stringify(codes) !== JSON.stringify(['100000', '110000', '110100'])) {
             throw new Error('cuentas en DB no coinciden: ' + JSON.stringify(codes));
         }
         const byCode = Object.fromEntries(rows.map(a => [a.code, a]));
         const problems = [];
-        if (byCode['1']?.level !== 1) problems.push(`1.level=${JSON.stringify(byCode['1']?.level)}`);
-        if (byCode['1.1']?.parent_code !== '1') problems.push(`1.1.parent=${JSON.stringify(byCode['1.1']?.parent_code)}`);
-        if (byCode['1.1.01']?.parent_code !== '1.1') problems.push(`1.1.01.parent=${JSON.stringify(byCode['1.1.01']?.parent_code)}`);
-        if (String(byCode['1.1.01']?.name || '').trim() !== 'CAJA MN') problems.push(`1.1.01.name=${JSON.stringify(byCode['1.1.01']?.name)}`);
-        if (byCode['1']?.type !== 'Activo' || byCode['1.1']?.type !== 'Activo' || byCode['1.1.01']?.type !== 'Activo') problems.push('types=' + JSON.stringify(rows.map(a => a.type)));
+        if (byCode['100000']?.level !== 1) problems.push(`100000.level=${JSON.stringify(byCode['100000']?.level)}`);
+        if (byCode['110000']?.level !== 2 || byCode['110000']?.parent_code !== '100000') problems.push(`110000=${JSON.stringify({ level: byCode['110000']?.level, parent: byCode['110000']?.parent_code })}`);
+        if (byCode['110100']?.level !== 3 || byCode['110100']?.parent_code !== '110000') problems.push(`110100=${JSON.stringify({ level: byCode['110100']?.level, parent: byCode['110100']?.parent_code })}`);
+        if (String(byCode['110100']?.name || '').trim() !== 'CAJA MN') problems.push(`110100.name=${JSON.stringify(byCode['110100']?.name)}`);
+        if (rows.some(account => account.type !== 'Activo')) problems.push('types=' + JSON.stringify(rows.map(a => a.type)));
         if (problems.length > 0) {
             throw new Error('jerarquía/nombres/tipos incorrectos [' + problems.join(' | ') + '] rows=' + JSON.stringify(rows).slice(0, 600));
         }
         const companies = await fetch('http://127.0.0.1:3001/api/companies').then(r => r.json());
         const mine = (companies.data || companies).find(c => String(c.id) === String(companyId));
         if (!mine) throw new Error('la empresa desechable desapareció de la DB local');
-        if (mine.code_mask) throw new Error('code_mask debía seguir vacío (sin longitudes declaradas no se inventa máscara): ' + mine.code_mask);
-        log(`✅ DB local verificada: 3 cuentas (1/1.1/1.1.01) + máscara correctamente NO escrita`);
+        if (mine.code_mask || mine.plan_structure) {
+            throw new Error('se persistió una máscara no representable para niveles uniformes: ' + JSON.stringify({
+                code_mask: mine.code_mask,
+                plan_structure: mine.plan_structure
+            }));
+        }
+        log(`✅ DB local verificada: 3 cuentas (100000/110000/110100), niveles 1–3 y padres; máscara omitida`);
 
         s.close();
         log('\nImport E2E U-5: PASS (import real en empresa desechable, DB local)');

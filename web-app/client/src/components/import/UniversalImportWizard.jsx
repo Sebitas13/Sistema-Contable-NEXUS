@@ -19,7 +19,7 @@ import NexusModal from '../NexusModal.jsx';
 import { detectFormat, ExcelAdapter, PdfAdapter } from '../../utils/FormatAdapter.js';
 import { UniversalPlanAnalyzer } from '../../utils/UniversalPlanAnalyzer.js';
 import { useCompany } from '../../context/CompanyContext.jsx';
-import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, resolveReview, canImportReport, summaryOf, simulate } from '../../importSession/index.js';
+import { createImportSession, selectRegion, applyOverride, excludeRow, confirmNature, confirmFlatHierarchy, resolveReview, canImportReport, summaryOf, effectiveContractOf, simulate } from '../../importSession/index.js';
 import { setImportEngineMode } from './engineFlag.js';
 import { needsLegacyWizard, hasSingleDigitSymptom } from './puctGuard.js';
 import { countImportLog } from './importLog.js';
@@ -37,7 +37,7 @@ const STEPS = ['Archivo', 'Diagnóstico', 'Validación', 'Revisión', 'Resumen',
 // Identificador visible de build del asistente: sirve para verificar en el
 // navegador que se está ejecutando una versión con los arreglos de hoja
 // (U-9b+). Subir al tocar el wizard.
-const WIZARD_BUILD = 'U-9h';
+const WIZARD_BUILD = 'U-9i';
 
 function adapterLabel(adapter) {
     // Comparación por REFERENCIA, jamás por adapter.name: los bundlers de
@@ -406,6 +406,10 @@ export default function UniversalImportWizard({
         setSession(prev => (prev ? confirmNature(prev, uid, nature) : prev));
         pushTrail('confirm', { uid, nature });
     }
+    function handleConfirmFlatHierarchy() {
+        setSession(prev => (prev ? confirmFlatHierarchy(prev) : prev));
+        pushTrail('confirm-flat-hierarchy', { decision: 'FLAT_ALL_LEVEL_1' });
+    }
     function handleResolveReview(target) {
         const targets = Array.isArray(target) ? [...new Set(target)] : [target];
         setSession(prev => {
@@ -480,6 +484,9 @@ export default function UniversalImportWizard({
         let simulation = null;
         let userActions = null;
         let effectiveNodes = null;
+        let hierarchy = null;
+        let evidenceNodes = null;
+        let payloadAccounts = null;
         if (session) {
             try {
                 const rep = canImportReport(session);
@@ -492,6 +499,18 @@ export default function UniversalImportWizard({
                 userActions = { ...sum.userActions };
             } catch { validation = null; }
             try {
+                const effective = effectiveContractOf(session);
+                hierarchy = effective.hierarchy || null;
+                evidenceNodes = effective.nodes.map(node => ({
+                    code: node.normalizedCode,
+                    level: node.level,
+                    parent: node.parent,
+                    sourceLevel: node.sourceLevel,
+                    sourceParent: node.sourceParent,
+                    inferredLevel: node.inferredLevel,
+                    inferredParent: node.inferredParent,
+                    hierarchyEvidence: node.hierarchyEvidence
+                }));
                 const sim = simulate(session, { companyId: null });
                 simulation = {
                     allowed: !!sim.allowed,
@@ -500,6 +519,9 @@ export default function UniversalImportWizard({
                     reason: sim.reason || null
                 };
                 effectiveNodes = sim.effectiveNodeCount;
+                payloadAccounts = sim.payload?.accounts?.map(account => ({
+                    code: account.code, level: account.level, parent_code: account.parent_code
+                })) || null;
             } catch { simulation = null; }
         }
         onStateChange({
@@ -517,6 +539,9 @@ export default function UniversalImportWizard({
             unaccounted: active ? (active.contract.dataLoss?.unaccountedRows ?? 0) : 0,
             validation,
             simulation,
+            hierarchy,
+            evidenceNodes,
+            payloadAccounts,
             userActions,
             effectiveNodes,
             guard,
@@ -641,6 +666,7 @@ export default function UniversalImportWizard({
                     <ImportDiagnosticStep
                         session={session}
                         onSelectRegion={handleSelectRegion}
+                        onConfirmFlatHierarchy={handleConfirmFlatHierarchy}
                         onBack={() => goStep(1)}
                         onNext={() => goStep(3)}
                     />

@@ -16,6 +16,8 @@ dist/
 build/
 temp/
 uploads/
+.tmp-e2e-*/
+.tmp-wiz-*/
 
 # Client-specific build and analysis files
 web-app/client/*.cjs

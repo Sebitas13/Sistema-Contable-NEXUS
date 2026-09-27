@@ -34,6 +34,9 @@ const CORPUS = [
     // Caso limpio: camina 1→6 (resuelve todo en revisión, resumen en verde,
     // confirmación deshabilitada sin empresa). Generado, no copiado.
     { name: 'U5-CSV', generated: 'CODIGO,NOMBRE\n1,ACTIVO\n11,CAJA\n1101,CAJA MN\n', publicName: 'u2-mini.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 0, walkToSix: true },
+    { name: 'U9-FIXED-LEVEL', generated: 'CODIGO,NOMBRE,NIVEL\n100000,ACTIVO,1\n110000,DISPONIBLE,2\n110100,CAJA,3\n', publicName: 'u2-fixed-level.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 0, walkToSix: true, expectFixedLevels: true },
+    { name: 'U9-FIXED-UNKNOWN', generated: 'CODIGO,NOMBRE\n100000,ACTIVO\n110000,DISPONIBLE\n110100,CAJA\n', publicName: 'u2-fixed-unknown.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 0, expectUnknownHierarchy: true },
+    { name: 'U9-FIXED-CONTRADICTION', generated: 'CODIGO,NOMBRE,NIVEL,PADRE\n100000,ACTIVO,1,\n110000,DISPONIBLE,1,100000\n110100,CAJA,2,110000\n', publicName: 'u2-fixed-contradiction.csv', sheet: null, pages: null, expectNodes: 3, expectRegions: 1, expectBlocks: 1, expectStructuralBlock: true },
     // Cambio de hoja a mitad de sesión (regresión U-9b): subir sin hoja
     // (Hoja1 por defecto) → cambiar a Hoja5 → el resumen y el análisis
     // deben seguir a la hoja vigente, nunca a la primera.
@@ -202,10 +205,14 @@ async function main() {
         await s.send('Runtime.enable');
         await s.send('Network.enable');
         const apiHits = [];
+        const runtimeErrors = [];
         s.onEvent((m) => {
             if (m.method === 'Network.requestWillBeSent') {
                 const u = m.params?.request?.url || '';
                 if (u.includes('/api/')) apiHits.push(`${m.params.request.method} ${u}`);
+            }
+            if (m.method === 'Runtime.exceptionThrown') {
+                runtimeErrors.push(m.params?.exceptionDetails?.exception?.description || m.params?.exceptionDetails?.text || 'runtime exception');
             }
         });
         await s.send('Page.navigate', { url });
@@ -233,6 +240,7 @@ async function main() {
         };
 
         let snap = null;
+        let hierarchyUI = null;
         for (let i = 0; i < 90; i++) {
             await new Promise(r => setTimeout(r, 1000));
             const parsed = await readSnap();
@@ -261,6 +269,13 @@ async function main() {
             return await close({ guard: { snap: guardSnap, panel, analyzeHidden, switched } });
         }
         if (!snap || snap.phase !== 'diagnosed') return close({});
+        if (item.expectFixedLevels || item.expectUnknownHierarchy) {
+            hierarchyUI = await s.evl(`(() => ({
+                status: document.querySelector('[data-testid="u2-hierarchy-status"]')?.textContent?.trim() || null,
+                observedLevels: document.querySelector('[data-testid="u2-observed-levels"]')?.textContent?.trim() || null,
+                flatConfirmVisible: !!document.querySelector('[data-testid="u2-confirm-flat"]')
+            }))()`);
+        }
         // Paso 3: clic en "Continuar a validación" y esperar uiStep===3
         let step3 = null;
         try {
@@ -270,13 +285,21 @@ async function main() {
             step3 = { error: 'click-next-3: ' + e.message };
         }
         // Paso 4: clic en "Continuar a revisión", editar + excluir de verdad
-        let step4 = null, afterEdit = null, afterExclude = null, step5 = null, step6 = null, confirmDisabled = null, noCompany = null, switchedClassic = null;
+        let step4 = null, afterEdit = null, afterExclude = null, step5 = null, step6 = null, confirmDisabled = null, noCompany = null, switchedClassic = null, genericReviewSnap = null, afterReviewNavigation = null, reviewNextDisabled = null;
         try {
             if (step3 && step3.uiStep === 3) {
                 await clickNext();
             }
             step4 = await waitStep(4, 30);
-            if (step4 && !item.walkToSix) {
+            if (!step4 && step3 && step3.uiStep === 3) {
+                afterReviewNavigation = await s.evl(`(() => ({
+                    snap: window.__WIZARD_U2__?.uiStep,
+                    button: (() => { const b = document.querySelector('[data-testid="u2-next-btn"]'); return b ? { text: b.textContent, disabled: b.disabled, connected: b.isConnected } : null; })(),
+                    validation: !!document.querySelector('[data-testid="u2-validation"]'),
+                    review: !!document.querySelector('[data-testid="u2-review"]')
+                }))()`);
+            }
+            if (step4 && !item.walkToSix && !item.expectUnknownHierarchy && !item.expectStructuralBlock) {
                 // Edición real de celda (nombre de la primera fila)
                 await s.evl(`(() => {
                     const el = document.querySelector('[data-testid^="u2-cell-name-"]');
@@ -304,7 +327,22 @@ async function main() {
                     if (parsed && parsed.userActions && parsed.userActions.exclusions >= 1) { afterExclude = parsed; break; }
                 }
             }
-            if (step4 && item.walkToSix) {
+            if (step4 && (item.expectUnknownHierarchy || item.expectStructuralBlock)) {
+                for (let round = 0; round < 5; round++) {
+                    const ids = await s.evl(`(() => [...document.querySelectorAll('[data-testid^="u2-evidence-"]')].map(b => b.getAttribute('data-testid')))()`);
+                    for (const id of ids || []) {
+                        await s.evl(`document.querySelector('[data-testid="${id}"]').click()`);
+                        await sleep(250);
+                        await s.evl(`(() => { document.querySelectorAll('[data-testid^="u2-resolve-node-"]').forEach(b => b.click()); return 1; })()`);
+                        await sleep(250);
+                    }
+                    await s.evl(`(() => { document.querySelectorAll('[data-testid^="u2-resolve-warn-"]').forEach(b => b.click()); return 1; })()`);
+                    await sleep(500);
+                    genericReviewSnap = await readSnap();
+                    if (genericReviewSnap?.userActions?.nodeReviewsResolved >= genericReviewSnap?.userActions?.nodeReviews) break;
+                }
+                genericReviewSnap = await readSnap();
+            } else if (step4 && item.walkToSix) {
                 // Resolver fila por fila (la evidencia es un acordeón de una sola
                 // fila: expandir, confirmar/aceptar lo visible, pasar a la siguiente)
                 for (let round = 0; round < 8; round++) {
@@ -343,6 +381,9 @@ async function main() {
                     switchedClassic = { stored, closed: !!(closedSnap && closedSnap.closed) };
                 }
             }
+            if (step4 && item.expectStructuralBlock) {
+                reviewNextDisabled = await s.evl(`(() => { const b = document.querySelector('[data-testid="u2-next-btn"]'); return b ? b.disabled : null; })()`);
+            }
         } catch (e) {
             step4 = step4 || { error: 'paso4: ' + e.message };
         }
@@ -370,7 +411,7 @@ async function main() {
         }
         await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
         s.close();
-        return { snap, browserReal, apiHits, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic, trail };
+        return { snap, browserReal, apiHits, runtimeErrors, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic, trail, hierarchyUI, genericReviewSnap, afterReviewNavigation, reviewNextDisabled };
     };
 
     let pass = 0, fail = 0;
@@ -404,7 +445,7 @@ async function main() {
                 }
                 continue;
             }
-            const { snap, browserReal, apiHits, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic, trail } = res;
+            const { snap, browserReal, apiHits, runtimeErrors, guard, step3, step4, afterEdit, afterExclude, step5, step6, confirmDisabled, noCompany, switchedClassic, trail, hierarchyUI, genericReviewSnap, afterReviewNavigation, reviewNextDisabled } = res;
             // Caso guard U-9: PUCT excluido antes de analizar.
             if (item.expectGuard) {
                 const g = guard || {};
@@ -440,6 +481,35 @@ async function main() {
                 ['unaccounted=0', snap.unaccounted === 0],
                 ['cero /api/*', apiHits.length === 0]
             ];
+            if (item.expectFixedLevels) {
+                const sourceLevels = (snap.evidenceNodes || []).map(node => node.sourceLevel).join(',');
+                const effectiveLevels = (snap.evidenceNodes || []).map(node => node.level).join(',');
+                const payload = step5?.payloadAccounts || [];
+                checks.push(
+                    ['source NIVEL preservado', sourceLevels === '1,2,3'],
+                    ['niveles efectivos 1,2,3', effectiveLevels === '1,2,3'],
+                    ['padres efectivos por orden', (snap.evidenceNodes || []).map(node => node.parent || '').join(',') === ',100000,110000'],
+                    ['jerarquía correcta visible', hierarchyUI?.status === 'EXPLICIT_LEVELS' && /N1×1.*N2×1.*N3×1/.test(hierarchyUI.observedLevels || '')],
+                    ['payload contiene niveles y padres exactos', payload.map(node => `${node.level}:${node.parent_code || ''}`).join('|') === '1:|2:100000|3:110000']
+                );
+            }
+            if (item.expectUnknownHierarchy) {
+                checks.push(
+                    ['sin evidencia queda UNKNOWN', snap.hierarchy?.status === 'UNKNOWN' && (snap.evidenceNodes || []).every(node => node.level === null)],
+                    ['la UI ofrece acción explícita plana', hierarchyUI?.flatConfirmVisible === true],
+                    ['gates bloquean antes de revisión', snap.validation?.can === false && snap.simulation?.allowed === false],
+                    ['resolver REVIEW genérico conserva el bloqueo', genericReviewSnap?.validation?.can === false && genericReviewSnap?.simulation?.allowed === false]
+                );
+            }
+            if (item.expectStructuralBlock) {
+                checks.push(
+                    ['contradicción level/parent permanece bloqueada', snap.validation?.can === false && snap.simulation?.allowed === false],
+                    ['gate estructural también bloquea tras resolver REVIEW', genericReviewSnap?.validation?.can === false && genericReviewSnap?.simulation?.allowed === false],
+                    ['continuar al resumen está deshabilitado', reviewNextDisabled === true],
+                    ['sin resumen ni confirmación de importación', !step5 && !step6],
+                    ['cero POST bulk', !apiHits.some(hit => hit.includes('POST') && hit.includes('/api/accounts/bulk'))]
+                );
+            }
             // Paso 3: validación + simulación renderizadas con gates reales
             if (!step3 || step3.uiStep !== 3 || !step3.validation || !step3.simulation) {
                 checks.push(['paso=3+validación+simulación', false]);
@@ -470,6 +540,16 @@ async function main() {
                     ['bitácora cubre el camino', !!(res.trail && ['extraction', 'analysis', 'simulation'].every(k => (res.trail.kinds || []).includes(k)))],
                     ['bitácora sin identificadores', !!(res.trail && res.trail.hasCompanyId === false)]
                 );
+            } else if (item.expectUnknownHierarchy || item.expectStructuralBlock) {
+                checks.push(
+                    ['paso=4', true],
+                    ['resoluciones REVIEW no cambian el gate', genericReviewSnap?.validation?.can === false && genericReviewSnap?.simulation?.allowed === false],
+                    ['sin resumen ni confirmación de importación', !step5 && !step6],
+                    ['cero POST bulk', !apiHits.some(hit => hit.includes('POST') && hit.includes('/api/accounts/bulk'))]
+                );
+                if (item.expectUnknownHierarchy) {
+                    checks.push(['se resolvió al menos un REVIEW genérico', (genericReviewSnap?.userActions?.reviewResolutions || 0) > 0]);
+                }
             } else {
                 checks.push(
                     ['paso=4', true],
@@ -483,7 +563,7 @@ if (bad.length === 0) {
                     log(`✅ ${item.name}: paso=2→3→4${item.walkToSix ? '→5→6' : ''} regiones=${snap.regionCount} nodos=${snap.nodeCount} blocks=${snap.blocks} · gates activos · cero red /api/*${res.trail ? ` · bitácora ${res.trail.events} eventos` : ''}`);
                 } else {
                     fail++;
-                    log(`❌ ${item.name}: falla en [${bad.join(', ')}] step4=${JSON.stringify(step4)} afterEdit=${JSON.stringify(afterEdit?.userActions)} step5=${JSON.stringify(step5?.validation)} step6=${step6?.uiStep} trail=${JSON.stringify(res.trail)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
+                    log(`❌ ${item.name}: falla en [${bad.join(', ')}] step3=${JSON.stringify(step3)} step4=${JSON.stringify(step4)} nav=${JSON.stringify(afterReviewNavigation)} runtime=${JSON.stringify(runtimeErrors.slice(0, 2))} afterEdit=${JSON.stringify(afterEdit?.userActions)} step5=${JSON.stringify(step5?.validation)} step6=${step6?.uiStep} trail=${JSON.stringify(res.trail)} apiHits=${JSON.stringify(apiHits.slice(0, 3))}`);
                 }
         } catch (e) {
             fail++;

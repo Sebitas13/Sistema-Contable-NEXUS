@@ -199,7 +199,10 @@ async function main() {
         }
         await fetch(`http://127.0.0.1:${debugPort}/json/close/${tab.id}`);
         s.close();
-        const ok = gate && gate.ready && gate.validationValid === false && gate.report?.canImport === false &&
+        const structuralError = gate?.validationErrors?.some(error =>
+            error.includes('nivel 1 no es más profundo que el padre 100000 (nivel 1)'));
+        const wrongVersionError = gate?.validationErrors?.some(error => error.includes('no soportada'));
+        const ok = gate && gate.ready && gate.validationValid === false && structuralError && !wrongVersionError && gate.report?.canImport === false &&
             gate.report?.simulation?.allowed === false && gate.report?.simulation?.payload == null &&
             gate.buttonDisabled === true && Array.isArray(gate.postAttempts) && gate.postAttempts.length === 0;
         if (ok) {

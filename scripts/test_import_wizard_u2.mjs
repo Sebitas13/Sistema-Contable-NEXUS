@@ -241,7 +241,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
         natureSource: 'source_column', classification: 'LEAF', isPostable: 'EXPLICIT_TRUE', postableConfidence: 1
     }, extra);
     const rContract = mkReviewContractNodes => ({
-        contractVersion: '1.0', schemaVersion: '1.0', analyzerVersion: '2.1.0',
+        contractVersion: '1.1', schemaVersion: '1.1', analyzerVersion: '2.3.0',
         source: { file: 'r.xlsx', sheet: 'S', headers: ['CODIGO', 'NOMBRE'], rowCount: mkReviewContractNodes.length },
         columnMapping: { codeColumn: 0, nameColumn: 1, parentColumn: null, typeColumn: null },
         hierarchy: { separator: null, levelLengths: [], levelCount: 0 }, separator: null, levels: [],
@@ -310,7 +310,7 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
         natureSource: 'source_column', classification: 'LEAF', isPostable: 'EXPLICIT_TRUE', postableConfidence: 1
     }, extra);
     const mkFpContract = () => ({
-        contractVersion: '1.0', schemaVersion: '1.0', analyzerVersion: '2.1.0',
+        contractVersion: '1.1', schemaVersion: '1.1', analyzerVersion: '2.3.0',
         source: { file: 'f.xlsx', sheet: 'S', headers: ['CODIGO', 'NOMBRE'], rowCount: 3 },
         columnMapping: { codeColumn: 0, nameColumn: 1, parentColumn: null, typeColumn: null },
         hierarchy: { separator: null, levelLengths: [], levelCount: 0 }, separator: null, levels: [],
