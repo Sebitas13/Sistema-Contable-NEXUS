@@ -86,11 +86,29 @@ async function main() {
     fs.mkdirSync(tmp, { recursive: true });
     const dbPath = path.join(tmp, 'e2e.db');
     const csvPath = path.join(tmp, 'plan.csv');
-    // Fixed-width con profundidad explícita y parent reconstruible por orden.
-    fs.writeFileSync(csvPath, 'CODIGO,NOMBRE,NIVEL\n100000,ACTIVO,1\n110000,DISPONIBLE,2\n110100,CAJA MN,3\n', 'utf8');
+    const scenario = process.env.U9_IMPORT_E2E_SCENARIO === 'dotted' ? 'dotted' : 'fixed-width';
+    const fixture = scenario === 'dotted'
+        ? {
+            csv: 'CODIGO,NOMBRE\n1,ACTIVO\n1.1,CAJA\n1.1.01,CAJA MN\n',
+            accounts: [
+                { code: '1', level: 1, parent: null, name: 'ACTIVO' },
+                { code: '1.1', level: 2, parent: '1', name: 'CAJA' },
+                { code: '1.1.01', level: 3, parent: '1.1', name: 'CAJA MN' }
+            ]
+        }
+        : {
+            csv: 'CODIGO,NOMBRE,NIVEL\n100000,ACTIVO,1\n110000,DISPONIBLE,2\n110100,CAJA MN,3\n',
+            accounts: [
+                { code: '100000', level: 1, parent: null, name: 'ACTIVO' },
+                { code: '110000', level: 2, parent: '100000', name: 'DISPONIBLE' },
+                { code: '110100', level: 3, parent: '110000', name: 'CAJA MN' }
+            ]
+        };
+    fs.writeFileSync(csvPath, fixture.csv, 'utf8');
     // PUCT real del repo para el camino del guard (se sube directo, sin copiar).
     const puctPath = path.join(root, 'PUCT/puct.xlsx');
     const procs = [];
+    const backendOutput = [];
     const cleanup = () => {
         for (const p of procs) { try { p.kill(); } catch { } }
         try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { }
@@ -102,7 +120,7 @@ async function main() {
         log('① Backend local (DB file: temporal)…');
         const backend = spawn(process.execPath, [path.join(root, 'web-app/server/index.js')], {
             cwd: root,
-            stdio: 'ignore',
+            stdio: ['ignore', 'pipe', 'pipe'],
             env: {
                 ...process.env,
                 TURSO_DATABASE_URL: 'file:' + dbPath,
@@ -111,6 +129,13 @@ async function main() {
                 PORT: '3001'
             }
         });
+        for (const stream of [backend.stdout, backend.stderr]) {
+            stream.setEncoding('utf8');
+            stream.on('data', chunk => {
+                backendOutput.push(chunk);
+                while (backendOutput.join('').length > 12000) backendOutput.shift();
+            });
+        }
         procs.push(backend);
         await waitForHttp('http://127.0.0.1:3001/api/companies');
         log('✅ Backend :3001 con DB local');
@@ -346,7 +371,32 @@ async function main() {
             receipt = await s.evl(`(() => { const el = document.querySelector('[data-testid="u2-import-result"]'); return el ? el.innerText : null; })()`);
             if (receipt) break;
         }
-        if (!receipt) throw new Error('sin recibo de importación (¿falló el POST?)');
+        if (!receipt) {
+            const diagnostic = await s.evl(`(() => {
+                const trails = JSON.parse(localStorage.getItem('universalImportTrails') || '[]');
+                const trail = trails[trails.length - 1];
+                const events = trail?.events || [];
+                const result = events.filter(event => event.kind === 'result').at(-1) || null;
+                return {
+                    url: location.href,
+                    body: document.body.innerText.slice(-1800),
+                    errorNodes: [...document.querySelectorAll('[data-testid]')]
+                        .filter(node => /error/i.test(node.getAttribute('data-testid')))
+                        .map(node => ({ id: node.getAttribute('data-testid'), text: node.innerText.slice(0, 500) })),
+                    confirmDisabled: document.querySelector('[data-testid="u2-confirm-btn"]')?.disabled ?? null,
+                    trail: trail ? {
+                        fileName: trail.fileName,
+                        kinds: [...new Set(events.map(event => event.kind))],
+                        result: result ? { status: result.status, successCount: result.successCount, message: result.message } : null
+                    } : null,
+                    apiResources: performance.getEntriesByType('resource')
+                        .filter(entry => entry.name.includes('/api/'))
+                        .slice(-12)
+                        .map(entry => ({ name: entry.name, duration: Math.round(entry.duration), transferSize: entry.transferSize }))
+                };
+            })()`);
+            throw new Error('sin recibo de importación: ' + JSON.stringify({ diagnostic, backend: backendOutput.join('').slice(-8000) }));
+        }
         log('✅ Recibo: ' + receipt.replace(/\n/g, ' ').slice(0, 140));
         if (!/3 cuentas importadas/.test(receipt)) throw new Error('recibo inesperado: ' + receipt.slice(0, 200));
         // Bitácora de vuelo: el camino completo quedó persistido localmente.
@@ -375,24 +425,32 @@ async function main() {
         }
         if (trailInfo.hasCompanyId) throw new Error('la bitácora contiene identificadores empresariales');
         log(`✅ Bitácora: ${trailInfo.events} eventos (${(trailInfo.kinds || []).join(',')}) sin identificadores`);
-        // La profundidad explícita es real aunque los códigos tengan ancho uniforme.
-        if (!/Estructura de la empresa: no determinada por el análisis/.test(receipt)) {
-            throw new Error('el recibo debía indicar que no se persistió una máscara no representable');
+        if (scenario === 'fixed-width' && !/Estructura de la empresa: no determinada por el análisis/.test(receipt)) {
+            throw new Error('el caso fixed-width debía omitir una máscara no representable');
+        }
+        if (scenario === 'dotted' && !/Estructura de la empresa: actualizada/.test(receipt)) {
+            throw new Error('el patrón punteado debía persistir su estructura derivable');
         }
 
         // 9) Verificar en la DB local vía API
         const accounts = await fetch(`http://127.0.0.1:3001/api/accounts?companyId=${companyId}`).then(r => r.json());
         const rows = accounts.data || accounts;
         const codes = rows.map(a => a.code).sort();
-        if (JSON.stringify(codes) !== JSON.stringify(['100000', '110000', '110100'])) {
+        const expectedCodes = fixture.accounts.map(account => account.code).sort();
+        if (JSON.stringify(codes) !== JSON.stringify(expectedCodes)) {
             throw new Error('cuentas en DB no coinciden: ' + JSON.stringify(codes));
         }
         const byCode = Object.fromEntries(rows.map(a => [a.code, a]));
         const problems = [];
-        if (byCode['100000']?.level !== 1) problems.push(`100000.level=${JSON.stringify(byCode['100000']?.level)}`);
-        if (byCode['110000']?.level !== 2 || byCode['110000']?.parent_code !== '100000') problems.push(`110000=${JSON.stringify({ level: byCode['110000']?.level, parent: byCode['110000']?.parent_code })}`);
-        if (byCode['110100']?.level !== 3 || byCode['110100']?.parent_code !== '110000') problems.push(`110100=${JSON.stringify({ level: byCode['110100']?.level, parent: byCode['110100']?.parent_code })}`);
-        if (String(byCode['110100']?.name || '').trim() !== 'CAJA MN') problems.push(`110100.name=${JSON.stringify(byCode['110100']?.name)}`);
+        for (const expected of fixture.accounts) {
+            const actual = byCode[expected.code];
+            if (actual?.level !== expected.level || (actual?.parent_code ?? null) !== expected.parent) {
+                problems.push(`${expected.code}=${JSON.stringify({ level: actual?.level, parent: actual?.parent_code })}`);
+            }
+            if (String(actual?.name || '').trim() !== expected.name) {
+                problems.push(`${expected.code}.name=${JSON.stringify(actual?.name)}`);
+            }
+        }
         if (rows.some(account => account.type !== 'Activo')) problems.push('types=' + JSON.stringify(rows.map(a => a.type)));
         if (problems.length > 0) {
             throw new Error('jerarquía/nombres/tipos incorrectos [' + problems.join(' | ') + '] rows=' + JSON.stringify(rows).slice(0, 600));
@@ -400,13 +458,20 @@ async function main() {
         const companies = await fetch('http://127.0.0.1:3001/api/companies').then(r => r.json());
         const mine = (companies.data || companies).find(c => String(c.id) === String(companyId));
         if (!mine) throw new Error('la empresa desechable desapareció de la DB local');
-        if (mine.code_mask || mine.plan_structure) {
+        if (scenario === 'fixed-width' && (mine.code_mask || mine.plan_structure)) {
             throw new Error('se persistió una máscara no representable para niveles uniformes: ' + JSON.stringify({
                 code_mask: mine.code_mask,
                 plan_structure: mine.plan_structure
             }));
         }
-        log(`✅ DB local verificada: 3 cuentas (100000/110000/110100), niveles 1–3 y padres; máscara omitida`);
+        if (scenario === 'dotted') {
+            if (mine.code_mask !== '#.#.##') throw new Error('code_mask punteado incorrecto: ' + JSON.stringify(mine.code_mask));
+            const persistedStructure = JSON.parse(mine.plan_structure || '{}');
+            if (JSON.stringify(persistedStructure.levelLengths) !== JSON.stringify([1, 2, 4])) {
+                throw new Error('plan_structure.levelLengths incorrecto: ' + JSON.stringify(persistedStructure.levelLengths));
+            }
+        }
+        log(`✅ DB local verificada: escenario ${scenario}, 3 cuentas con niveles/padres y estructura esperada`);
 
         s.close();
         log('\nImport E2E U-5: PASS (import real en empresa desechable, DB local)');

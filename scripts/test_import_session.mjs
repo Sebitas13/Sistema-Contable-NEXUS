@@ -364,6 +364,18 @@ const cleanContract = mkContract({ nodes: N() });
         reviewedEditValidation.errors.some(error => error.includes('BLOCK por jerarquía rota')),
         'el validador externo no muestra PASS si una edición rompe una relación aunque el nodo ya requiriera revisión');
 
+    const malformedStructure = mkContract({ nodes: N() });
+    malformedStructure.levels = [1, 3, 2];
+    malformedStructure.hierarchy = { separator: null, levelLengths: [1, 3, 2], levelCount: 3 };
+    const malformedStructureSession = S.createImportSession({ regions: [malformedStructure], now });
+    const malformedStructureValidation = ImportContractValidator.validate(malformedStructure);
+    const malformedStructureSimulation = S.simulate(malformedStructureSession, { companyId: 'c1' });
+    criterion('B9c1.maskMetadataGate',
+        !malformedStructureValidation.valid && !S.canImport(malformedStructureSession) &&
+        !malformedStructureSimulation.allowed && malformedStructureSimulation.payload === null &&
+        malformedStructureValidation.errors.some(error => error.includes('estrictamente crecientes')),
+        'longitudes de nivel no crecientes bloquean validador, importación y payload');
+
     let parentExcluded = S.excludeRow(S.createImportSession({ regions: [parentContract], now }), 'region_0:0');
     criterion('B9d.excludedParentBlocks', !S.canImport(parentExcluded) && !S.simulate(parentExcluded).payload,
         'excluir un padre con hijos efectivos bloquea y no produce payload');

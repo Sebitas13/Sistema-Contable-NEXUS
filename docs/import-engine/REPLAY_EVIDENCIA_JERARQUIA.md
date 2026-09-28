@@ -1,6 +1,6 @@
 # Replay de evidencia jerárquica
 
-Estado: corrección arquitectónica local lista para revisión/commit. U-9 continúa pausado. No se habilitan Etapa 2, U-10, cambio de default ni retiro del importador legacy.
+Estado: evidencia de la corrección de jerarquía validada para U-9 Etapa 1 del piloto controlado. No habilita Etapa 2, U-10, cambio de default ni retiro del importador legacy.
 
 ## Causa raíz y corrección
 
@@ -55,9 +55,9 @@ PUCT conserva la política existente; no se cambió la fusión ni se alteró el 
 
 ## Fixtures, regresiones y extremo a extremo
 
-`scripts/test_hierarchy_evidence.mjs` pasa 33 comprobaciones. Incluye ancho físico fijo sin inferencia plana, flat confirmado/no confirmado, preservación de NIVEL y PADRE explícitos, coherencia nivel/padre, orden fuente determinista, ambigüedad sin padre inventado, niveles agrupados en anchura, regresión de longitud variable, fuente 313 y resolución plana sin ocultar revisión de normalización.
+La primera validación registró 33 comprobaciones en `scripts/test_hierarchy_evidence.mjs`; la revalidación posterior pasa 41. Ambas cubren ancho físico fijo sin inferencia plana, flat confirmado/no confirmado, preservación de NIVEL y PADRE explícitos, coherencia nivel/padre, orden fuente determinista, ambigüedad sin padre inventado, niveles agrupados en anchura, regresión de longitud variable, fuente 313 y resolución plana sin ocultar revisión de normalización.
 
-La prueba dirigida de wizard U-9 terminó con 3 PASS / 0 FAIL: niveles explícitos fixed-width avanzan correctamente de nivel 2 a 6; la jerarquía desconocida se detiene en revisión; y la contradicción entre nivel y padre produce BLOCK y no avanza. La prueba registró cero peticiones `/api/*` en esos recorridos.
+La primera prueba dirigida del wizard U-9 terminó con 3 PASS / 0 FAIL: niveles explícitos fixed-width avanzan correctamente de nivel 2 a 6; la jerarquía desconocida se detiene en revisión; y la contradicción entre nivel y padre produce BLOCK y no avanza. La revalidación completa cubre ocho escenarios y también registra cero peticiones `/api/*` en esos recorridos.
 
 El import E2E se ejecutó contra una base SQLite desechable local, nunca contra Turso/producción. Importó tres cuentas fixed-width de niveles 1/2/3 con sus padres; la máscara se omitió y el comprobante informó que no se determinó una estructura de empresa. El E2E de producción del runner también comprobó que no se emite POST de importación con estructura inválida.
 
@@ -72,15 +72,28 @@ El import E2E se ejecutó contra una base SQLite desechable local, nunca contra 
 
 No se modificaron `SmartImportWizard.jsx`, backend/DB, motor IA, archivos del corpus PUCT ni el default/rollout. No hay cambios de allowlist para ocultar divergencias.
 
+## Revalidación de integración 2026-09-27
+
+El commit aprobado `6ca85ac` se integró en `main` como `5513094`, conservando los cambios locales reconciliados. El workbook tracked tiene 2.859 cuentas ASFI; la copia de trabajo ya modificada antes de esta integración contiene 2.860 por la fila local `121.00` (padre de las cuentas `121.02`–`121.99`). Esta integración no alteró esa copia, que permanece fuera del commit.
+
+- Conteos del golden corpus: PUCT5C 2.217, DASH 235, ASFI tracked 2.859 (2.860 en el overlay local con la fila `121.00`) y VARLEN 577. `contract_audit.mjs` acepta solo esos dos estados ASFI conocidos, aserta los demás conteos y rotula la tabla como corpus, no como un diferencial histórico. El Excel local continúa excluido del commit.
+- `scripts/test_hierarchy_evidence.mjs`: 41 PASS; `npm test`: todas las suites PASS; contract audit 46 PASS / 0 FAIL; production gate 51 PASS / 0 FAIL / 0 UNVERIFIED; browser E2E 7 PASS / 0 FAIL; wizard logic 83 PASS / 0 FAIL; wizard U-9 dirigido 8 PASS / 0 FAIL; shadow differential 16 PASS / 0 FAIL.
+- PDF MEFP (379 cuentas) y APS (67) pasaron calidad. ASFI local procesó 2.860 nodos, `unaccountedRows=0` y `silentCorruptionCount=0`; las revisiones de cada corpus siguen gobernando su gate.
+- Import E2E con SQLite temporal: fixed-width con NIVEL y dotted pasaron; verificaron recibo, bitácora sin identificadores y niveles/padres persistidos. El fixed-width no guardó máscara; dotted persistió `#.#.##` con longitudes `[1,2,4]`.
+- `npm run build`: PASS. Permanecen avisos de `eval` en pdfjs/DataForge y de chunks mayores a 500 KB.
+- DeepSeek `opencode-go/deepseek-v4.1-flash` hizo revisión read-only. Detectó que el primer commit esperaba solo el conteo local ASFI; se corrigió para aceptar exclusivamente los dos conteos conocidos (tracked 2.859 y overlay 2.860). No encontró bloqueantes adicionales de lógica; dejó observaciones menores de mantenimiento fuera del alcance de este commit.
+
+**Estado actual:** U-9 Etapa 1 reanudada tras esta validación. `post-fix successful real imports = 0`; ninguna prueba local cuenta como importación real. Etapa 2 y U-10 permanecen fuera de alcance.
+
 ## Verificación y revisión
 
-- `node scripts/test_hierarchy_evidence.mjs`: 33 PASS.
-- `npm test`: exit 0; gate de producción 51 PASS / 0 FAIL / 0 UNVERIFIED; browser E2E 7 PASS / 0 FAIL; wizard U-9 81 PASS / 0 FAIL; shadow differential 16 PASS / 0 FAIL; calidades PDF MEFP 379 y APS 67 aprobadas.
-- `node scripts/wizard_e2e_u2.mjs --only=U9-FIXED`: 3 PASS / 0 FAIL.
-- `node scripts/wizard_import_e2e.mjs`: import local temporal correcto, sin Turso.
+- `node scripts/test_hierarchy_evidence.mjs`: 41 PASS en la revalidación; la primera pasada de esta corrección tuvo 33.
+- `npm test`: exit 0; gate de producción 51 PASS / 0 FAIL / 0 UNVERIFIED; browser E2E 7 PASS / 0 FAIL; wizard logic 83 PASS / 0 FAIL; shadow differential 16 PASS / 0 FAIL; calidades PDF MEFP 379 y APS 67 aprobadas.
+- `node scripts/wizard_e2e_u2.mjs`: 8 PASS / 0 FAIL en la revalidación dirigida U-9.
+- `node scripts/wizard_import_e2e.mjs`: fixed-width y dotted importados en bases locales temporales; sin Turso.
 - `npm run build`: exit 0. Permanecen advertencias conocidas de `eval` en pdfjs/DataForge y chunks mayores a 500 KB.
-- `git diff --check`: limpio antes de añadir este informe; debe repetirse tras la edición.
-- Revisión independiente read-only mediante OpenCode CLI, modelo `opencode-go/deepseek-v4.1-flash`, agente `plan`: dictamen final **READY TO COMMIT**, sin hallazgos HIGH/MEDIUM. La primera revisión encontró una divergencia entre la confirmación plana y el estado de revisión; se corrigió compartiendo `nodeNeedsReview()` entre gate, resumen y UI, y fue re-revisada.
+- `git diff --cached --check` y `git diff --check`: deben quedar limpios en la verificación final del commit.
+- La revisión independiente read-only encontró y ayudó a cerrar la dependencia del conteo ASFI respecto al workbook local; las observaciones menores restantes no bloquean el piloto.
 
 ## Riesgos residuales y decisión
 
@@ -90,4 +103,4 @@ No se modificaron `SmartImportWizard.jsx`, backend/DB, motor IA, archivos del co
 - Los datos locales con duplicados/jerarquías defectuosas siguen requiriendo revisión humana. No se afirma compatibilidad universal de formatos.
 - La lista de temporales generados permanece en el worktree, aunque ignorada por Git; no se hizo limpieza destructiva.
 
-**Estado U-9: PAUSADO.** Sin commit. Dictamen de código y pruebas: **READY TO COMMIT**. Detener aquí y esperar aprobación explícita antes de crear el commit o reanudar el rollout.
+**Límite de rollout:** solo U-9 Etapa 1 del piloto controlado. `post-fix successful real imports = 0`; ninguna prueba local cuenta como importación real. Etapa 2 y U-10 requieren una decisión y autorización posteriores.

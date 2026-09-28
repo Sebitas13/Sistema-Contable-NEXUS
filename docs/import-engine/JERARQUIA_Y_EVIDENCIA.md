@@ -1,11 +1,13 @@
 # Jerarquía y evidencia del importador universal
 
-Estado: Analyzer 2.3.0 y contrato v1.1. El rollout U-9 permanece pausado; esta política no habilita Etapa 2, U-10 ni cambio del importador predeterminado.
+Estado: Analyzer 2.3.0 y contrato v1.1. U-9 Etapa 1 está reanudada para el piloto controlado; esta política no habilita Etapa 2, U-10 ni cambio del importador predeterminado.
 
 ## Conceptos que no se deben mezclar
 
 - `observedCodeLengths` registra el número de dígitos observado en los códigos, sin separadores. Es una propiedad física del identificador.
+- `observedCharacterLengths` registra el ancho textual, incluidos los separadores; `observedDigitLengths` distingue el ancho en dígitos. Ninguno declara por sí solo la profundidad lógica.
 - `logicalLevelLengths` registra longitudes acumuladas que describen una estructura codificada por segmentos o longitudes variables cuando esa estructura se puede demostrar. No se rellena a partir de una única longitud física.
+- `levelStructureSource` identifica la evidencia que permitió derivar esa estructura (`SEPARATOR_PATTERN`, `VARIABLE_CODE_WIDTHS`, `EXPLICIT_LEVEL_WIDTHS` o `VERIFIED_PARENT_GRAPH_WIDTHS`); permanece nula si no existe una máscara demostrable.
 - `level` es la profundidad semántica de una cuenta. Puede proceder de `sourceLevel`, de una estructura materializada o de una decisión explícita del usuario.
 - `parent` es una arista del árbol. Puede proceder de `sourceParent` o de una inferencia auditable. No se obtiene del nombre de la cuenta.
 

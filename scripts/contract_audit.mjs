@@ -79,9 +79,10 @@ console.log('\n── GOLDEN CORPUS REAL ──');
 const GOLDENS = [
     // PUCT 5-col: el flujo legacy FUSIONA las 5 columnas (detectAndMergeColumns),
     // por eso aquí se analiza vía CanonicalDocument (multi-columna) — no col C sola.
-    { id: 'PUCT5C', file: 'PUCT/puct.xlsx', sheet: 'PUCT', multiColumn: true, expectNodes: 2100, desc: 'PUCT oficial 5 columnas fusionadas' },
+    { id: 'PUCT5C', file: 'PUCT/puct.xlsx', sheet: 'PUCT', multiColumn: true, expectNodes: 2217, desc: 'PUCT oficial 5 columnas fusionadas' },
     { id: 'DASH', file: 'PUCT/Planes de cuentas.xlsx', sheet: 'Hoja2', code: 'CODIGO', name: 'DESCRIPCION', parent: null, expectNodes: 235, desc: 'Plano guiones 100-10-01 (contiene 1 duplicado real 700-10-06)' },
-    { id: 'ASFI', file: 'PUCT/Planes de cuentas.xlsx', sheet: 'Plan de cuentas ASFI', code: 'Código', name: 'Nombre', parent: 'Cuenta Padre', expectNodes: 2859, desc: 'ASFI bancario con padre explícito' },
+    // The tracked workbook has 2,859 nodes; the validated local overlay adds 121.00.
+    { id: 'ASFI', file: 'PUCT/Planes de cuentas.xlsx', sheet: 'Plan de cuentas ASFI', code: 'Código', name: 'Nombre', parent: 'Cuenta Padre', expectNodes: [2859, 2860], desc: 'ASFI bancario con padre explícito (tracked/local overlay)' },
     { id: 'VARLEN', file: 'PUCT/Planes de cuentas.xlsx', sheet: 'Hoja5', code: 'CODIGO ', name: 'NOMBRE CUENTA ', parent: null, expectNodes: 577, desc: 'Longitud variable (contiene 5 duplicados reales)' },
 ];
 const REGRESSION_MATRIX = [];
@@ -127,6 +128,9 @@ for (const g of GOLDENS) {
         continue;
     }
     const ms = Date.now() - t;
+    const expectedCounts = Array.isArray(g.expectNodes) ? g.expectNodes : [g.expectNodes];
+    criterion(`G.${g.id}.count`, expectedCounts.includes(contract.nodes.length),
+        `${g.desc} — nodes=${contract.nodes.length}, esperado=${expectedCounts.join(' o ')}`);
     const v = ImportContractValidator.validate(contract);
     const dupReal = contract.errors.filter(e => e.severity === 'BLOCK' && e.type === 'duplicateCode').length;
     const structErr = contract.errors.filter(e => e.severity === 'BLOCK' && e.type !== 'duplicateCode').length;
@@ -147,7 +151,7 @@ for (const g of GOLDENS) {
         caso: g.id, desc: g.desc, rows: contract.stats?.totalRows, nodes: contract.nodes.length,
         roots: contract.nodeCounts?.roots, groups: contract.nodeCounts?.groups, leaves: contract.nodeCounts?.leaves,
         contractVersion: contract.contractVersion, fingerprint: nodesFingerprint(contract.nodes).slice(0, 24) + '…',
-        diff: 'BASELINE', classification: 'EQUIVALENT', resultado: v.valid ? 'PASS' : 'BLOCKED_BY_GATE'
+        diff: 'NOT_COMPARED', classification: 'CORPUS_ONLY', resultado: v.valid ? 'PASS' : 'BLOCKED_BY_GATE'
     });
 }
 
@@ -304,10 +308,10 @@ console.log('\n── COMPATIBILITY ADAPTER ──');
 console.log('\n' + '='.repeat(95));
 console.log(`RESULTADO: ${PASS} PASS / ${FAIL} FAIL — ${elapsed()}`);
 console.log('='.repeat(95));
-console.log('\n── MATRIZ DE REGRESIÓN (golden corpus) ──');
-console.log('Caso | Desc | Rows | Nodes | Root/Group/Leaf | ContractVer | Resultado');
+console.log('\n── MATRIZ DEL CORPUS GOLDEN (sin diferencial histórico) ──');
+console.log('Caso | Desc | Rows | Nodes | Root/Group/Leaf | ContractVer | Clasificación | Resultado');
 for (const r of REGRESSION_MATRIX) {
-    console.log(`${r.caso} | ${r.desc.slice(0, 45)} | ${r.rows} | ${r.nodes} | ${r.roots}/${r.groups}/${r.leaves} | ${r.contractVersion} | ${r.resultado}`);
+    console.log(`${r.caso} | ${r.desc.slice(0, 45)} | ${r.rows} | ${r.nodes} | ${r.roots}/${r.groups}/${r.leaves} | ${r.contractVersion} | ${r.classification} | ${r.resultado}`);
 }
 console.log('\n── CRITERIOS DE APROBACIÓN ──');
 for (const c of CRITERIA) {

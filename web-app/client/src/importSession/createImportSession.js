@@ -453,11 +453,14 @@ function gateReasons(session, region) {
         }
     }
 
-    // 4) UNKNOWN (isPostable === 'UNKNOWN') sin confirmación de naturaleza
+    // 4) UNKNOWN (isPostable === 'UNKNOWN') sin confirmación de naturaleza.
+    // Evaluar el contrato efectivo: una confirmación plana válida convierte
+    // postabilidad desconocida en inferida para sus cuentas de nivel 1.
+    let effectiveIndex = 0;
     for (let index = 0; index < c.nodes.length; index++) {
-        const node = c.nodes[index];
         const uid = uidOf(region.regionId, index);
         if (excludedUids.has(uid)) continue;
+        const node = effective.nodes[effectiveIndex++];
         if (node.isPostable === 'UNKNOWN' && !confirmedUids.has(uid)) {
             reasons.push(`UNKNOWN sin confirmar (${uid}: ${node.code})`);
         }

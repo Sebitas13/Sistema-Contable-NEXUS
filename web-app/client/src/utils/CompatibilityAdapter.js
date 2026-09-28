@@ -44,14 +44,17 @@ export class CompatibilityAdapter {
 
         // structureConfig estilo wizard, derivado del contract SIN re-inferir
         const sep = contract.separator || null;
-        const levelLengths = (contract.levels && contract.levels.length > 0)
-            ? contract.levels
-            : (contract.hierarchy && contract.hierarchy.logicalLevelLengths) ||
-                (contract.hierarchy && contract.hierarchy.levelLengths) || [];
+        const hasDeclaredLevelStructure = Array.isArray(contract.levels) ||
+            Array.isArray(contract.hierarchy && contract.hierarchy.levelLengths);
+        const levelLengths = [contract.hierarchy?.logicalLevelLengths, contract.levels, contract.hierarchy?.levelLengths]
+            .find(lengths => Array.isArray(lengths) && lengths.length > 0) || [];
+        const logicalLevelCount = Number.isInteger(contract.hierarchy && contract.hierarchy.levelCount)
+            ? contract.hierarchy.levelCount
+            : levelLengths.length;
         const structureConfig = {
             hasSeparator: !!sep,
             separator: sep || '',
-            levelCount: levelLengths.length,
+            levelCount: logicalLevelCount,
             levelLengths,
             levelIncrements: levelLengths.map(() => 1),
             smartZeroCheck: false,
@@ -84,9 +87,9 @@ export class CompatibilityAdapter {
         // planAnalysis estilo wizard (lo que AccountPlanProfile.analyze devuelve)
         const planAnalysis = {
             separator: sep,
-            mask: this._maskFromLevels(levelLengths, sep),
-            regex: this._regexFromLevels(levelLengths, sep),
-            levelsCount: levelLengths.length,
+            mask: levelLengths.length ? this._maskFromLevels(levelLengths, sep) : null,
+            regex: levelLengths.length ? this._regexFromLevels(levelLengths, sep) : null,
+            levelsCount: logicalLevelCount,
             segments: [],
             levelInsights: levelLengths.map((len, i) => ({
                 level: i + 1,
@@ -97,6 +100,7 @@ export class CompatibilityAdapter {
                 isFixed: false
             })),
             behavior: { strictlyNumerical: true },
+            levelStructureKnown: hasDeclaredLevelStructure && levelLengths.length > 0,
             // Datos universales que el legacy no tiene:
             warnings: contract.warnings,
             errors: contract.errors,

@@ -348,6 +348,11 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
     criterion('B20.maskSep',
         dashMask && dashMask.code_mask === '###-##-##' && dashPlan && dashPlan.levelsCount === 3 && dashPlan.separator === '-' && dashPlan.regex === '^\\d+(?:\\-\\d+)*$',
         `separador → mask '###-##-##' + plan_structure idéntico al clásico (mask=${dashMask && dashMask.code_mask})`);
+    const dottedMask = deriveCompanyStructure({ separator: '.', levels: [1, 2, 4], hierarchy: { levelLengths: [1, 2, 4] } });
+    const dottedPlan = dottedMask && JSON.parse(dottedMask.plan_structure);
+    criterion('B20a.dottedMask',
+        dottedMask && dottedMask.code_mask === '#.#.##' && dottedPlan.levelLengths.join(',') === '1,2,4',
+        `niveles punteados usan dígitos acumulados, sin contar separadores (mask=${dottedMask && dottedMask.code_mask})`);
     const fixedMask = deriveCompanyStructure({ separator: null, levels: [], hierarchy: { levelLengths: [1, 2, 3, 6, 9] } });
     criterion('B20b.maskFixed',
         fixedMask && fixedMask.code_mask === '#########' && JSON.parse(fixedMask.plan_structure).regex === '^\\d+$',
@@ -356,6 +361,9 @@ const readWiz = (f) => fs.readFileSync(path.join(importDir, f), 'utf8');
         deriveCompanyStructure({ separator: '.', levels: null, hierarchy: { levelLengths: [] } }) === null &&
         deriveCompanyStructure(null) === null,
         'sin longitudes declaradas → null (el PUT se omite; jamás máscara inventada ni vacía)');
+    criterion('B20d.maskInvalid',
+        deriveCompanyStructure({ separator: '.', levels: [2, 4, 3], hierarchy: { levelLengths: [2, 4, 3] } }) === null,
+        'longitudes no crecientes no generan una máscara persistible');
 }
 
 // ─────────────────────────────────────────────────────────────

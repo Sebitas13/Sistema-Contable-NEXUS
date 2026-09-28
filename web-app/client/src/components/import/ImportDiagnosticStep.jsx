@@ -32,7 +32,11 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onConfir
     const hierarchy = contract.hierarchy || {};
     const confidence = contract.confidence || {};
     const dataLoss = contract.dataLoss || {};
-    const levelLengths = hierarchy.logicalLevelLengths || contract.levels || hierarchy.levelLengths || [];
+    const levelLengths = [hierarchy.logicalLevelLengths, contract.levels, hierarchy.levelLengths]
+        .find(lengths => Array.isArray(lengths) && lengths.length > 0) || [];
+    const observedCodeLengths = hierarchy.observedCodeLengths || [];
+    const observedDigitLengths = hierarchy.observedDigitLengths || observedCodeLengths;
+    const observedCharacterLengths = hierarchy.observedCharacterLengths || [];
     // Niveles observados en los nodos del Contract (lectura, no inferencia):
     // algunos formatos (ej. DASH) no declaran levelLengths.
     const observedLevels = {};
@@ -102,7 +106,7 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onConfir
                             <small className="fw-bold"><i className="bi bi-columns-gap me-2"></i>Columnas detectadas</small>
                         </div>
                         <div className="card-body small">
-                            <div>Código: <code>{String(mapping.codeColumn ?? '—')}</code> · Nombre: <code>{String(mapping.nameColumn ?? '—')}</code> · Padre: <code>{String(mapping.parentColumn ?? '—')}</code> · Tipo: <code>{String(mapping.typeColumn ?? '—')}</code></div>
+                            <div>Código: <code>{String(mapping.codeColumn ?? '—')}</code> · Nombre: <code>{String(mapping.nameColumn ?? '—')}</code> · Padre: <code>{String(mapping.parentColumn ?? '—')}</code> · Nivel: <code>{String(mapping.levelColumn ?? '—')}</code> · Tipo: <code>{String(mapping.typeColumn ?? '—')}</code></div>
                             <div className="mt-1 text-white-50">Confianza del mapeo: <strong className="text-white">{pct(mapping.confidence)}</strong>{mapping.ambiguous ? ' (ambiguo)' : ''}</div>
                         </div>
                     </div>
@@ -113,8 +117,10 @@ export default function ImportDiagnosticStep({ session, onSelectRegion, onConfir
                             <small className="fw-bold"><i className="bi bi-diagram-3 me-2"></i>Jerarquía detectada</small>
                         </div>
                         <div className="card-body small">
-                            <div>Estado: <strong data-testid="u2-hierarchy-status">{hierarchy.status || 'Sin evidencia'}</strong> · Profundidad lógica: <strong>{hierarchy.levelCount || 'desconocida'}</strong></div>
-                            <div className="mt-1 text-white-50">Anchos físicos observados: <code>{(hierarchy.observedCodeLengths || []).join(' · ') || '—'}</code> · Longitudes lógicas: <code>{levelLengths.join(' · ') || '—'}</code></div>
+                            <div>Estado: <strong data-testid="u2-hierarchy-status">{hierarchy.status || 'Sin evidencia'}</strong> · Separador: <code>{hierarchy.separator || '(sin separador)'}</code> · Profundidad lógica: <strong>{hierarchy.levelCount ?? 'desconocida'}</strong></div>
+                            <div className="mt-1 text-white-50">Anchos en caracteres: <code>{observedCharacterLengths.join(' · ') || '—'}</code></div>
+                            <div className="mt-1 text-white-50">Dígitos del código (sin separadores): <code>{observedDigitLengths.join(' · ') || '—'}</code></div>
+                            <div className="mt-1 text-white-50">Estructura lógica para máscara: <code>{levelLengths.join(' · ') || 'no inferible'}</code></div>
                             <div className="mt-1 text-white-50" data-testid="u2-observed-levels">Observados en nodos: <strong className="text-white">{observedSummary || '—'}</strong></div>
                             {hierarchy.status === 'UNKNOWN' && hierarchy.canConfirmFlat && (
                                 <div className="alert alert-warning py-2 mt-2 mb-0">

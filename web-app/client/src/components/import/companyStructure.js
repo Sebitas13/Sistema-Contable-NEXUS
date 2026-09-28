@@ -14,13 +14,14 @@ export function deriveCompanyStructure(effective) {
     const hierarchy = effective.hierarchy || {};
     if (hierarchy.status === 'UNKNOWN') return null;
     const sep = effective.separator || null;
-    const levelLengths = Array.isArray(hierarchy.logicalLevelLengths)
-        ? hierarchy.logicalLevelLengths.slice()
-        : [effective.levels, hierarchy.levelLengths]
-            .find(lengths => Array.isArray(lengths) && lengths.length > 0)?.slice() || [];
+    const levelLengths = [hierarchy.logicalLevelLengths, effective.levels, hierarchy.levelLengths]
+        .find(lengths => Array.isArray(lengths) && lengths.length > 0)?.slice() || [];
     const observedCodeLengths = (hierarchy.observedCodeLengths || []).slice();
+    const observedCharacterLengths = (hierarchy.observedCharacterLengths || []).slice();
     const levelCount = Number.isInteger(hierarchy.levelCount) ? hierarchy.levelCount : levelLengths.length;
     if (!levelLengths.length || levelCount !== levelLengths.length) return null;
+    if (levelLengths.some((length, index) => !Number.isInteger(length) || length < 1 ||
+        (index > 0 && length <= levelLengths[index - 1]))) return null;
     const codeMask = sep
         ? levelLengths.map((len, i) => '#'.repeat(Math.max(1, len - (i > 0 ? levelLengths[i - 1] : 0)))).join(sep)
         : '#'.repeat(Math.max(1, ...levelLengths));
@@ -33,6 +34,7 @@ export function deriveCompanyStructure(effective) {
             levelsCount: levelCount,
             levelLengths,
             observedCodeLengths,
+            observedCharacterLengths,
             hierarchySource: hierarchy.status,
             behavior: { strictlyNumerical: true }
         })

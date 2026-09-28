@@ -133,6 +133,13 @@ check('NIVEL de fuente llega al contrato sin cambiarse',
     explicitLevels.columnMapping.levelColumn === 'NIVEL' &&
     explicitLevels.nodes.map(node => node.sourceLevel).join() === '1,2,3' &&
     explicitLevels.nodes.map(node => node.level).join() === '1,2,3');
+const decimalSourceLevels = contract(['CODIGO', 'NOMBRE', 'NIVEL'], [
+    { CODIGO: '100000', NOMBRE: 'ACTIVO', NIVEL: '1.0' },
+    { CODIGO: '110000', NOMBRE: 'DISPONIBLE', NIVEL: '2.00' }
+]);
+check('niveles fuente con decimal cero conservan su valor entero',
+    decimalSourceLevels.nodes.map(node => node.sourceLevel).join() === '1,2' &&
+    !decimalSourceLevels.errors.some(error => error.type === 'invalidSourceLevel'));
 const canonicalCsv = await CsvAdapter.extract([
     'CODIGO,NOMBRE,NIVEL',
     '100000,ACTIVO,1',

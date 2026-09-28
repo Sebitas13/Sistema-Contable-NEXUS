@@ -71,6 +71,27 @@ export class ImportContractValidator {
         }
         if (!Array.isArray(contract.nodes)) errors.push('nodes no es array');
 
+        const levels = contract.levels;
+        const hierarchyLengths = contract.hierarchy && contract.hierarchy.levelLengths;
+        if (levels != null && !Array.isArray(levels)) errors.push('levels no es array');
+        if (hierarchyLengths != null && !Array.isArray(hierarchyLengths)) {
+            errors.push('hierarchy.levelLengths no es array');
+        }
+        const declaredLengths = [
+            ...(Array.isArray(levels) && levels.length ? [['levels', levels]] : []),
+            ...(Array.isArray(hierarchyLengths) && hierarchyLengths.length ? [['hierarchy.levelLengths', hierarchyLengths]] : [])
+        ];
+        for (const [field, lengths] of declaredLengths) {
+            if (lengths.some((length, index) => !Number.isInteger(length) || length < 1 ||
+                (index > 0 && length <= lengths[index - 1]))) {
+                errors.push(`${field} debe contener longitudes enteras positivas y estrictamente crecientes`);
+            }
+        }
+        if (Array.isArray(levels) && levels.length && Array.isArray(hierarchyLengths) && hierarchyLengths.length &&
+            (levels.length !== hierarchyLengths.length || levels.some((length, index) => length !== hierarchyLengths[index]))) {
+            errors.push('levels contradice hierarchy.levelLengths');
+        }
+
         if (errors.length > 0) {
             return { valid: false, errors, warnings, blocks: errors, fingerprint: null };
         }
@@ -99,6 +120,10 @@ export class ImportContractValidator {
                 errors.push(`${tag}: rawCode difiere de normalizedCode sin transformations (corrupción silenciosa)`);
             }
             if (n.requiresReview === undefined) warnings.push(`${tag}: sin flag requiresReview`);
+            if (n.levelEvidence === 'SOURCE_LEVEL' && Number.isInteger(n.sourceLevel) &&
+                Number.isInteger(n.level) && n.sourceLevel !== n.level) {
+                errors.push(`${tag}: level (${n.level}) contradice el nivel declarado por la fuente (${n.sourceLevel})`);
+            }
         });
 
         const changedMissingParents = baselineContract

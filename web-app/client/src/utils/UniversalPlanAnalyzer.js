@@ -738,19 +738,17 @@ export class UniversalPlanAnalyzer {
     static proposeStructureUniversal(accounts, rawHeaders = null, rawRows = null) {
         const analysis = this.analyzeUniversal(accounts, rawHeaders, rawRows);
         const baseConfig = AccountPlanProfile.proposeStructure(accounts);
-
-        if (analysis.validLengths && analysis.validLengths.length > 0) {
-            if (!analysis.separator) {
-                // A single observed width describes physical encoding only. It
-                // is not enough to declare a one-level logical hierarchy.
-                if (analysis.validLengths.length > 1) {
-                    baseConfig.levelLengths = [...analysis.validLengths];
-                    baseConfig.levelCount = baseConfig.levelLengths.length;
-                } else {
-                    baseConfig.levelLengths = [];
-                    baseConfig.levelCount = 0;
-                }
-            }
+        const observedLengths = analysis.validLengths || [];
+        const hasLengthStructure = Boolean(analysis.separator) || observedLengths.length > 1;
+        baseConfig.allowLengthInference = hasLengthStructure;
+        baseConfig.hasSeparator = Boolean(analysis.separator);
+        baseConfig.separator = analysis.separator || '';
+        if (!analysis.separator && !hasLengthStructure) {
+            baseConfig.levelLengths = [];
+            baseConfig.levelCount = 0;
+        } else if (!analysis.separator && observedLengths.length > 0) {
+            baseConfig.levelLengths = [...observedLengths];
+            baseConfig.levelCount = baseConfig.levelLengths.length;
         }
 
         return {
@@ -847,7 +845,8 @@ export class UniversalPlanAnalyzer {
             const compactHeader = header.replace(/\s/g, '');
             if (kind === 'level') {
                 const hasLevel = [
-                    'nivel', 'level', 'lvl', 'jerarquia', 'jerarquico', 'jerarquica', 'hierarchy', 'subnivel', 'sublevel'
+                    'nivel', 'level', 'lvl', 'jerarquia', 'jerarquico', 'jerarquica', 'hierarchy', 'subnivel', 'sublevel',
+                    'profundidad', 'depth'
                 ].some(token => words.includes(token)) ||
                     /^(?:nivel|level|lvl|jerarquia|hierarchy)(?:cuenta|account|code|codigo|jerarquico|jerarquica|hierarchical|number|num)?$/.test(compactHeader) ||
                     /^(?:cuenta|account|code|codigo)(?:nivel|level|lvl|jerarquia|hierarchy)$/.test(compactHeader);
@@ -885,7 +884,7 @@ export class UniversalPlanAnalyzer {
     static parseSourceLevel(value) {
         const raw = String(value ?? '').trim();
         if (!raw) return { value: null, valid: true };
-        if (!/^\d+$/.test(raw)) return { value: null, valid: false };
+        if (!/^\d+(?:\.0+)?$/.test(raw)) return { value: null, valid: false };
         const level = Number(raw);
         return { value: Number.isSafeInteger(level) && level > 0 ? level : null, valid: Number.isSafeInteger(level) && level > 0 };
     }
@@ -975,8 +974,10 @@ export class UniversalPlanAnalyzer {
 
         const analysis = this.analyzeUniversal(accountsForAnalysis, headers, rows);
         const config = this.proposeStructureUniversal(accountsForAnalysis, headers, rows).config;
-        const observedCodeLengths = [...new Set(plausible.map(a => a.normalizedCode.replace(/[.\-/]/g, '').length))]
+        const observedCodeLengths = [...new Set(plausible.map(a => (a.normalizedCode.match(/\d/g) || []).length))]
             .sort((a, b) => a - b);
+        const observedCharacterLengths = [...new Set(plausible.map(a => a.normalizedCode.length))].sort((a, b) => a - b);
+        const observedDigitLengths = observedCodeLengths.slice();
 
         // Clasificación de nodos y validaciones con severidades
         const codeSet = new Set(plausible.map(a => a.normalizedCode));
@@ -1000,6 +1001,7 @@ export class UniversalPlanAnalyzer {
             if (a.typeRaw) codeToType[a.normalizedCode] = a.typeRaw;
         });
 
+        // Si no hay parentColumn pero hay códigos jerárquicos, infiere padres
         // Se fusionan los hallazgos de analyzeUniversal (declarados vacíos antes)
         // con las validaciones estructurales propias de generateImportContract.
         errors.push(...analysis.validationErrors);
@@ -1171,12 +1173,16 @@ export class UniversalPlanAnalyzer {
 
         const nodes = plausible.map(a => {
             const level = levelMap[a.normalizedCode];
+            const levelEvidence = a.levelMethod === 'CODE_STRUCTURE'
+                ? (hasParentColumn ? 'CODE_PATTERN_FALLBACK' : 'CODE_PATTERN')
+                : (a.levelMethod || 'UNKNOWN');
             const info = parentOf.get(a.normalizedCode) || { parent: null, method: 'OTHER', confidence: 0, evidence: [], requiresReview: true };
             const parent = info.parent;
             const children = childrenOf.get(a.normalizedCode) || [];
             const hasChildren = children.length > 0;
             let classification = 'UNKNOWN';
-            if (level === 1 && !hasChildren) classification = 'LEAF';
+            if (!Number.isInteger(level) || level < 1) classification = 'UNKNOWN';
+            else if (level === 1 && !hasChildren) classification = 'LEAF';
             else if (level === 1 && hasChildren) classification = 'ROOT';
             else if (Number.isInteger(level) && hasChildren) classification = 'GROUP';
             else if (Number.isInteger(level) && !hasChildren) classification = 'LEAF';
@@ -1186,7 +1192,9 @@ export class UniversalPlanAnalyzer {
             const explicitPostable = a.typeRaw ? (String(a.typeRaw).toLowerCase().includes('posteable') ? true : null) : null;
             // Si no hay columna POSTE, usa heurística de isPostable pero marcada como INFERRED
             let postableInfo;
-            if (typeColumn !== null && typeColumn !== undefined && a.typeRaw !== null) {
+            if (!Number.isInteger(level) || level < 1) {
+                postableInfo = { status: 'UNKNOWN', confidence: 0 };
+            } else if (typeColumn !== null && typeColumn !== undefined && a.typeRaw !== null) {
                 // Si hay columna tipo/poste explícita, úsala
                 postableInfo = this.classifyPostable({ level, hasChildren }, explicitPostable);
             } else {
@@ -1201,6 +1209,10 @@ export class UniversalPlanAnalyzer {
                 nature = 'EXPLICIT';
                 natureConfidence = 1.0;
                 natureReason = 'source_column';
+            } else if (!Number.isInteger(level) || level < 1) {
+                nature = 'UNKNOWN';
+                natureConfidence = 0;
+                natureReason = 'logical_level_unknown';
             } else if (level === 1) {
                 nature = 'INFERRED';
                 natureConfidence = 0.6;
@@ -1216,9 +1228,10 @@ export class UniversalPlanAnalyzer {
                 name: String(a.rawName || '').replace(/\s+/g, ' ').trim(),
                 normalizedCode: a.normalizedCode,
                 transformations: a.transformations,
-                requiresReview: a.requiresReview || info.requiresReview || !Number.isInteger(level),
+                requiresReview: a.requiresReview || info.requiresReview || levelEvidence === 'UNKNOWN' || !Number.isInteger(level),
                 normalizationRequiresReview: Boolean(a.requiresReview),
                 level,
+                levelEvidence,
                 parent: parent || null,
                 sourceLevel: a.sourceLevel ?? null,
                 inferredLevel: a.inferredLevel ?? null,
@@ -1253,6 +1266,37 @@ export class UniversalPlanAnalyzer {
             };
         });
 
+        let graphDerivedLogicalLevelLengths = [];
+        if (observedDigitLengths.length > 1 && nodes.every(node => Number.isInteger(node.level) && node.level > 0)) {
+            const levelToLength = new Map();
+            const lengthToLevel = new Map();
+            let consistent = true;
+            for (const node of nodes) {
+                const code = String(node.normalizedCode);
+                let width = 0;
+                if (analysis.separator) {
+                    const segments = code.split(analysis.separator);
+                    if (!segments.every(segment => /^\d+$/.test(segment))) consistent = false;
+                    width = segments.reduce((sum, segment) => sum + segment.length, 0);
+                } else if (/^\d+$/.test(code)) {
+                    width = code.length;
+                } else {
+                    consistent = false;
+                }
+                if ((levelToLength.has(node.level) && levelToLength.get(node.level) !== width) ||
+                    (lengthToLevel.has(width) && lengthToLevel.get(width) !== node.level)) {
+                    consistent = false;
+                    break;
+                }
+                levelToLength.set(node.level, width);
+                lengthToLevel.set(width, node.level);
+            }
+            const logicalLevels = [...levelToLength.keys()].sort((a, b) => a - b);
+            if (consistent && logicalLevels.length === observedDigitLengths.length &&
+                logicalLevels.every((level, index) => level === index + 1 && levelToLength.get(level) === observedDigitLengths[index])) {
+                graphDerivedLogicalLevelLengths = logicalLevels.map(level => levelToLength.get(level));
+            }
+        }
         // Duplicados: exacto vs normalizado con 3 casos (Regla 1 corregida)
         const byRaw = {};
         const byNorm = {};
@@ -1291,7 +1335,7 @@ export class UniversalPlanAnalyzer {
         }
 
         // Transiciones de nivel con 3 tipos
-        const validLevels = [...new Set(Object.values(levelMap).filter(Number.isInteger))].sort((a, b) => a - b);
+        const validLevels = [...new Set(Object.values(levelMap).filter(level => Number.isInteger(level) && level > 0))].sort((a, b) => a - b);
         for (let i = 1; i < plausible.length; i++) {
             const prev = plausible[i-1];
             const curr = plausible[i];
@@ -1338,9 +1382,13 @@ export class UniversalPlanAnalyzer {
         let logicalLevelLengths = sourceLevelByCode.size === 0 && lengthStructureIsUsable
             ? [...config.levelLengths]
             : [];
+        let logicalLevelStructureSource = logicalLevelLengths.length
+            ? (analysis.separator ? 'SEPARATOR_PATTERN' : 'VARIABLE_CODE_WIDTHS')
+            : null;
         if (!logicalLevelLengths.length && sourceLevelByCode.size === plausible.length && !hasUnknownLevel) {
             const orderedLevels = [...explicitLevelWidths.keys()].sort((a, b) => a - b);
-            const coversEveryLevel = orderedLevels.length === logicalLevelCount &&
+            // A single fixed-width level is not a code mask without flat confirmation.
+            const coversEveryLevel = logicalLevelCount > 1 && orderedLevels.length === logicalLevelCount &&
                 orderedLevels.every((level, index) => level === index + 1);
             const widths = coversEveryLevel ? orderedLevels.map(level => {
                 const values = [...explicitLevelWidths.get(level)];
@@ -1349,7 +1397,12 @@ export class UniversalPlanAnalyzer {
             if (widths.length > 0 && widths.every((width, index) =>
                 Number.isInteger(width) && (index === 0 || width > widths[index - 1]))) {
                 logicalLevelLengths = widths;
+                logicalLevelStructureSource = 'EXPLICIT_LEVEL_WIDTHS';
             }
+        }
+        if (!logicalLevelLengths.length && graphDerivedLogicalLevelLengths.length > 0) {
+            logicalLevelLengths = graphDerivedLogicalLevelLengths;
+            logicalLevelStructureSource = 'VERIFIED_PARENT_GRAPH_WIDTHS';
         }
         const hasMaterializedParents = [...parentOf.values()].some(info => info.parent);
         const hierarchyStatus = hasUnknownLevel ? 'UNKNOWN' : sourceLevelByCode.size > 0 ? 'EXPLICIT_LEVELS' :
@@ -1393,9 +1446,12 @@ export class UniversalPlanAnalyzer {
                 separator: analysis.separator,
                 status: hierarchyStatus,
                 observedCodeLengths,
+                observedCharacterLengths,
+                observedDigitLengths,
                 logicalLevelLengths,
                 levelLengths: logicalLevelLengths,
                 levelCount: logicalLevelCount,
+                levelStructureSource: logicalLevelStructureSource,
                 canConfirmFlat,
                 evidence: {
                     sourceLevelColumn: hasLevelColumn ? levelColumn : null,
@@ -1976,7 +2032,9 @@ export class UniversalPlanAnalyzer {
         }
         // 2) El padre estructural materializado prevalece. El relleno por
         //    bloques solo se considera si este candidato no existe.
-        const calc = AccountPlanProfile.calculateParent(code, { ...config, materializedCodes: codeSet });
+        const calc = config.allowLengthInference === false
+            ? null
+            : AccountPlanProfile.calculateParent(code, { ...config, materializedCodes: codeSet });
         const calcOk = calc && codeSet.has(String(calc)) && String(calc) !== code;
         const blockAlt = blockParentOf.get(code) || null;
         // Evaluación de bloque O(1) con hijos precomputados
@@ -2143,6 +2201,20 @@ export class UniversalPlanAnalyzer {
         const idx = headers.findIndex(h => { const n = norm(h); return /nombre|descripcion|detalle|cuenta/.test(n) && !/padre/.test(n); });
         if (idx >= 0) return idx;
         return codeCol === 0 ? 1 : 0;
+    }
+
+    static _guessLevelColumn(headers) {
+        const normalize = value => String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const accepted = new Set([
+            'nivel', 'nivel cuenta', 'nivel de cuenta', 'nivel jerarquico', 'nivel de jerarquia',
+            'level', 'account level', 'hierarchy level', 'depth', 'profundidad'
+        ]);
+        return headers.findIndex(header => accepted.has(normalize(header)));
     }
 
     // ──────────────────────────────────────────────────────────────

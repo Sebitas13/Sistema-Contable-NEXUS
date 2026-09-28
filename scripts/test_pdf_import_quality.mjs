@@ -9,11 +9,13 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { PdfAdapter, ExcelAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
+const { CsvAdapter, PdfAdapter, ExcelAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/FormatAdapter.js')).href);
 const { UniversalPlanAnalyzer: Analyzer } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/UniversalPlanAnalyzer.js')).href);
+const { CompatibilityAdapter } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/CompatibilityAdapter.js')).href);
 const { AccountPlanProfile } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/AccountPlanProfile.js')).href);
-const { applyOverride, canImportReport, createImportSession, effectiveContractOf, simulate } = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
+const { applyOverride, canImportReport, confirmNature, createImportSession, effectiveContractOf, simulate } = await import(pathToFileURL(path.join(root, 'web-app/client/src/importSession/index.js')).href);
 const { ImportContractValidator } = await import(pathToFileURL(path.join(root, 'web-app/client/src/utils/ImportContractValidator.js')).href);
+const { deriveCompanyStructure } = await import(pathToFileURL(path.join(root, 'web-app/client/src/components/import/companyStructure.js')).href);
 
 function localFile(relativePath) {
     return fs.readFileSync(path.join(root, relativePath));
@@ -151,12 +153,157 @@ async function analyzePdf(relativePath) {
         nameColumn: 'NOMBRE'
     });
     assert.deepEqual(fixedWidthContract.hierarchy.observedCodeLengths, [6]);
+    assert.deepEqual(fixedWidthContract.hierarchy.observedCharacterLengths, [6]);
     assert.deepEqual(fixedWidthContract.hierarchy.logicalLevelLengths, []);
     assert.equal(fixedWidthContract.hierarchy.status, 'UNKNOWN');
     assert.ok(fixedWidthContract.nodes.every(node => node.level === null),
         'regresión: un ancho físico único no declara plan plano ni profundidad lógica');
     assert.ok(fixedWidthContract.hierarchy.levelCount === 0 && fixedWidthProfile.levelsCount >= 1,
         'la señal de AccountPlanProfile no se reutiliza como profundidad lógica del contrato');
+    assert.equal(ImportContractValidator.validate(fixedWidthContract).valid, false);
+    assert.equal(deriveCompanyStructure(fixedWidthContract), null);
+
+    const makeFixedContract = (rows, { parentColumn = null, levelColumn = null } = {}) => {
+        const headers = ['CODIGO', 'NOMBRE'];
+        if (parentColumn) headers.push(parentColumn);
+        if (levelColumn) headers.push(levelColumn);
+        return Analyzer.generateImportContract({
+            fileName: 'synthetic-fixed-width.xlsx',
+            sheetName: 'Plan', headers, rows,
+            codeColumn: 'CODIGO', nameColumn: 'NOMBRE', parentColumn, levelColumn
+        });
+    };
+    const names = codes => codes.map(code => ({ CODIGO: code, NOMBRE: `Cuenta ${code}` }));
+    const chain = [
+        { CODIGO: '100000', NOMBRE: 'ACTIVO', PADRE: '', NIVEL: '1' },
+        { CODIGO: '110000', NOMBRE: 'DISPONIBLE', PADRE: '100000', NIVEL: '2' },
+        { CODIGO: '110100', NOMBRE: 'CAJA', PADRE: '110000', NIVEL: '3' }
+    ];
+
+    const flat = makeFixedContract([
+        { CODIGO: '410001', NOMBRE: 'CUENTA A', NIVEL: '1' },
+        { CODIGO: '720015', NOMBRE: 'CUENTA B', NIVEL: '1' }
+    ], { levelColumn: 'NIVEL' });
+    assert.deepEqual(flat.nodes.map(node => node.level), [1, 1]);
+    assert.deepEqual(flat.hierarchy.observedCodeLengths, [6]);
+    assert.deepEqual(flat.hierarchy.levelLengths, [], 'ancho físico no se presenta como estructura de máscara');
+    assert.equal(deriveCompanyStructure(flat), null, 'sin segmentos de máscara inferibles no se persiste code_mask');
+
+    const dottedDoc = await CsvAdapter.extract(new File([
+        'CODIGO,NOMBRE\n1,ACTIVO\n1.1,CAJA\n1.1.01,CAJA MN\n'
+    ], 'dotted.csv', { type: 'text/csv' }));
+    const dotted = Analyzer.analyzeCanonicalDocument(dottedDoc).regions[0];
+    assert.deepEqual(dotted.hierarchy.observedCharacterLengths, [1, 3, 6], 'el ancho textual conserva los separadores');
+    assert.deepEqual(dotted.hierarchy.observedCodeLengths, [1, 2, 4], 'el ancho de dígitos excluye separadores');
+    assert.deepEqual(dotted.hierarchy.observedDigitLengths, [1, 2, 4], 'la longitud lógica excluye separadores');
+    assert.deepEqual(dotted.hierarchy.levelLengths, [1, 2, 4], 'la estructura usa dígitos acumulados por nivel');
+    assert.equal(deriveCompanyStructure(dotted).code_mask, '#.#.##', 'la máscara no cuenta puntos como dígitos');
+    assert.equal(CompatibilityAdapter.toLegacyView(dotted).planAnalysis.mask, '#.#.##',
+        'la vista de compatibilidad y la estructura persistida comparten la misma máscara');
+
+    const parentOnly = makeFixedContract(chain.map(({ NIVEL, ...row }) => row), { parentColumn: 'PADRE' });
+    assert.deepEqual(parentOnly.nodes.map(node => node.level), [1, 2, 3]);
+    assert.deepEqual(parentOnly.nodes.map(node => node.parent), [null, '100000', '110000']);
+    assert.equal(ImportContractValidator.validate(parentOnly).valid, true);
+    assert.equal(deriveCompanyStructure(parentOnly), null);
+    let parentOnlySession = createImportSession({ regions: [parentOnly] });
+    parentOnlySession = confirmNature(parentOnlySession, 'region_0:0', 'Activo');
+    parentOnlySession = confirmNature(parentOnlySession, 'region_0:1', 'Activo');
+    const parentOnlySimulation = simulate(parentOnlySession, { companyId: 'fixture' });
+    assert.equal(parentOnlySimulation.allowed, true);
+    assert.deepEqual(parentOnlySimulation.payload.accounts.map(account => account.level), [1, 2, 3],
+        'la aserción cubre directamente todos los niveles que saldrían en el payload');
+    const legacyView = CompatibilityAdapter.toLegacyView(parentOnly);
+    assert.deepEqual(legacyView.structureConfig.levelLengths, []);
+    assert.equal(legacyView.planAnalysis.mask, null, 'la vista de compatibilidad tampoco inventa una máscara');
+    const contractWithoutLevelMetadata = { ...parentOnly, levels: undefined, hierarchy: { separator: null, levelCount: 3 } };
+    const legacyViewWithoutMetadata = CompatibilityAdapter.toLegacyView(contractWithoutLevelMetadata);
+    assert.deepEqual(legacyViewWithoutMetadata.structureConfig.levelLengths, []);
+    assert.equal(legacyViewWithoutMetadata.planAnalysis.mask, null,
+        'la vista de compatibilidad no sustituye metadatos ausentes por longitudes inventadas');
+
+    const levelOnly = makeFixedContract([
+        { CODIGO: '100000', NOMBRE: 'ACTIVO', NIVEL: '1' },
+        { CODIGO: '110000', NOMBRE: 'DISPONIBLE', NIVEL: '2' },
+        { CODIGO: '110100', NOMBRE: 'CAJA', NIVEL: '3' }
+    ], { levelColumn: 'NIVEL' });
+    assert.deepEqual(levelOnly.nodes.map(node => node.level), [1, 2, 3]);
+    assert.ok(levelOnly.nodes.every(node => node.levelEvidence === 'SOURCE_LEVEL'));
+    assert.equal(deriveCompanyStructure(levelOnly), null);
+
+    const parentAndLevel = makeFixedContract(chain, { parentColumn: 'PADRE', levelColumn: 'NIVEL' });
+    assert.deepEqual(parentAndLevel.nodes.map(node => node.level), [1, 2, 3]);
+    assert.equal(ImportContractValidator.validate(parentAndLevel).valid, true);
+
+    const sourceMissingParent = makeFixedContract([
+        { CODIGO: '122.02', NOMBRE: 'CUENTA A', PADRE: '122' },
+        { CODIGO: '122.03', NOMBRE: 'CUENTA B', PADRE: '122' }
+    ], { parentColumn: 'PADRE' });
+    assert.deepEqual(sourceMissingParent.nodes.map(node => node.level), [4, 4],
+        'un padre fuente ausente no borra niveles respaldados por una jerarquía separada');
+    assert.ok(sourceMissingParent.nodes.every(node => node.parent === null && node.parentInfo.declaredCode === '122' &&
+        node.requiresReview && node.levelEvidence === 'CODE_PATTERN_FALLBACK'));
+    const sourceMissingValidation = ImportContractValidator.validate(sourceMissingParent);
+    assert.equal(sourceMissingValidation.valid, true, 'el defecto fuente sigue siendo warning/review, no error estructural del motor');
+    assert.ok(sourceMissingValidation.warnings.some(warning => warning.includes('padre 122 no está materializado')));
+    const sourceMissingSession = createImportSession({ regions: [sourceMissingParent] });
+    assert.equal(canImportReport(sourceMissingSession).can, false);
+    assert.equal(simulate(sourceMissingSession).allowed, false,
+        'un padre ausente en el origen exige revisión antes de permitir simulación');
+    assert.equal(simulate(sourceMissingSession).payload, null);
+
+    const contradiction = makeFixedContract([
+        chain[0],
+        { ...chain[1], NIVEL: '1' },
+        chain[2]
+    ], { parentColumn: 'PADRE', levelColumn: 'NIVEL' });
+    const contradictionValidation = ImportContractValidator.validate(contradiction);
+    assert.equal(contradictionValidation.valid, false);
+    assert.ok(contradictionValidation.errors.some(error => /nivel .* padre/i.test(error)));
+    const contradictionSession = createImportSession({ regions: [contradiction] });
+    assert.equal(canImportReport(contradictionSession).can, false);
+    assert.equal(simulate(contradictionSession).allowed, false);
+    assert.equal(simulate(contradictionSession).payload, null);
+
+    const sourceLevelMutation = structuredClone(parentAndLevel);
+    sourceLevelMutation.nodes[2].level = 2;
+    assert.ok(ImportContractValidator.validate(sourceLevelMutation).errors.some(error =>
+        /contradice el nivel declarado por la fuente/.test(error)),
+    'mutar un nivel explícito sin una traza de override se detecta como contradicción');
+
+    const parentInfoContradiction = structuredClone(parentAndLevel);
+    parentInfoContradiction.nodes[2].parentInfo.code = '100000';
+    assert.ok(ImportContractValidator.validate(parentInfoContradiction).errors.some(error =>
+        /contradice parentInfo/.test(error)), 'dos referencias distintas al padre nunca pasan el validator');
+
+    const ambiguous = makeFixedContract(names(['345671', '928314']));
+    assert.deepEqual(ambiguous.nodes.map(node => node.level), [null, null]);
+    assert.ok(ambiguous.nodes.every(node => node.requiresReview));
+    const ambiguousSession = createImportSession({ regions: [ambiguous] });
+    assert.equal(canImportReport(ambiguousSession).can, false);
+    assert.equal(simulate(ambiguousSession).payload, null);
+
+    const variable = makeFixedContract(names(['1', '11', '1101']));
+    assert.deepEqual(variable.nodes.map(node => node.level), [1, 2, 3], 'conserva el contrato variable 1→2→4');
+    assert.deepEqual(variable.nodes.map(node => node.parent), [null, '1', '11']);
+
+    for (const contract of [flat, parentOnly, levelOnly, parentAndLevel, contradiction, ambiguous, variable]) {
+        const session = createImportSession({ regions: [contract] });
+        const result = simulate(session, { companyId: 'fixture' });
+        if (result.allowed) assert.equal(ImportContractValidator.validate(effectiveContractOf(session)).valid, true);
+        if (!ImportContractValidator.validate(effectiveContractOf(session)).valid) {
+            assert.equal(result.allowed, false, 'validator estructural inválido nunca permite payload');
+            assert.equal(result.payload, null);
+        }
+    }
+
+    const csv = await CsvAdapter.extract(
+        'CODIGO,NOMBRE,PADRE,NIVEL\n100000,ACTIVO,,1\n110000,DISPONIBLE,100000,2\n110100,CAJA,110000,3'
+    );
+    const canonical = Analyzer.analyzeCanonicalDocument(csv).regions[0];
+    assert.equal(canonical.columnMapping.levelColumn, 'NIVEL');
+    assert.deepEqual(canonical.nodes.map(node => node.level), [1, 2, 3],
+    'la ruta CanonicalDocument también conserva la columna explícita de nivel');
 }
 
 // PDF APS complementa el corpus con jerarquia por puntos y numeracion variable.
